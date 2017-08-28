@@ -31,7 +31,8 @@ setup(name='nfvppsim',
       install_requires=[
           "numpy",
           "scipy",
-          "simpy"
+          "simpy",
+          "coloredlogs"
       ],
       zip_safe=False,
       entry_points={

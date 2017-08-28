@@ -17,6 +17,10 @@ limitations under the License.
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import numpy as np
+import logging
+import os
+
+LOG = logging.getLogger(os.path.basename(__file__))
 
 
 class UniformRandomSelector(object):

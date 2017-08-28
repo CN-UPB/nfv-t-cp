@@ -16,6 +16,10 @@ limitations under the License.
 
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
+import logging
+import os
+
+LOG = logging.getLogger(os.path.basename(__file__))
 
 
 class SimpleNetworkServiceThroughputModel(object):
@@ -33,7 +37,7 @@ class SimpleNetworkServiceThroughputModel(object):
         self.name = name
         self.vnfs = vnfs
         self.alphas = alphas if alphas else [1.0 for _ in self.vnfs]
-        print("Initialized '{}' with alphas={} and {} VNFs".format(
+        LOG.info("Initialized '{}' with alphas={} and {} VNFs".format(
             self.name, self.alphas, len(self.vnfs)))
         
     def _calc_vnf_tp(self, cpu_times):

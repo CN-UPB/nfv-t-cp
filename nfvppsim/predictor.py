@@ -16,3 +16,7 @@ limitations under the License.
 
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
+import logging
+import os
+
+LOG = logging.getLogger(os.path.basename(__file__))

@@ -17,6 +17,10 @@ limitations under the License.
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import simpy
+import logging
+import os
+
+LOG = logging.getLogger(os.path.basename(__file__))
 
 
 class Profiler(object):
@@ -36,28 +40,29 @@ class Profiler(object):
     def do_measurement(self):
         while self.s.has_next():
             c = self.s.next()
-            print("Selected config: {}".format(c))
-            print("Start measurement at {} ...".format(self.env.now))
+            LOG.debug("t={} measuring config: {}".format(self.env.now, c))
             r = self.pm.evaluate(c)
             self._tmp_train_c.append(c)  # store configs ...
             self._tmp_train_r.append(r)  # ... and results of profiling run
             self.s.feedback(c, r)  # inform selector about result
             # Note: Timing could be randomized, or a more complex function:
             yield self.env.timeout(60)  # Fix: assumes 60s per measurement
-            print("Measurement result: {}".format(r))
-            print("... done at {}".format(self.env.now))
-            print("Store single result.")
+            LOG.debug("t={} result: {}".format(self.env.now, r))
+        LOG.debug("No configurations left. Stopping simulation.")
 
     def run(self, until=None):
+        # TODO refactor: initialize, postprocess
         # reset tmp. results
         self._tmp_train_c = list()
         self._tmp_train_r = list()
         # simulate profiling process
         self.env.run(until=until)  # time limit in seconds
         # predict full result using training sets
-        # TODO p.trian( self._tmp_train_c, self._tmp_train_r)
+        # TODO p.train( self._tmp_train_c, self._tmp_train_r)
         # TODO p.predict(self.pm_inputs) -> final result
-        print("Predict to have full result from selected.")
+        # TODO calculate error
+        # TODO add to global results (or return?)
+        LOG.debug("Done. Resulting MSE={}".format(0.0))
 
         
 def run(pmodel, pmodel_inputs, selector, predictor, result):

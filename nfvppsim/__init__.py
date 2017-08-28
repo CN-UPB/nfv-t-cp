@@ -17,12 +17,20 @@ limitations under the License.
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import numpy as np
+import logging
+import coloredlogs
+import os
+
 from nfvppsim.core import sim
 from nfvppsim.pmodel import SimpleNetworkServiceThroughputModel as SNSTM
 from nfvppsim.selector import UniformRandomSelector
 
+LOG = logging.getLogger(os.path.basename(__file__))
+
 
 def main():
+    # TODO CLI interface
+    coloredlogs.install(level="DEBUG")    
     # TODO replace this with configuration runner module
     # initialize and configure involved modules
 
