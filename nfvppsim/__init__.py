@@ -16,7 +16,13 @@ limitations under the License.
 
 Manuel Peuster,  Paderborn University, manuel@peuster.de
 """
+from nfvppsim.core import sim
 
 
 def main():
-    print("Hello World!")
+    # TODO replace this with configuration runner module
+    pmodel = None
+    selector = None
+    predictor = None
+    result = None
+    sim.run(pmodel, selector, predictor, result)
