@@ -16,3 +16,24 @@ limitations under the License.
 
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
+import numpy as np
+
+
+class UniformRandomSelector(object):
+
+    def __init__(self, pmodel_inputs, params=None):
+        self.pm_inputs = pmodel_inputs
+        self.params = params
+
+    def next(self):
+        idx = np.random.randint(0, len(self.pm_inputs))
+        return self.pm_inputs[idx]
+
+    def has_next(self):
+        return True
+
+    def feedback(self, c, r):
+        """
+        Inform selector about result for single configuration.
+        """
+        pass  # TODO store as internal state if needed

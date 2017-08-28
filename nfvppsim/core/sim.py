@@ -21,30 +21,45 @@ import simpy
 
 class Profiler(object):
 
-    def __init__(self, pmodel, selector, predictor, result):
+    def __init__(self, pmodel, pmodel_inputs, selector, predictor, result):
         self.pm = pmodel
+        self.pm_inputs = pmodel_inputs
         self.s = selector
         self.p = predictor
         self.r = result
+        self._tmp_train_c = list()
+        self._tmp_train_r = list()
         # initialize simulation environment
         self.env = simpy.Environment()
         self.profile_proc = self.env.process(self.do_measurement())
 
     def do_measurement(self):
-        while True:
-            print("Select config")
+        while self.s.has_next():
+            c = self.s.next()
+            print("Selected config: {}".format(c))
             print("Start measurement at {} ...".format(self.env.now))
-            print("Evaluate performance model")
+            r = self.pm.evaluate(c)
+            self._tmp_train_c.append(c)  # store configs ...
+            self._tmp_train_r.append(r)  # ... and results of profiling run
+            self.s.feedback(c, r)  # inform selector about result
             # Note: Timing could be randomized, or a more complex function:
             yield self.env.timeout(60)  # Fix: assumes 60s per measurement
+            print("Measurement result: {}".format(r))
             print("... done at {}".format(self.env.now))
             print("Store single result.")
 
     def run(self, until=None):
+        # reset tmp. results
+        self._tmp_train_c = list()
+        self._tmp_train_r = list()
+        # simulate profiling process
         self.env.run(until=until)  # time limit in seconds
+        # predict full result using training sets
+        # TODO p.trian( self._tmp_train_c, self._tmp_train_r)
+        # TODO p.predict(self.pm_inputs) -> final result
         print("Predict to have full result from selected.")
 
         
-def run(pmodel, selector, predictor, result):
-    p = Profiler(pmodel, selector, predictor, result)
+def run(pmodel, pmodel_inputs, selector, predictor, result):
+    p = Profiler(pmodel, pmodel_inputs, selector, predictor, result)
     p.run(until=400)
