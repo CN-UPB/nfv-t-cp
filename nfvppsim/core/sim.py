@@ -25,7 +25,16 @@ LOG = logging.getLogger(os.path.basename(__file__))
 
 class Profiler(object):
 
-    def __init__(self, pmodel, pmodel_inputs, selector, predictor, error, result):
+    def __init__(self,
+                 pmodel,
+                 pmodel_inputs,
+                 selector,
+                 predictor,
+                 error,
+                 result):
+        """
+        Initialize profiler for one experiment configuration.
+        """
         self.pm = pmodel
         self.pm_inputs = pmodel_inputs
         self.s = selector
