@@ -24,13 +24,22 @@ import os
 from nfvppsim.core import sim
 from nfvppsim.pmodel import SimpleNetworkServiceThroughputModel as SNSTM
 from nfvppsim.selector import UniformRandomSelector
+from nfvppsim.predictor import PolynomialRegressionPredictor
+from nfvppsim.error import MSE
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
+def logging_setup():
+    os.environ["COLOREDLOGS_LOG_FORMAT"] \
+        = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
+
+
 def main():
     # TODO CLI interface
-    coloredlogs.install(level="DEBUG")    
+    logging_setup()
+    
+    coloredlogs.install(level="DEBUG")
     # TODO replace this with configuration runner module
     # initialize and configure involved modules
 
@@ -42,8 +51,9 @@ def main():
     pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
                      for c1 in np.linspace(0.01, 1.0, num=20)]
     selector = UniformRandomSelector(pmodel_inputs, params=None)
-    predictor = None
+    predictor = PolynomialRegressionPredictor()
+    error = MSE()
     result = None
     # TODO initialize profiler object with model etc.
     # TODO use configuration list as run input? or time limit only?
-    sim.run(pmodel, pmodel_inputs, selector, predictor, result)
+    sim.run(pmodel, pmodel_inputs, selector, predictor, error, result)

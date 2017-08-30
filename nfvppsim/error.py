@@ -22,14 +22,11 @@ import os
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
-class PolynomialRegressionPredictor(object):
+class MSE(object):
 
     def __init__(self):
         pass
 
-    def train(self, c_tilde, r_tilde):
-        pass
-
-    def predict(self, c_hat):
-        pass  # return r_hat
+    def calculate(self, r_hat, r):
+        return -1.0
 

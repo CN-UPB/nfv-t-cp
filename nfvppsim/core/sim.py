@@ -25,12 +25,13 @@ LOG = logging.getLogger(os.path.basename(__file__))
 
 class Profiler(object):
 
-    def __init__(self, pmodel, pmodel_inputs, selector, predictor, result):
+    def __init__(self, pmodel, pmodel_inputs, selector, predictor, error, result):
         self.pm = pmodel
         self.pm_inputs = pmodel_inputs
         self.s = selector
         self.p = predictor
         self.r = result
+        self.e = error
         self._tmp_train_c = list()
         self._tmp_train_r = list()
         # initialize simulation environment
@@ -58,13 +59,15 @@ class Profiler(object):
         # simulate profiling process
         self.env.run(until=until)  # time limit in seconds
         # predict full result using training sets
-        # TODO p.train( self._tmp_train_c, self._tmp_train_r)
-        # TODO p.predict(self.pm_inputs) -> final result
-        # TODO calculate error
+        self.p.train(self._tmp_train_c, self._tmp_train_r)
+        r_hat = self.p.predict(self.pm_inputs)
+        print(r_hat)
+        # calculate error
+        mse = self.e.calculate(r_hat, None)  # TODO calc full R
         # TODO add to global results (or return?)
-        LOG.debug("Done. Resulting MSE={}".format(0.0))
+        LOG.debug("Done. Resulting MSE={}".format(mse))
 
         
-def run(pmodel, pmodel_inputs, selector, predictor, result):
-    p = Profiler(pmodel, pmodel_inputs, selector, predictor, result)
+def run(pmodel, pmodel_inputs, selector, predictor, error, result):
+    p = Profiler(pmodel, pmodel_inputs, selector, predictor, error, result)
     p.run(until=400)
