@@ -26,9 +26,13 @@ LOG = logging.getLogger(os.path.basename(__file__))
 class UniformRandomSelector(object):
 
     def __init__(self, pmodel_inputs, params={}):
+        # apply default params
+        p = {}
+        p.update(params)
+        # members
         self.pm_inputs = pmodel_inputs
-        self.params = params
-        LOG.info("Initialized {} selector with params={}".format(self, params))
+        self.params = p
+        LOG.info("Initialized {} selector".format(self))
 
     def __repr__(self):
         return "UniformRandomSelector({})".format(self.params)

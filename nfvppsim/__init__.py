@@ -51,7 +51,7 @@ def main():
     pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
                      for c1 in np.linspace(0.01, 1.0, num=20)]
     selector = UniformRandomSelector(pmodel_inputs, params={})
-    predictor = PolynomialRegressionPredictor()
+    predictor = PolynomialRegressionPredictor(params={"degree": 3})
     error = MSE()
     result = None
     # TODO initialize profiler object with model etc.

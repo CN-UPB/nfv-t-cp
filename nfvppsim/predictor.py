@@ -31,20 +31,24 @@ class PolynomialRegressionPredictor(object):
     http://scikit-learn.org/stable/auto_examples/linear_model/plot_polynomial_interpolation.html
     """
 
-    def __init__(self, degree=2):
+    def __init__(self, params={}):
+        # apply default params
+        p = {"degree": 2}
+        p.update(params)
+        # members
         self.m = None
         self.poly = None
-        self.degree = degree
+        self.params = p
         # disable scipy warning: https://github.com/scipy/scipy/issues/5998
         warnings.filterwarnings(
             action="ignore", module="scipy", message="^internal gelsd")
-        LOG.info("Initialized {} with degree={}".format(self, degree))
+        LOG.info("Initialized {}".format(self))
 
     def __repr__(self):
-        return "PolynomialRegressionPredictor({})".format(self.degree)
+        return "PolynomialRegressionPredictor({})".format(self.params)
 
     def train(self, c_tilde, r_tilde):
-        self.poly = PolynomialFeatures(degree=self.degree)
+        self.poly = PolynomialFeatures(degree=self.params.get("degree"))
         c_tilde = self.poly.fit_transform(c_tilde)
         self.m = LinearRegression()
         self.m.fit(c_tilde, r_tilde)
