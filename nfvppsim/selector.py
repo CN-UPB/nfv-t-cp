@@ -27,11 +27,12 @@ class UniformRandomSelector(object):
 
     def __init__(self, pmodel_inputs, params={}):
         # apply default params
-        p = {}
+        p = {"max_samples": -1}  # -1 infinite samples
         p.update(params)
         # members
         self.pm_inputs = pmodel_inputs
         self.params = p
+        self.k_samples = 0
         LOG.info("Initialized {} selector".format(self))
 
     def __repr__(self):
@@ -39,10 +40,13 @@ class UniformRandomSelector(object):
 
     def next(self):
         idx = np.random.randint(0, len(self.pm_inputs))
+        self.k_samples += 1
         return self.pm_inputs[idx]
 
     def has_next(self):
-        return True
+        if self.params.get("max_samples") < 0:
+            return True  # -1 infinite samples
+        return (self.k_samples < self.params.get("max_samples", 0))
 
     def feedback(self, c, r):
         """

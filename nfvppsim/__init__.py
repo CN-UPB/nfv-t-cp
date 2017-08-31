@@ -50,7 +50,7 @@ def main():
     # all potential possible service configurations
     pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
                      for c1 in np.linspace(0.01, 1.0, num=20)]
-    selector = UniformRandomSelector(pmodel_inputs, params={})
+    selector = UniformRandomSelector(pmodel_inputs, params={"max_samples": -1})
     predictor = PolynomialRegressionPredictor(params={"degree": 3})
     error = MSE()
     result = None
