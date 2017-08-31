@@ -72,7 +72,7 @@ class Profiler(object):
         r = [self.pm.evaluate(c) for c in self.pm_inputs]
         # calculate error between prediction (r_hat) and reference results (r)
         mse = self.e.calculate(r, r_hat)
-        # build/return result as consolidated dict (used as row of a Pandas DF) 
+        #  build/return result dict (used as row of a Pandas DF)
         result = dict()
         result.update(self.pm.get_results())
         result.update(self.s.get_results())
