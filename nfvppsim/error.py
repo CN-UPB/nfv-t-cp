@@ -18,6 +18,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import logging
 import os
+from sklearn.metrics import mean_squared_error
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -25,8 +26,11 @@ LOG = logging.getLogger(os.path.basename(__file__))
 class MSE(object):
 
     def __init__(self):
-        pass
+        LOG.info("Initialized {} error metric".format(self))
+
+    def __repr__(self):
+        return "mean-squared-error (MSE)"
 
     def calculate(self, r_hat, r):
-        return -1.0
+        return mean_squared_error(r_hat, r)
 

@@ -32,6 +32,7 @@ setup(name='nfvppsim',
           "numpy",
           "scipy",
           "simpy",
+          "sklearn",
           "coloredlogs"
       ],
       zip_safe=False,

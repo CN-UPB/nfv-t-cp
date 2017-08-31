@@ -61,7 +61,7 @@ class Profiler(object):
         LOG.debug("No configurations left. Stopping simulation.")
 
     def run(self, until=None):
-        # TODO refactor: initialize, postprocess
+        # TODO refactor: initialize, postprocess, do_comparison measurement(?)
         # reset tmp. results
         self._tmp_train_c = list()
         self._tmp_train_r = list()
@@ -70,9 +70,10 @@ class Profiler(object):
         # predict full result using training sets
         self.p.train(self._tmp_train_c, self._tmp_train_r)
         r_hat = self.p.predict(self.pm_inputs)
-        print(r_hat)
-        # calculate error
-        mse = self.e.calculate(r_hat, None)  # TODO calc full R
+        # calculate reference result (evaluate pmodel for all configs)
+        r = [self.pm.evaluate(c) for c in self.pm_inputs]
+        # calculate error between prediction (r_hat) and reference results (r)
+        mse = self.e.calculate(r, r_hat)
         # TODO add to global results (or return?)
         LOG.debug("Done. Resulting MSE={}".format(mse))
 
