@@ -50,10 +50,10 @@ def main():
     # all potential possible service configurations
     pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
                      for c1 in np.linspace(0.01, 1.0, num=20)]
-    selector = UniformRandomSelector(pmodel_inputs, params={"max_samples": -1})
+    selector = UniformRandomSelector(pmodel_inputs, params={"max_samples": 3})
     predictor = PolynomialRegressionPredictor(params={"degree": 3})
     error = MSE()
-    result = None
     # TODO initialize profiler object with model etc.
     # TODO use configuration list as run input? or time limit only?
-    sim.run(pmodel, pmodel_inputs, selector, predictor, error, result)
+    row = sim.run(pmodel, pmodel_inputs, selector, predictor, error)
+    print(row)

@@ -42,7 +42,7 @@ class PolynomialRegressionPredictor(object):
         # disable scipy warning: https://github.com/scipy/scipy/issues/5998
         warnings.filterwarnings(
             action="ignore", module="scipy", message="^internal gelsd")
-        LOG.info("Initialized {}".format(self))
+        LOG.info("Initialized predictor: {}".format(self))
 
     def __repr__(self):
         return "PolynomialRegressionPredictor({})".format(self.params)
@@ -61,4 +61,12 @@ class PolynomialRegressionPredictor(object):
         c_hat = self.poly.fit_transform(c_hat)
         return self.m.predict(c_hat)
 
-
+    def get_results(self):
+        """
+        Getter for global result collection.
+        :return: dict for result row
+        """
+        r = {}
+        r.update(self.params)
+        # LOG.debug("Get results from {}: {}".format(self, r))
+        return r

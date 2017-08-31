@@ -33,7 +33,7 @@ class UniformRandomSelector(object):
         self.pm_inputs = pmodel_inputs
         self.params = p
         self.k_samples = 0
-        LOG.info("Initialized {} selector".format(self))
+        LOG.info("Initialized selector: {}".format(self))
 
     def __repr__(self):
         return "UniformRandomSelector({})".format(self.params)
@@ -53,3 +53,13 @@ class UniformRandomSelector(object):
         Inform selector about result for single configuration.
         """
         pass  # TODO store as internal state if needed
+
+    def get_results(self):
+        """
+        Getter for global result collection.
+        :return: dict for result row
+        """
+        r = {"k_samples": self.k_samples}
+        r.update(self.params)
+        # LOG.debug("Get results from {}: {}".format(self, r))
+        return r

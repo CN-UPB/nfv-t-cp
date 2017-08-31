@@ -30,8 +30,7 @@ class Profiler(object):
                  pmodel_inputs,
                  selector,
                  predictor,
-                 error,
-                 result):
+                 error):
         """
         Initialize profiler for one experiment configuration.
         """
@@ -39,7 +38,6 @@ class Profiler(object):
         self.pm_inputs = pmodel_inputs
         self.s = selector
         self.p = predictor
-        self.r = result
         self.e = error
         self._tmp_train_c = list()
         self._tmp_train_r = list()
@@ -74,10 +72,15 @@ class Profiler(object):
         r = [self.pm.evaluate(c) for c in self.pm_inputs]
         # calculate error between prediction (r_hat) and reference results (r)
         mse = self.e.calculate(r, r_hat)
-        # TODO add to global results (or return?)
+        # build/return result as consolidated dict (used as row of a Pandas DF) 
+        result = dict()
+        result.update(self.pm.get_results())
+        result.update(self.s.get_results())
+        result.update(self.p.get_results())
         LOG.debug("Done. Resulting MSE={}".format(mse))
+        return result
 
         
-def run(pmodel, pmodel_inputs, selector, predictor, error, result):
-    p = Profiler(pmodel, pmodel_inputs, selector, predictor, error, result)
-    p.run(until=400)
+def run(pmodel, pmodel_inputs, selector, predictor, error):
+    p = Profiler(pmodel, pmodel_inputs, selector, predictor, error)
+    return p.run(until=400)

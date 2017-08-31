@@ -37,8 +37,12 @@ class SimpleNetworkServiceThroughputModel(object):
         self.name = name
         self.vnfs = vnfs
         self.alphas = alphas if alphas else [1.0 for _ in self.vnfs]
-        LOG.info("Initialized '{}' with alphas={} and {} VNFs".format(
-            self.name, self.alphas, len(self.vnfs)))
+        LOG.info("Initialized performance model: '{}' with {} VNFs".format(
+            self, len(self.vnfs)))
+
+    def __repr__(self):
+        return "SimpleNetworkServiceThroughputModel({}, {})".format(
+            self.name, self.alphas)
         
     def _calc_vnf_tp(self, cpu_times):
         """
@@ -56,3 +60,13 @@ class SimpleNetworkServiceThroughputModel(object):
         """
         # uses "naive" minimum-TP model from NFV-SDN'17 paper for now
         return min(self._calc_vnf_tp(cpu_times))
+
+    def get_results(self):
+        """
+        Getter for global result collection.
+        :return: dict for result row
+        """
+        r = {"name": self.name}
+        # r.update(self.params)
+        # LOG.debug("Get results from {}: {}".format(self, r))
+        return r
