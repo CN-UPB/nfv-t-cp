@@ -31,10 +31,10 @@ class PolynomialRegressionPredictor(object):
     http://scikit-learn.org/stable/auto_examples/linear_model/plot_polynomial_interpolation.html
     """
 
-    def __init__(self, params={}):
+    def __init__(self, **kwargs):
         # apply default params
         p = {"degree": 2}
-        p.update(params)
+        p.update(kwargs)
         # members
         self.m = None
         self.poly = None

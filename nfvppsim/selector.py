@@ -25,10 +25,10 @@ LOG = logging.getLogger(os.path.basename(__file__))
 
 class UniformRandomSelector(object):
 
-    def __init__(self, pmodel_inputs, params={}):
+    def __init__(self, pmodel_inputs, **kwargs):
         # apply default params
         p = {"max_samples": -1}  # -1 infinite samples
-        p.update(params)
+        p.update(kwargs)
         # members
         self.pm_inputs = pmodel_inputs
         self.params = p

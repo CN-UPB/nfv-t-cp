@@ -25,7 +25,7 @@ LOG = logging.getLogger(os.path.basename(__file__))
 
 class MSE(object):
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         LOG.info("Initialized {} error metric".format(self))
 
     def __repr__(self):

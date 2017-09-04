@@ -18,6 +18,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import logging
 import os
+import sys
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -26,7 +27,7 @@ class SimpleNetworkServiceThroughputModel(object):
     """
     A network service based on a linear SFC: f1 -> f2 -> ... -> fN
     """
-    def __init__(self, name, vnfs, alphas=None):
+    def __init__(self, name, **kwargs):
         """
         name: name of service (string)
         vnfs: vector of functions representing the
@@ -35,8 +36,13 @@ class SimpleNetworkServiceThroughputModel(object):
                 at the corresponding position (set to [1.0,...,1.0] if None)
         """
         self.name = name
-        self.vnfs = vnfs
-        self.alphas = alphas if alphas else [1.0 for _ in self.vnfs]
+        self.vnfs = kwargs.get("vnfs", [])
+        self.alphas = kwargs.get("alphas", None)
+        if self.alphas is None:
+            self.alphas = [1.0 for _ in self.vnfs]
+        if len(self.vnfs) < 1:
+            LOG.error("{} with 0 VNFs not supported. Stopping.".format(self))
+            sys.exit(1)
         LOG.info("Initialized performance model: '{}' with {} VNFs".format(
             self, len(self.vnfs)))
 

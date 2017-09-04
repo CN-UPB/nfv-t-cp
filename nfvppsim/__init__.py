@@ -45,13 +45,14 @@ def main():
 
     # network service performance model
     pmodel = SNSTM("test_ns_model",
-                   [lambda x: x**2 + (x * 2) + 0.1,
-                    lambda x: x**4 + (.5 * x)])
+                   vnfs=[lambda x: x**2 + (x * 2) + 0.1,
+                         lambda x: x**4 + (.5 * x)],
+                   alphas=None)
     # all potential possible service configurations
     pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
                      for c1 in np.linspace(0.01, 1.0, num=20)]
-    selector = UniformRandomSelector(pmodel_inputs, params={"max_samples": 3})
-    predictor = PolynomialRegressionPredictor(params={"degree": 3})
+    selector = UniformRandomSelector(pmodel_inputs, max_samples=3)
+    predictor = PolynomialRegressionPredictor(degree=3)
     error = MSE()
     # TODO initialize profiler object with model etc.
     # TODO use configuration list as run input? or time limit only?
