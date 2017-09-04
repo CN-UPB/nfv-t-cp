@@ -21,7 +21,7 @@ import logging
 import coloredlogs
 import os
 
-from nfvppsim.core import sim
+from nfvppsim import sim
 from nfvppsim.pmodel import SimpleNetworkServiceThroughputModel as SNSTM
 from nfvppsim.selector import UniformRandomSelector
 from nfvppsim.predictor import PolynomialRegressionPredictor
