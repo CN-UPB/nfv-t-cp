@@ -16,6 +16,7 @@ limitations under the License.
 
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
+import numpy as np
 import simpy
 import logging
 import os
@@ -41,6 +42,8 @@ class Profiler(object):
         self.e = error
         self._tmp_train_c = list()
         self._tmp_train_r = list()
+        self._sim_t_total = 0
+        self._sim_t_mean = list()
         # initialize simulation environment
         self.env = simpy.Environment()
         self.profile_proc = self.env.process(self.do_measurement())
@@ -48,14 +51,20 @@ class Profiler(object):
     def do_measurement(self):
         while self.s.has_next():
             c = self.s.next()
-            LOG.debug("t={} measuring config: {}".format(self.env.now, c))
+            _start_t = self.env.now
+            LOG.debug("t={} measuring config: {}".format(_start_t, c))
             r = self.pm.evaluate(c)
             self._tmp_train_c.append(c)  # store configs ...
             self._tmp_train_r.append(r)  # ... and results of profiling run
             self.s.feedback(c, r)  # inform selector about result
             # Note: Timing could be randomized, or a more complex function:
             yield self.env.timeout(60)  # Fix: assumes 60s per measurement
-            LOG.debug("t={} result: {}".format(self.env.now, r))
+            # sim time bookkeeping (needed for more complex timing models)
+            _end_t = self.env.now
+            self._sim_t_total = _end_t
+            self._sim_t_mean.append(_end_t - _start_t)
+            
+            LOG.debug("t={} result: {}".format(self._sim_t_total, r))
         LOG.debug("No configurations left. Stopping simulation.")
 
     def run(self, until=None):
@@ -77,7 +86,11 @@ class Profiler(object):
         result.update(self.pm.get_results())
         result.update(self.s.get_results())
         result.update(self.p.get_results())
-        LOG.debug("Done. Resulting MSE={}".format(mse))
+        result.update({"sim_t_total": self._sim_t_total,
+                       "sim_t_mean": np.mean(self._sim_t_mean),
+                       "mse": mse})
+        LOG.debug("Done. Resulting MSE={0:.4g}, sim_t_total={1}s".format(
+            mse, self._sim_t_total))
         return result
 
         
