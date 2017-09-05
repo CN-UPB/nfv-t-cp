@@ -20,10 +20,9 @@ import numpy as np
 import logging
 import coloredlogs
 import os
-import yaml
-import sys
 
 from nfvppsim import sim
+from nfvppsim.config import read_config
 from nfvppsim.pmodel import SimpleNetworkServiceThroughputModel as SNSTM
 from nfvppsim.selector import UniformRandomSelector
 from nfvppsim.predictor import PolynomialRegressionPredictor
@@ -37,15 +36,6 @@ def logging_setup():
         = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 
 
-def read_config(path):
-    try:
-        with open(path, "r") as f:
-            return yaml.load(f)
-    except:
-        LOG.error("Couldn't open config '{}'. Abort.".format(path))
-        sys.exit(1)
-
-
 def main():
     # TODO CLI interface
     logging_setup()
@@ -55,6 +45,11 @@ def main():
     # initialize and configure involved modules
     conf = read_config("example_experiment.yaml")
     print(conf)
+    # TODO dynamically import classes for models specified in config
+    # TODO call model_cls.generate(conf) ...
+    # ... to expand configs to a list of model objects
+    # TODO loop over all returned lists (nested) an collect results in DF
+    # TODO pickle DF to disk if path in config
 
     # network service performance model
     pmodel = SNSTM("test_ns_model",
