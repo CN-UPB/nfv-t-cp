@@ -25,6 +25,11 @@ LOG = logging.getLogger(os.path.basename(__file__))
 
 
 class Profiler(object):
+    """
+    This component simulates a profiling system
+    that performs performance measurements for different
+    service configurations.
+    """
 
     def __init__(self,
                  pmodel,
@@ -46,9 +51,16 @@ class Profiler(object):
         self._sim_t_mean = list()
         # initialize simulation environment
         self.env = simpy.Environment()
-        self.profile_proc = self.env.process(self.do_measurement())
+        self.profile_proc = self.env.process(self.simulate_measurement())
 
-    def do_measurement(self):
+    def simulate_measurement(self):
+        """
+        Method to simulate the performance measurement
+        for a list of configurations. The actual configurations to
+        be tested are dynamically fetched from the specified 'selector'.
+        Method implements a discrete event simulator and can work
+        with arbitrary timing models.
+        """
         while self.s.has_next():
             c = self.s.next()
             _start_t = self.env.now
@@ -57,18 +69,23 @@ class Profiler(object):
             self._tmp_train_c.append(c)  # store configs ...
             self._tmp_train_r.append(r)  # ... and results of profiling run
             self.s.feedback(c, r)  # inform selector about result
-            # Note: Timing could be randomized, or a more complex function:
+            # TODO: Allow to use timing model: boot, config, shutdown etc.
             yield self.env.timeout(60)  # Fix: assumes 60s per measurement
             # sim time bookkeeping (needed for more complex timing models)
             _end_t = self.env.now
             self._sim_t_total = _end_t
             self._sim_t_mean.append(_end_t - _start_t)
-            
             LOG.debug("t={} result: {}".format(self._sim_t_total, r))
         LOG.debug("No configurations left. Stopping simulation.")
 
     def run(self, until=None):
-        # TODO refactor: initialize, postprocess, do_comparison measurement(?)
+        """
+        Run profiling measurement simulation using the configurations
+        (pmodel, selector, predictor, error, timing) specified during
+        object initialization.
+        :param until: max. time for measurements (simulated seconds)
+        :return: result dict (used as row of a Pandas DF)
+        """
         # reset tmp. results
         self._tmp_train_c = list()
         self._tmp_train_r = list()
