@@ -5,6 +5,7 @@ author: "Manuel Peuster"
 version: 0.1
 
 sim_t_max: 3600
+repetitions: 10
 
 pmodel:
     name: SimpleNetworkServiceThroughputModel
