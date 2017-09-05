@@ -20,6 +20,8 @@ import numpy as np
 import logging
 import coloredlogs
 import os
+import yaml
+import sys
 
 from nfvppsim import sim
 from nfvppsim.pmodel import SimpleNetworkServiceThroughputModel as SNSTM
@@ -35,6 +37,15 @@ def logging_setup():
         = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 
 
+def read_config(path):
+    try:
+        with open(path, "r") as f:
+            return yaml.load(f)
+    except:
+        LOG.error("Couldn't open config '{}'. Abort.".format(path))
+        sys.exit(1)
+
+
 def main():
     # TODO CLI interface
     logging_setup()
@@ -42,6 +53,8 @@ def main():
     coloredlogs.install(level="DEBUG")
     # TODO replace this with configuration runner module
     # initialize and configure involved modules
+    conf = read_config("example_experiment.yaml")
+    print(conf)
 
     # network service performance model
     pmodel = SNSTM("test_ns_model",

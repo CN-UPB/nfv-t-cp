@@ -29,6 +29,7 @@ setup(name='nfvppsim',
       # include_package_data=True,
       # package_data={},
       install_requires=[
+          "pyyaml",
           "numpy",
           "scipy",
           "simpy",
