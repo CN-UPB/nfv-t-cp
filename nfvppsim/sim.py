@@ -105,6 +105,7 @@ class Profiler(object):
         result.update(self.p.get_results())
         result.update({"sim_t_total": self._sim_t_total,
                        "sim_t_mean": np.mean(self._sim_t_mean),
+                       "sim_t_max": until,
                        "mse": mse})
         LOG.debug("Done. Resulting MSE={0:.4g}, sim_t_total={1}s".format(
             mse, self._sim_t_total))
