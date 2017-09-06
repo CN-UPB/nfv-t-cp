@@ -38,22 +38,19 @@ class SimpleNetworkServiceThroughputModel(object):
         """
         Generate list of model objects. One for each conf. to be tested.
         """
-        # TODO change to generate real model
-        pm_obj = cls("ns_model",
-                     vnfs=[lambda x: x**2 + (x * 2) + 0.1,
+        # TODO change to generate real models
+        pm_obj = cls(vnfs=[lambda x: x**2 + (x * 2) + 0.1,
                            lambda x: x**4 + (.5 * x)],
                      alphas=None)
         return [pm_obj]
     
-    def __init__(self, name, **kwargs):
+    def __init__(self, **kwargs):
         """
-        name: name of service (string)
         vnfs: vector of functions representing the
               VNF's CPU-time -> throughput mapping
         alphas: vector of floats to scale the performance of a VNF
                 at the corresponding position (set to [1.0,...,1.0] if None)
         """
-        self.name = name
         self.vnfs = kwargs.get("vnfs", [])
         self.alphas = kwargs.get("alphas", None)
         if self.alphas is None:
@@ -67,6 +64,10 @@ class SimpleNetworkServiceThroughputModel(object):
     def __repr__(self):
         return "SimpleNetworkServiceThroughputModel({}, {})".format(
             self.name, self.alphas)
+
+    @property
+    def name(self):
+        return "SimpleNetworkServiceThroughputModel"
         
     def _calc_vnf_tp(self, cpu_times):
         """
