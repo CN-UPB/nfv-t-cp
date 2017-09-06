@@ -13,11 +13,11 @@ pmodel:
 
 selector:
     name: UniformRandomSelector
-    max_samples: {min: 2, max: 20, step: 2}
+    max_samples: {min: 2, max: 10, step: 2}
 
 predictor:
     name: PolynomialRegressionPredictor
-    degree: [2, 3, 4, 5]
+    degree: [2, 3]
     
 error:
     name: MSE

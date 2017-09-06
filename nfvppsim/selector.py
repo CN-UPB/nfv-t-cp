@@ -19,6 +19,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import numpy as np
 import logging
 import os
+from nfvppsim.config import expand_parameters
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -37,7 +38,7 @@ class UniformRandomSelector(object):
         Generate list of model objects. One for each conf. to be tested.
         """
         r = list()
-        for max_samples in range(4, 5):  # TODO do config expansion
+        for max_samples in expand_parameters(conf.get("max_samples")):
             r.append(cls(max_samples=max_samples))
         return r
 

@@ -46,3 +46,25 @@ def read_config(path):
         LOG.error("Couldn't open config '{}'. Abort.".format(path))
         sys.exit(1)
     return conf
+
+
+def expand_parameters(p):
+    """
+    Expand single values, lists or dicts to a
+    list of parameters.
+    """
+    if isinstance(p, int) or isinstance(p, float):
+        return [p]
+    elif isinstance(p, list):
+        return p
+    elif isinstance(p, dict):
+        try:
+            assert("min" in p)
+            assert("max" in p)
+            assert("step" in p)
+            # TODO support floats
+            # attention: we do range(min, max+1)
+            return list(range(p.get("min"), p.get("max") + 1, p.get("step")))
+        except:
+            LOG.exception("AssertionError in dict expansion")
+    raise ValueError("cannot expand config parameter: {}".format(p))

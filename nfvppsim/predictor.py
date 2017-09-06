@@ -19,6 +19,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import logging
 import os
 import warnings
+from nfvppsim.config import expand_parameters
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 
@@ -43,7 +44,7 @@ class PolynomialRegressionPredictor(object):
         Generate list of model objects. One for each conf. to be tested.
         """
         r = list()
-        for degree in range(2, 5):  # TODO do config expansion
+        for degree in expand_parameters(conf.get("degree")):
             r.append(cls(degree=degree))
         return r
 
