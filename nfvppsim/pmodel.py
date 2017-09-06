@@ -23,10 +23,28 @@ import sys
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
+def get_by_name(name):
+    if name == "SimpleNetworkServiceThroughputModel":
+        return SimpleNetworkServiceThroughputModel
+    raise NotImplementedError("'{}' not implemented".format(name))
+
+
 class SimpleNetworkServiceThroughputModel(object):
     """
     A network service based on a linear SFC: f1 -> f2 -> ... -> fN
     """
+    @classmethod
+    def generate(cls, conf):
+        """
+        Generate list of model objects. One for each conf. to be tested.
+        """
+        # TODO change to generate real model
+        pm_obj = cls("ns_model",
+                     vnfs=[lambda x: x**2 + (x * 2) + 0.1,
+                           lambda x: x**4 + (.5 * x)],
+                     alphas=None)
+        return [pm_obj]
+    
     def __init__(self, name, **kwargs):
         """
         name: name of service (string)
@@ -43,7 +61,7 @@ class SimpleNetworkServiceThroughputModel(object):
         if len(self.vnfs) < 1:
             LOG.error("{} with 0 VNFs not supported. Stopping.".format(self))
             sys.exit(1)
-        LOG.info("Initialized performance model: '{}' with {} VNFs".format(
+        LOG.debug("Initialized performance model: '{}' with {} VNFs".format(
             self, len(self.vnfs)))
 
     def __repr__(self):

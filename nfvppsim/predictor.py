@@ -25,11 +25,27 @@ from sklearn.linear_model import LinearRegression
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
+def get_by_name(name):
+    if name == "PolynomialRegressionPredictor":
+        return PolynomialRegressionPredictor
+    raise NotImplementedError("'{}' not implemented".format(name))
+
+
 class PolynomialRegressionPredictor(object):
     """
     Polynomial interpolation with given degree based on sklearn.
     http://scikit-learn.org/stable/auto_examples/linear_model/plot_polynomial_interpolation.html
     """
+
+    @classmethod
+    def generate(cls, conf):
+        """
+        Generate list of model objects. One for each conf. to be tested.
+        """
+        r = list()
+        for degree in range(2, 5):  # TODO do config expansion
+            r.append(cls(degree=degree))
+        return r
 
     def __init__(self, **kwargs):
         # apply default params
@@ -42,7 +58,7 @@ class PolynomialRegressionPredictor(object):
         # disable scipy warning: https://github.com/scipy/scipy/issues/5998
         warnings.filterwarnings(
             action="ignore", module="scipy", message="^internal gelsd")
-        LOG.info("Initialized predictor: {}".format(self))
+        LOG.debug("Initialized predictor: {}".format(self))
 
     def __repr__(self):
         return "PolynomialRegressionPredictor({})".format(self.params)

@@ -23,17 +23,36 @@ import os
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
+def get_by_name(name):
+    if name == "UniformRandomSelector":
+        return UniformRandomSelector
+    raise NotImplementedError("'{}' not implemented".format(name))
+
+
 class UniformRandomSelector(object):
 
-    def __init__(self, pmodel_inputs, **kwargs):
+    @classmethod
+    def generate(cls, conf):
+        """
+        Generate list of model objects. One for each conf. to be tested.
+        """
+        r = list()
+        for max_samples in range(0, 20):  # TODO do config expansion
+            r.append(cls(max_samples=max_samples))
+        return r
+
+    def __init__(self, **kwargs):
         # apply default params
         p = {"max_samples": -1}  # -1 infinite samples
         p.update(kwargs)
         # members
-        self.pm_inputs = pmodel_inputs
+        self.pm_inputs = list()
         self.params = p
         self.k_samples = 0
-        LOG.info("Initialized selector: {}".format(self))
+        LOG.debug("Initialized selector: {}".format(self))
+
+    def set_inputs(self, pmodel_inputs):
+        self.pm_inputs = pmodel_inputs
 
     def __repr__(self):
         return "UniformRandomSelector({})".format(self.params)

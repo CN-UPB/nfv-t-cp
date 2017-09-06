@@ -41,8 +41,9 @@ class Profiler(object):
         Initialize profiler for one experiment configuration.
         """
         self.pm = pmodel
-        self.pm_inputs = pmodel_inputs
+        self.pm_inputs = pmodel_inputs  # TODO get from pmodel
         self.s = selector
+        self.s.set_inputs(self.pm_inputs)
         self.p = predictor
         self.e = error
         self._tmp_train_c = list()

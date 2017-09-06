@@ -23,10 +23,25 @@ from sklearn.metrics import mean_squared_error
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
+def get_by_name(name):
+    if name == "MSE":
+        return MSE
+    raise NotImplementedError("'{}' not implemented".format(name))
+
+
 class MSE(object):
 
+    @classmethod
+    def generate(cls, conf):
+        """
+        Generate list of model objects. One for each conf. to be tested.
+        """
+        r = list()
+        r.append(cls())
+        return r
+    
     def __init__(self, **kwargs):
-        LOG.info("Initialized {} error metric".format(self))
+        LOG.debug("Initialized {} error metric".format(self))
 
     def __repr__(self):
         return "mean-squared-error (MSE)"
