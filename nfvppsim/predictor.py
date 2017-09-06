@@ -86,7 +86,7 @@ class PolynomialRegressionPredictor(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {}
+        r = {"predictor": self.name}
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r

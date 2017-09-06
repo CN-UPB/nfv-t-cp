@@ -98,21 +98,23 @@ class Profiler(object):
         # calculate reference result (evaluate pmodel for all configs)
         r = [self.pm.evaluate(c) for c in self.pm_inputs]
         # calculate error between prediction (r_hat) and reference results (r)
-        mse = self.e.calculate(r, r_hat)
+        err_val = self.e.calculate(r, r_hat)
         #  build/return result dict (used as row of a Pandas DF)
         result = dict()
         result.update(self.pm.get_results())
         result.update(self.s.get_results())
         result.update(self.p.get_results())
+        result.update(self.e.get_results())
         result.update({"sim_t_total": self._sim_t_total,
                        "sim_t_mean": np.mean(self._sim_t_mean),
                        "sim_t_max": until,
-                       "mse": mse})
-        LOG.debug("Done. Resulting MSE={0:.4g}, sim_t_total={1}s".format(
-            mse, self._sim_t_total))
+                       "error_value": err_val})
+        LOG.debug("Done. Resulting error={0:.4g}, sim_t_total={1}s".format(
+            err_val, self._sim_t_total))
         return result
 
         
 def run(pmodel, pmodel_inputs, selector, predictor, error):
+    LOG.debug("sim.run(...)")
     p = Profiler(pmodel, pmodel_inputs, selector, predictor, error)
     return p.run(until=400)

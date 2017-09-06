@@ -91,7 +91,7 @@ class SimpleNetworkServiceThroughputModel(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {"name": self.name}
+        r = {"pmodel": self.name}
         # r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r

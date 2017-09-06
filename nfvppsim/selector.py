@@ -37,7 +37,7 @@ class UniformRandomSelector(object):
         Generate list of model objects. One for each conf. to be tested.
         """
         r = list()
-        for max_samples in range(0, 20):  # TODO do config expansion
+        for max_samples in range(4, 5):  # TODO do config expansion
             r.append(cls(max_samples=max_samples))
         return r
 
@@ -51,8 +51,8 @@ class UniformRandomSelector(object):
         self.k_samples = 0
         LOG.debug("Initialized selector: {}".format(self))
 
-    def set_inputs(self, pmodel_inputs):
-        self.pm_inputs = pmodel_inputs
+    def set_inputs(self, pm_inputs):
+        self.pm_inputs = pm_inputs
 
     def __repr__(self):
         return "{}({})".format(self.name, self.params)
@@ -82,7 +82,8 @@ class UniformRandomSelector(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {"k_samples": self.k_samples}
+        r = {"selector": self.name,
+             "k_samples": self.k_samples}
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r

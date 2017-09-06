@@ -20,6 +20,7 @@ import numpy as np
 import logging
 import coloredlogs
 import os
+import copy
 
 from nfvppsim import sim
 from nfvppsim.config import read_config
@@ -77,36 +78,63 @@ class Experiment(object):
                 len(self._lst_predictor) *
                 len(self._lst_error))
 
+    def run(self):
+        # TODO gen by pmodel
+        pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
+                         for c1 in np.linspace(0.01, 1.0, num=20)]
+        # iterate over all sim. configurations and run simulation
+        for pm in self._lst_pmodel:
+            for s in self._lst_selector:
+                for p in self._lst_predictor:
+                    for e in self._lst_error:
+                        # Attention: We need to copy the models objects to
+                        # have fresh states inside them for each run! Costly!
+                        # TODO Can we optimize?
+                        row = sim.run(copy.deepcopy(pm),
+                                      copy.deepcopy(pmodel_inputs),
+                                      copy.deepcopy(s),
+                                      copy.deepcopy(p),
+                                      copy.deepcopy(e))
+                        print(row)
+                        # TODO collect results in DF (member of ex?)
+        # TODO pickle DF to disk if path in config
+            
 
 def main():
     # TODO CLI interface
     logging_setup()
-    
+    print("")
+    print("*" * 64)
+    print("nfv-pp-sim by Manuel Peuster <manuel@peuster.de>")
+    print("*" * 64)
     coloredlogs.install(level="DEBUG")
     # TODO replace this with configuration runner module
     # initialize and configure involved modules
     conf = read_config("example_experiment.yaml")
     e = Experiment(conf)
     e.prepare()
-    #print(conf)
+    e.run()
+    return
+
     # TODO dynamically import classes for models specified in config
     # TODO call model_cls.generate(conf) ...
     # ... to expand configs to a list of model objects
     # TODO loop over all returned lists (nested) an collect results in DF
     # TODO pickle DF to disk if path in config
-    return
+
+    # single instance run (export for test?)
     # network service performance model
-    #pmodel = SNSTM("test_ns_model",
-    #               vnfs=[lambda x: x**2 + (x * 2) + 0.1,
-    #                     lambda x: x**4 + (.5 * x)],
-    #               alphas=None)
+    # pmodel = e._pmodel_cls(vnfs=[lambda x: x**2 + (x * 2) + 0.1,
+    #                             lambda x: x**4 + (.5 * x)],
+    #                       alphas=None)
     # all potential possible service configurations
-    #pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
+    # pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
     #                 for c1 in np.linspace(0.01, 1.0, num=20)]
-    #selector = UniformRandomSelector(pmodel_inputs, max_samples=3)
-    #predictor = PolynomialRegressionPredictor(degree=3)
-    #error = MSE()
+    # selector = e._selector_cls(max_samples=3)
+    # selector.set_inputs(pmodel_inputs)
+    # predictor = e._predictor_cls(degree=3)
+    # error = e._error_cls()
     # TODO initialize profiler object with model etc.
     # TODO use configuration list as run input? or time limit only?
-    #row = sim.run(pmodel, pmodel_inputs, selector, predictor, error)
-    #print(row)
+    # row = sim.run(pmodel, pmodel_inputs, selector, predictor, error)
+    # print(row)

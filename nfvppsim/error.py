@@ -53,3 +53,12 @@ class MSE(object):
     def calculate(self, r_hat, r):
         return mean_squared_error(r_hat, r)
 
+    def get_results(self):
+        """
+        Getter for global result collection.
+        :return: dict for result row
+        """
+        r = {"error": self.name}
+        # r.update(self.params)
+        # LOG.debug("Get results from {}: {}".format(self, r))
+        return r
