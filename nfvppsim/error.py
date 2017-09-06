@@ -44,7 +44,11 @@ class MSE(object):
         LOG.debug("Initialized {} error metric".format(self))
 
     def __repr__(self):
-        return "mean-squared-error (MSE)"
+        return "{}".format(self.name)
+
+    @property
+    def name(self):
+        return self.__class__.__name__
 
     def calculate(self, r_hat, r):
         return mean_squared_error(r_hat, r)

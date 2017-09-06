@@ -61,7 +61,11 @@ class PolynomialRegressionPredictor(object):
         LOG.debug("Initialized predictor: {}".format(self))
 
     def __repr__(self):
-        return "PolynomialRegressionPredictor({})".format(self.params)
+        return "{}({})".format(self.name, self.params)
+
+    @property
+    def name(self):
+        return self.__class__.__name__
 
     def train(self, c_tilde, r_tilde):
         self.poly = PolynomialFeatures(degree=self.params.get("degree"))

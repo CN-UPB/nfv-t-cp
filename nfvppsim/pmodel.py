@@ -62,12 +62,12 @@ class SimpleNetworkServiceThroughputModel(object):
             self, len(self.vnfs)))
 
     def __repr__(self):
-        return "SimpleNetworkServiceThroughputModel({}, {})".format(
+        return "{}({})".format(
             self.name, self.alphas)
 
     @property
     def name(self):
-        return "SimpleNetworkServiceThroughputModel"
+        return self.__class__.__name__
         
     def _calc_vnf_tp(self, cpu_times):
         """

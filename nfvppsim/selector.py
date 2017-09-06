@@ -55,7 +55,11 @@ class UniformRandomSelector(object):
         self.pm_inputs = pmodel_inputs
 
     def __repr__(self):
-        return "UniformRandomSelector({})".format(self.params)
+        return "{}({})".format(self.name, self.params)
+
+    @property
+    def name(self):
+        return self.__class__.__name__
 
     def next(self):
         idx = np.random.randint(0, len(self.pm_inputs))
