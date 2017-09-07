@@ -85,25 +85,23 @@ class Experiment(object):
                          for c1 in np.linspace(0.01, 1.0, num=20)]
         conf_id = 0
         # iterate over all sim. configurations and run simulation
-        for pm in self._lst_pmodel:
-            for s in self._lst_selector:
-                for p in self._lst_predictor:
-                    for e in self._lst_error:
+        for pm_obj in self._lst_pmodel:
+            for s_obj in self._lst_selector:
+                for p_obj in self._lst_predictor:
+                    for e_obj in self._lst_error:
                         conf_id += 1
-                        repetition_id = 0
-                        for r in range(0, self.conf.get("repetitions", 1)):
+                        for r_id in range(0, self.conf.get("repetitions", 1)):
                             # Attention: We need to copy the models objects to
                             # have fresh states inside them for each run!
                             # TODO Can we optimize?
-                            row = sim.run(copy.deepcopy(pm),
+                            row = sim.run(copy.deepcopy(pm_obj),
                                           copy.deepcopy(pmodel_inputs),
-                                          copy.deepcopy(s),
-                                          copy.deepcopy(p),
-                                          copy.deepcopy(e))
-                            repetition_id += 1
+                                          copy.deepcopy(s_obj),
+                                          copy.deepcopy(p_obj),
+                                          copy.deepcopy(e_obj))
                             # extend result
                             row.update({"conf_id": conf_id,
-                                        "repetition_id": repetition_id})
+                                        "repetition_id": r_id})
                             print(row)
                         # TODO collect results in DF (member of ex?)
         # TODO pickle DF to disk if path in config
