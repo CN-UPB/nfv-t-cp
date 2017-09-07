@@ -79,23 +79,32 @@ class Experiment(object):
                 len(self._lst_error))
 
     def run(self):
+        # TODO refactor: not so deep for loops
         # TODO gen by pmodel
         pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
                          for c1 in np.linspace(0.01, 1.0, num=20)]
+        conf_id = 0
         # iterate over all sim. configurations and run simulation
         for pm in self._lst_pmodel:
             for s in self._lst_selector:
                 for p in self._lst_predictor:
                     for e in self._lst_error:
-                        # Attention: We need to copy the models objects to
-                        # have fresh states inside them for each run! Costly!
-                        # TODO Can we optimize?
-                        row = sim.run(copy.deepcopy(pm),
-                                      copy.deepcopy(pmodel_inputs),
-                                      copy.deepcopy(s),
-                                      copy.deepcopy(p),
-                                      copy.deepcopy(e))
-                        print(row)
+                        conf_id += 1
+                        repetition_id = 0
+                        for r in range(0, self.conf.get("repetitions", 1)):
+                            # Attention: We need to copy the models objects to
+                            # have fresh states inside them for each run!
+                            # TODO Can we optimize?
+                            row = sim.run(copy.deepcopy(pm),
+                                          copy.deepcopy(pmodel_inputs),
+                                          copy.deepcopy(s),
+                                          copy.deepcopy(p),
+                                          copy.deepcopy(e))
+                            repetition_id += 1
+                            # extend result
+                            row.update({"conf_id": conf_id,
+                                        "repetition_id": repetition_id})
+                            print(row)
                         # TODO collect results in DF (member of ex?)
         # TODO pickle DF to disk if path in config
             

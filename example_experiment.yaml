@@ -17,7 +17,7 @@ selector:
 
 predictor:
     name: PolynomialRegressionPredictor
-    degree: [2, 3]
+    degree: [2, 3, 4]
     
 error:
     name: MSE
