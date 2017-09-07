@@ -21,6 +21,7 @@ import logging
 import coloredlogs
 import os
 import copy
+import pandas as pd
 
 from nfvppsim import sim
 from nfvppsim.config import read_config, expand_parameters
@@ -46,6 +47,8 @@ class Experiment(object):
         """
         # TODO logging
         self.conf = conf
+        # Pandas DF to hold result after run()
+        self.result_df = None
         # get classes of modules to be use based on config
         self._pmodel_cls = nfvppsim.pmodel.get_by_name(
             conf.get("pmodel").get("name"))
@@ -85,6 +88,8 @@ class Experiment(object):
         # TODO gen by pmodel
         pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
                          for c1 in np.linspace(0.01, 1.0, num=20)]
+        # list to hold results before moved to Pandas DF
+        tmp_results = list()
         conf_id = 0
         # iterate over all sim. configurations and run simulation
         for sim_t_max in self._lst_sim_t_max:
@@ -107,9 +112,21 @@ class Experiment(object):
                                 # extend result
                                 row.update({"conf_id": conf_id,
                                             "repetition_id": r_id})
-                                print(row)
-                        # TODO collect results in DF (member of ex?)
-        # TODO pickle DF to disk if path in config
+                                tmp_results.append(row)
+        self.result_df = pd.DataFrame(tmp_results)
+
+    def store_result(self, path):
+        """
+        Stores result DF in pickle file if path
+        is not None.
+        """
+        assert(self.result_df is not None)
+        if path is None:
+            print(self.result_df)
+            LOG.warning("'result_path' not specified. No results stored.")
+            return
+        with open(path, "wb") as f:
+            self.result_df.to_pickle(f)
             
 
 def main():
@@ -126,6 +143,7 @@ def main():
     e = Experiment(conf)
     e.prepare()
     e.run()
+    e.store_result(conf.get("result_path"))
     return
 
     # TODO dynamically import classes for models specified in config

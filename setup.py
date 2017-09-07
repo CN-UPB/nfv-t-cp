@@ -34,6 +34,7 @@ setup(name='nfvppsim',
           "scipy",
           "simpy",
           "sklearn",
+          "pandas",
           "coloredlogs"
       ],
       zip_safe=False,

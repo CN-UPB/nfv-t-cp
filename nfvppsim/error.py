@@ -18,6 +18,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import logging
 import os
+import re
 from sklearn.metrics import mean_squared_error
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -50,6 +51,10 @@ class MSE(object):
     def name(self):
         return self.__class__.__name__
 
+    @property
+    def short_name(self):
+        return re.sub('[^A-Z]', '', self.name)
+
     def calculate(self, r_hat, r):
         return mean_squared_error(r_hat, r)
 
@@ -58,7 +63,7 @@ class MSE(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {"error": self.name}
+        r = {"error": self.short_name}
         # r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r

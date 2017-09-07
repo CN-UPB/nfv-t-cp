@@ -18,6 +18,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import logging
 import os
+import re
 import sys
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -68,7 +69,11 @@ class SimpleNetworkServiceThroughputModel(object):
     @property
     def name(self):
         return self.__class__.__name__
-        
+
+    @property
+    def short_name(self):
+        return re.sub('[^A-Z]', '', self.name)
+
     def _calc_vnf_tp(self, cpu_times):
         """
         calculate TP for each function in self.vnfs
@@ -91,7 +96,7 @@ class SimpleNetworkServiceThroughputModel(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {"pmodel": self.name}
+        r = {"pmodel": self.short_name}
         # r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r

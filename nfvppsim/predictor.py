@@ -19,6 +19,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import logging
 import os
 import warnings
+import re
 from nfvppsim.config import expand_parameters
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
@@ -68,6 +69,10 @@ class PolynomialRegressionPredictor(object):
     def name(self):
         return self.__class__.__name__
 
+    @property
+    def short_name(self):
+        return re.sub('[^A-Z]', '', self.name)
+
     def train(self, c_tilde, r_tilde):
         self.poly = PolynomialFeatures(degree=self.params.get("degree"))
         c_tilde = self.poly.fit_transform(c_tilde)
@@ -87,7 +92,7 @@ class PolynomialRegressionPredictor(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {"predictor": self.name}
+        r = {"predictor": self.short_name}
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r

@@ -19,6 +19,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import numpy as np
 import logging
 import os
+import re
 from nfvppsim.config import expand_parameters
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -62,6 +63,10 @@ class UniformRandomSelector(object):
     def name(self):
         return self.__class__.__name__
 
+    @property
+    def short_name(self):
+        return re.sub('[^A-Z]', '', self.name)
+
     def next(self):
         idx = np.random.randint(0, len(self.pm_inputs))
         self.k_samples += 1
@@ -83,7 +88,7 @@ class UniformRandomSelector(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {"selector": self.name,
+        r = {"selector": self.short_name,
              "k_samples": self.k_samples}
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
