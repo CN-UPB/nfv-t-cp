@@ -114,7 +114,7 @@ class Profiler(object):
         return result
 
         
-def run(pmodel, pmodel_inputs, selector, predictor, error):
+def run(sim_t_max, pmodel, pmodel_inputs, selector, predictor, error):
     LOG.debug("sim.run(...)")
     p = Profiler(pmodel, pmodel_inputs, selector, predictor, error)
-    return p.run(until=400)
+    return p.run(until=sim_t_max)

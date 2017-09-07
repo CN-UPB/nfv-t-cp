@@ -23,7 +23,7 @@ import os
 import copy
 
 from nfvppsim import sim
-from nfvppsim.config import read_config
+from nfvppsim.config import read_config, expand_parameters
 import nfvppsim.pmodel
 import nfvppsim.selector
 import nfvppsim.predictor
@@ -61,6 +61,8 @@ class Experiment(object):
         Prepare experiment: Generate configurations to be simulated.
         """
         # TODO logging
+        self._lst_sim_t_max = expand_parameters(
+            self.conf.get("sim_t_max"))
         self._lst_pmodel = self._pmodel_cls.generate(
             self.conf.get("pmodel"))
         self._lst_selector = self._selector_cls.generate(
@@ -85,24 +87,27 @@ class Experiment(object):
                          for c1 in np.linspace(0.01, 1.0, num=20)]
         conf_id = 0
         # iterate over all sim. configurations and run simulation
-        for pm_obj in self._lst_pmodel:
-            for s_obj in self._lst_selector:
-                for p_obj in self._lst_predictor:
-                    for e_obj in self._lst_error:
-                        conf_id += 1
-                        for r_id in range(0, self.conf.get("repetitions", 1)):
-                            # Attention: We need to copy the models objects to
-                            # have fresh states inside them for each run!
-                            # TODO Can we optimize?
-                            row = sim.run(copy.deepcopy(pm_obj),
-                                          copy.deepcopy(pmodel_inputs),
-                                          copy.deepcopy(s_obj),
-                                          copy.deepcopy(p_obj),
-                                          copy.deepcopy(e_obj))
-                            # extend result
-                            row.update({"conf_id": conf_id,
-                                        "repetition_id": r_id})
-                            print(row)
+        for sim_t_max in self._lst_sim_t_max:
+            for pm_obj in self._lst_pmodel:
+                for s_obj in self._lst_selector:
+                    for p_obj in self._lst_predictor:
+                        for e_obj in self._lst_error:
+                            conf_id += 1
+                            for r_id in range(0, self.conf.get(
+                                    "repetitions", 1)):
+                                # Attention: We need to copy the models objects
+                                # to have fresh states for each run!
+                                # TODO Can we optimize?
+                                row = sim.run(sim_t_max,
+                                              copy.deepcopy(pm_obj),
+                                              copy.deepcopy(pmodel_inputs),
+                                              copy.deepcopy(s_obj),
+                                              copy.deepcopy(p_obj),
+                                              copy.deepcopy(e_obj))
+                                # extend result
+                                row.update({"conf_id": conf_id,
+                                            "repetition_id": r_id})
+                                print(row)
                         # TODO collect results in DF (member of ex?)
         # TODO pickle DF to disk if path in config
             

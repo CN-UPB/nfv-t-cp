@@ -4,7 +4,8 @@ name: "Example experiment"
 author: "Manuel Peuster"
 version: 0.1
 
-sim_t_max: 3600
+# time limit for measurement (s) (expandable)
+sim_t_max: [360, 3600]
 repetitions: 10
 
 pmodel:
@@ -13,10 +14,12 @@ pmodel:
 
 selector:
     name: UniformRandomSelector
+    # max. no. of samples to be selected (expandable)
     max_samples: {min: 2, max: 10, step: 2}
 
 predictor:
     name: PolynomialRegressionPredictor
+    # poly. degree (expandable)
     degree: [2, 3, 4]
     
 error:
