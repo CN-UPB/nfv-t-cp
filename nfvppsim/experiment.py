@@ -120,8 +120,22 @@ class Experiment(object):
         """
         assert(self.result_df is not None)
         if path is None:
-            print(self.result_df)
             LOG.warning("'result_path' not specified. No results stored.")
             return
         with open(path, "wb") as f:
             self.result_df.to_pickle(f)
+        LOG.info("Wrote result with {} rows to '{}'".format(
+            len(self.result_df.index), path))
+
+    def print_results(self):
+        """
+        Print result DF to screen.
+        """
+        LOG.info("Printing result DF to 'stdout'")
+        print(self.result_df)
+
+    @property
+    def result_number(self):
+        if self.result_df is None:
+            return 0
+        return len(self.result_df.index)

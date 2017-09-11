@@ -8,7 +8,7 @@ version: 0.1
 sim_t_max: [360, 3600]
 repetitions: 10
 # path to write results as pickled Pandas DF 
-result_path: null
+result_path: "test.pkl"
 
 pmodel:
     name: SimpleNetworkServiceThroughputModel

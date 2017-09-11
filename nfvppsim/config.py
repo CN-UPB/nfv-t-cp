@@ -45,6 +45,7 @@ def read_config(path):
     except:
         LOG.error("Couldn't open config '{}'. Abort.".format(path))
         sys.exit(1)
+    LOG.info("Loaded configuration: {}".format(path))
     return conf
 
 

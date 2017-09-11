@@ -19,6 +19,9 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import logging
 import coloredlogs
 import os
+import sys
+import argparse
+import time
 
 from nfvppsim.experiment import Experiment
 from nfvppsim.config import read_config
@@ -32,20 +35,109 @@ def logging_setup():
         = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 
 
-def main():
-    # TODO CLI interface
-    logging_setup()
-    print("")
-    print("*" * 64)
-    print("nfv-pp-sim by Manuel Peuster <manuel@peuster.de>")
-    print("*" * 64)
-    coloredlogs.install(level="DEBUG")
-    # TODO replace this with configuration runner module
-    # initialize and configure involved modules
-    conf = read_config("example_experiment.yaml")
-    e = Experiment(conf)
-    e.prepare()
-    e.run()
-    e.store_result(conf.get("result_path"))
-    return
+def parse_args():
+    # TODO add a "silent" flag
+    parser = argparse.ArgumentParser(
+        description="nfv-pp-sim")
 
+    parser.add_argument(
+        "-c",
+        "--config",
+        help="Experiment configuration file.",
+        required=True,
+        default=None,
+        dest="config_path")
+
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Output debug messages.",
+        required=False,
+        default=False,
+        dest="verbose",
+        action="store_true")
+
+    parser.add_argument(
+        "--no-prepare",
+        help="Stop before prepare step.",
+        required=False,
+        default=False,
+        dest="no_prepare",
+        action="store_true")
+
+    parser.add_argument(
+        "--no-run",
+        help="Stop before run step.",
+        required=False,
+        default=False,
+        dest="no_run",
+        action="store_true")
+
+    parser.add_argument(
+        "--no-result-print",
+        help="Do not print results.",
+        required=False,
+        default=False,
+        dest="no_result_print",
+        action="store_true")
+
+    parser.add_argument(
+        "--result-path",
+        help="Path for results file (overwrites config)",
+        required=False,
+        default=None,
+        dest="result_path")
+    return parser.parse_args()
+
+
+def show_welcome():
+    print("""*****************************************************
+**          Welcome to nfv-pp-sim                  **
+**                                                 **
+** (c) 2017 by Manuel Peuster (manuel@peuster.de)  **
+*****************************************************""")
+
+
+def show_byebye(t_start=None, rc=0):
+    print("*****************************************************")
+    print("Simulation done!")
+    if t_start:
+        print("Runtime: {0:.3g}s".format(time.time() - t_start))
+    print("")
+    sys.exit(rc)
+
+    
+def main():
+    t_start = time.time()
+    # CLI interface
+    args = parse_args()
+    # configure logging
+    logging_setup()
+    if args.verbose:
+        coloredlogs.install(level="DEBUG")
+    else:
+        coloredlogs.install(level="INFO")
+    # show welcome screen
+    show_welcome()
+    # read experiment configuration
+    conf = read_config(args.config_path)
+    # initialize experiment
+    e = Experiment(conf)
+    # prepare experiment
+    if args.no_prepare:
+        show_byebye(t_start)
+    e.prepare()
+    # run experiment
+    if args.no_run:
+        show_byebye(t_start)
+    e.run()
+    # store results
+    rpath = conf.get("result_path")
+    if args.result_path:
+        rpath = args.result_path
+    e.store_result(rpath)
+    if args.no_result_print:
+        show_byebye(t_start)
+    e.print_results()
+    # show bye bye screen
+    show_byebye(t_start)
