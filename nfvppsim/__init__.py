@@ -16,7 +16,6 @@ limitations under the License.
 
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
-import numpy as np
 import logging
 import coloredlogs
 import os
@@ -45,7 +44,6 @@ class Experiment(object):
         """
         Load modules and configure experiment.
         """
-        # TODO logging
         self.conf = conf
         # Pandas DF to hold result after run()
         self.result_df = None
@@ -63,7 +61,6 @@ class Experiment(object):
         """
         Prepare experiment: Generate configurations to be simulated.
         """
-        # TODO logging
         self._lst_sim_t_max = expand_parameters(
             self.conf.get("sim_t_max"))
         self._lst_pmodel = self._pmodel_cls.generate(
@@ -74,20 +71,24 @@ class Experiment(object):
             self.conf.get("predictor"))
         self._lst_error = self._error_cls.generate(
             self.conf.get("error"))
-        LOG.info("Prepared {} configurations to be simulated.".format(
-            self._get_number_of_configurations()))
+        LOG.info("Prepared {}x{} configurations to be simulated.".format(
+            self._get_number_of_configurations(),
+            self.conf.get("repetitions", 1)))
 
     def _get_number_of_configurations(self):
-        return (len(self._lst_pmodel) *
+        return (len(self._lst_sim_t_max) *
+                len(self._lst_pmodel) *
                 len(self._lst_selector) *
                 len(self._lst_predictor) *
                 len(self._lst_error))
 
     def run(self):
-        # TODO refactor: not so deep for loops
-        # TODO gen by pmodel
-        pmodel_inputs = [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
-                         for c1 in np.linspace(0.01, 1.0, num=20)]
+        """
+        Executes an experiment by iterating over all prepared
+        configurations that should be tested.
+        Uses deepcopy do ensure fresh internal states of all
+        algorithm objects passed to the simulator module.
+        """
         # list to hold results before moved to Pandas DF
         tmp_results = list()
         conf_id = 0
@@ -105,7 +106,6 @@ class Experiment(object):
                                 # TODO Can we optimize?
                                 row = sim.run(sim_t_max,
                                               copy.deepcopy(pm_obj),
-                                              copy.deepcopy(pmodel_inputs),
                                               copy.deepcopy(s_obj),
                                               copy.deepcopy(p_obj),
                                               copy.deepcopy(e_obj))
@@ -136,7 +136,7 @@ def main():
     print("*" * 64)
     print("nfv-pp-sim by Manuel Peuster <manuel@peuster.de>")
     print("*" * 64)
-    coloredlogs.install(level="DEBUG")
+    coloredlogs.install(level="INFO")
     # TODO replace this with configuration runner module
     # initialize and configure involved modules
     conf = read_config("example_experiment.yaml")

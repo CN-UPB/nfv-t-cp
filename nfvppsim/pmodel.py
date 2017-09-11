@@ -20,6 +20,7 @@ import logging
 import os
 import re
 import sys
+import numpy as np
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -74,22 +75,30 @@ class SimpleNetworkServiceThroughputModel(object):
     def short_name(self):
         return re.sub('[^A-Z]', '', self.name)
 
-    def _calc_vnf_tp(self, cpu_times):
+    def get_conf_space(self):
+        """
+        Return the COMPLETE configuration space for this model.
+        :return: list of configuration tuples (also lists)
+        """
+        return [[c1, c2] for c2 in np.linspace(0.01, 1.0, num=20)
+                for c1 in np.linspace(0.01, 1.0, num=20)]
+
+    def _calc_vnf_tp(self, conf_list):
         """
         calculate TP for each function in self.vnfs
-        cpu_times: CPU time available for each VNF
+        conf_list: configuration features available for each VNF
         """
-        assert len(cpu_times) == len(self.vnfs) == len(self.alphas)
+        assert len(conf_list) == len(self.vnfs) == len(self.alphas)
         # calculate result for each vnf and multiply by corresponding alpha
-        return [f(r) * a for f, r, a in zip(self.vnfs, cpu_times, self.alphas)]
+        return [f(r) * a for f, r, a in zip(self.vnfs, conf_list, self.alphas)]
            
-    def evaluate(self, cpu_times):
+    def evaluate(self, con_list):
         """
         calculate TP of SFC
-        cpu_times: CPU time available for each VNF
+        conf_list: configuration features available
         """
         # uses "naive" minimum-TP model from NFV-SDN'17 paper for now
-        return min(self._calc_vnf_tp(cpu_times))
+        return min(self._calc_vnf_tp(con_list))
 
     def get_results(self):
         """

@@ -33,7 +33,6 @@ class Profiler(object):
 
     def __init__(self,
                  pmodel,
-                 pmodel_inputs,
                  selector,
                  predictor,
                  error):
@@ -41,9 +40,9 @@ class Profiler(object):
         Initialize profiler for one experiment configuration.
         """
         self.pm = pmodel
-        self.pm_inputs = pmodel_inputs  # TODO get from pmodel
+        self.pm_conf_space = pmodel.get_conf_space()
         self.s = selector
-        self.s.set_inputs(self.pm_inputs)
+        self.s.set_inputs(self.pm_conf_space)
         self.p = predictor
         self.e = error
         self._tmp_train_c = list()
@@ -60,7 +59,7 @@ class Profiler(object):
         for a list of configurations. The actual configurations to
         be tested are dynamically fetched from the specified 'selector'.
         Method implements a discrete event simulator and can work
-        with arbitrary timing models.
+        with arbitrary timing modes.
         """
         while self.s.has_next():
             c = self.s.next()
@@ -94,9 +93,9 @@ class Profiler(object):
         self.env.run(until=until)  # time limit in seconds
         # predict full result using training sets
         self.p.train(self._tmp_train_c, self._tmp_train_r)
-        r_hat = self.p.predict(self.pm_inputs)
+        r_hat = self.p.predict(self.pm_conf_space)
         # calculate reference result (evaluate pmodel for all configs)
-        r = [self.pm.evaluate(c) for c in self.pm_inputs]
+        r = [self.pm.evaluate(c) for c in self.pm_conf_space]
         # calculate error between prediction (r_hat) and reference results (r)
         err_val = self.e.calculate(r, r_hat)
         #  build/return result dict (used as row of a Pandas DF)
@@ -114,7 +113,6 @@ class Profiler(object):
         return result
 
         
-def run(sim_t_max, pmodel, pmodel_inputs, selector, predictor, error):
-    LOG.debug("sim.run(...)")
-    p = Profiler(pmodel, pmodel_inputs, selector, predictor, error)
+def run(sim_t_max, pmodel, selector, predictor, error):
+    p = Profiler(pmodel, selector, predictor, error)
     return p.run(until=sim_t_max)
