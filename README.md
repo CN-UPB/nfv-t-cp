@@ -10,7 +10,7 @@ This repo is intended to be open sourced once the paper is submitted.
 
 ## Run
 
-* `nfvppsim`
+* `nfvppsim -c example_experiment.yaml`
 
 ## Test
 
