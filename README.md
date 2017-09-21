@@ -6,7 +6,16 @@ This repo is intended to be open sourced once the paper is submitted.
 
 ## Installation
 
-(standard Python package installation)
+* `python3 setup.py develop`
+
+## Run
+
+* `nfvppsim`
+
+## Test
+
+* `py.test ...`
+
 
 ## Contributor(s)
 
