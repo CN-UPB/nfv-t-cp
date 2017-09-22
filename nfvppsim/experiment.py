@@ -66,10 +66,11 @@ class Experiment(object):
         self._lst_error = self._error_cls.generate(
             self.conf.get("error"))
         LOG.info("Prepared {}x{} configurations to be simulated.".format(
-            self._get_number_of_configurations(),
+            self.n_configs,
             self.conf.get("repetitions", 1)))
 
-    def _get_number_of_configurations(self):
+    @property
+    def n_configs(self):
         """
         Attention: Does not consider number of repetitions.
         Keep in sync with prepare method.
@@ -97,6 +98,9 @@ class Experiment(object):
                     for p_obj in self._lst_predictor:
                         for e_obj in self._lst_error:
                             conf_id += 1
+                            LOG.info("Simulating configuration {}/{}"
+                                     .format(conf_id,
+                                             self.n_configs))
                             for r_id in range(0, self.conf.get(
                                     "repetitions", 1)):
                                 # Attention: We need to copy the models objects

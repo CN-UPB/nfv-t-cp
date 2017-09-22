@@ -20,6 +20,7 @@ import numpy as np
 import simpy
 import logging
 import os
+from nfvppsim.helper import flatten_conf
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -41,6 +42,7 @@ class Profiler(object):
         """
         self.pm = pmodel
         self.pm_conf_space = pmodel.get_conf_space()
+        self.pm_conf_space_flat = flatten_conf(self.pm_conf_space)
         self.s = selector
         self.s.set_inputs(self.pm_conf_space)
         self.p = predictor
@@ -92,8 +94,8 @@ class Profiler(object):
         # simulate profiling process
         self.env.run(until=until)  # time limit in seconds
         # predict full result using training sets
-        self.p.train(self._tmp_train_c, self._tmp_train_r)
-        r_hat = self.p.predict(self.pm_conf_space)
+        self.p.train(flatten_conf(self._tmp_train_c), self._tmp_train_r)
+        r_hat = self.p.predict(self.pm_conf_space_flat)
         # calculate reference result (evaluate pmodel for all configs)
         r = [self.pm.evaluate(c) for c in self.pm_conf_space]
         # calculate error between prediction (r_hat) and reference results (r)
