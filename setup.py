@@ -36,7 +36,8 @@ setup(name='nfvppsim',
           "simpy",
           "sklearn",
           "pandas",
-          "coloredlogs"
+          "coloredlogs",
+          "networkx"
       ],
       zip_safe=False,
       entry_points={
