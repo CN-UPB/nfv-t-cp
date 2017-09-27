@@ -44,8 +44,8 @@ def parse_args():
         "-c",
         "--config",
         help="Experiment configuration file.",
-        required=True,
-        default=None,
+        required=False,
+        default="example_experiment.yaml",
         dest="config_path")
 
     parser.add_argument(
@@ -141,3 +141,4 @@ def main():
     e.print_results()
     # show bye bye screen
     show_byebye(t_start)
+
