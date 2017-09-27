@@ -25,6 +25,10 @@ from nfvppsim.helper import flatten_conf
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
+# global cache vars
+CACHE_REF_RESULTS = dict()
+
+
 class Profiler(object):
     """
     This component simulates a profiling system
@@ -80,6 +84,29 @@ class Profiler(object):
             LOG.debug("t={} result: {}".format(self._sim_t_total, r))
         LOG.debug("No configurations left. Stopping simulation.")
 
+    def calculate_reference_result(self):
+        """
+        Calculate the reference result for the complete configuration space.
+        This might be a bottleneck when the space is huge.
+        We try to cache the results to speed up the simulation.
+        """
+        global CACHE_REF_RESULTS
+        if id(self.pm_conf_space) in CACHE_REF_RESULTS:
+            LOG.debug("Using reference result from cache from cache.")
+            return CACHE_REF_RESULTS[id(self.pm_conf_space)]
+        LOG.info("Calculating reference results for {} configurations."
+                 .format(len(self.pm_conf_space)))
+        r = list()
+        last_p = None
+        for c in self.pm_conf_space:
+            p = int(len(r) / len(self.pm_conf_space) * 100)
+            if last_p != p:
+                LOG.info("Calculating ... {}.0 %".format(p))
+                last_p = p
+            r.append(self.pm.evaluate(c))
+        CACHE_REF_RESULTS[id(self.pm_conf_space)] = r
+        return r
+
     def run(self, until=None):
         """
         Run profiling measurement simulation using the configurations
@@ -97,7 +124,7 @@ class Profiler(object):
         self.p.train(flatten_conf(self._tmp_train_c), self._tmp_train_r)
         r_hat = self.p.predict(self.pm_conf_space_flat)
         # calculate reference result (evaluate pmodel for all configs)
-        r = [self.pm.evaluate(c) for c in self.pm_conf_space]
+        r = self.calculate_reference_result()
         # calculate error between prediction (r_hat) and reference results (r)
         err_val = self.e.calculate(r, r_hat)
         #  build/return result dict (used as row of a Pandas DF)

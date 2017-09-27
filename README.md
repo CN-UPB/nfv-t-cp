@@ -16,6 +16,10 @@ This repo is intended to be open sourced once the paper is submitted.
 
 * `py.test ...`
 
+## Profiling
+
+* `python -m cProfile -s cumtime run_profiling.py > profile.out`
+
 
 ## Contributor(s)
 

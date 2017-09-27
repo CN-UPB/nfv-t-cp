@@ -27,6 +27,10 @@ from nfvppsim.helper import cartesian_product
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
+# global cache vars
+CACHE_C_SPACE = None
+
+
 def get_by_name(name):
     if name == "SimpleNetworkServiceThroughputModel2D":
         return SimpleNetworkServiceThroughputModel2D
@@ -54,9 +58,6 @@ class VnfPerformanceModel(object):
         """
         # LOG.debug("eval VNF={} cf={}".format(self.name, c))
         return self.func(c)
-
-    
-c_space_cache = None
 
 
 class SfcPerformanceModel(object):
@@ -127,15 +128,15 @@ class SfcPerformanceModel(object):
         Return the COMPLETE configuration space for this model.
         :return: list of configuration tuples of one dict per VNF of graph
         """
-        global c_space_cache
-        if c_space_cache is not None:
-            print("hit!")
-            return c_space_cache
+        global CACHE_C_SPACE
+        if CACHE_C_SPACE is not None:
+            LOG.debug("Using configuration space from cache.")
+            return CACHE_C_SPACE
         # config space for one VNF
         cf = self.get_conf_space_vnf()
         # config space for n VNFs in the SFC
         cs = list(it.product(cf, repeat=len(self._get_vnfs_from_sg())))
-        c_space_cache = cs
+        CACHE_C_SPACE = cs
         return cs
     
     def _get_vnfs_from_sg(self):
@@ -195,8 +196,8 @@ class SimpleNetworkServiceThroughputModel2D(SfcPerformanceModel):
     def generate_vnfs(cls, conf):
         # define parameters
         # dict of lists defining possible configuration parameters
-        p = {"c1": list(np.linspace(0.01, 1.0, num=4)),
-             "c2": list(np.linspace(0.01, 1.0, num=4))}
+        p = {"c1": list(np.linspace(0.01, 1.0, num=20)),
+             "c2": list(np.linspace(0.01, 1.0, num=20))}
         # create vnfs
         # function: config_list -> performance
         # REQUIREMENT: vnf_ids of objects == idx in list
