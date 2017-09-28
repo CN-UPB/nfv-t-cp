@@ -37,7 +37,9 @@ setup(name='nfvppsim',
           "sklearn",
           "pandas",
           "coloredlogs",
-          "networkx"
+          "networkx",
+          "matplotlib",
+          "seaborn"
       ],
       zip_safe=False,
       entry_points={

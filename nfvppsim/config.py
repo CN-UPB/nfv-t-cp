@@ -54,6 +54,8 @@ def expand_parameters(p):
     Expand single values, lists or dicts to a
     list of parameters.
     """
+    if p is None:
+        return [None]
     if isinstance(p, int) or isinstance(p, float):
         return [p]
     elif isinstance(p, list):

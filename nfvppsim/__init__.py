@@ -74,6 +74,14 @@ def parse_args():
         action="store_true")
 
     parser.add_argument(
+        "--no-plot",
+        help="Do not plot results.",
+        required=False,
+        default=False,
+        dest="no_plot",
+        action="store_true")
+    
+    parser.add_argument(
         "--no-result-print",
         help="Do not print results.",
         required=False,
@@ -131,6 +139,9 @@ def main():
     if args.no_run:
         show_byebye(t_start)
     e.run()
+    # plot results
+    if not args.no_plot:
+        e.plot()
     # store results
     rpath = conf.get("result_path")
     if args.result_path:

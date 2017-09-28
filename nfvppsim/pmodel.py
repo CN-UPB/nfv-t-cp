@@ -32,8 +32,10 @@ CACHE_C_SPACE = None
 
 
 def get_by_name(name):
-    if name == "SimpleNetworkServiceThroughputModel2D":
-        return SimpleNetworkServiceThroughputModel2D
+    if name == "CrossValidationModel":
+        return CrossValidationModel
+    if name == "ExampleModel":
+        return ExampleModel
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -187,17 +189,54 @@ class SfcPerformanceModel(object):
         return mf_value
 
     
-class SimpleNetworkServiceThroughputModel2D(SfcPerformanceModel):
+class CrossValidationModel(SfcPerformanceModel):
     """
-    Simple first P-Model with 2-dimensional conf. space and 2 VNFs.
+    Model from Jupyter prototype. Used for cross validation.
     """
 
     @classmethod
     def generate_vnfs(cls, conf):
         # define parameters
         # dict of lists defining possible configuration parameters
-        p = {"c1": list(np.linspace(0.01, 1.0, num=20)),
-             "c2": list(np.linspace(0.01, 1.0, num=20))}
+        p = {"c0": list(np.linspace(0.01, 1.0, num=20))}
+        # create vnfs
+        # function: config_list -> performance
+        # REQUIREMENT: vnf_ids of objects == idx in list
+        vnf0 = VnfPerformanceModel(0, "vnf_0", p,
+                                   lambda c: (c["c0"] ** 2
+                                              + (c["c0"] * 2) + 0.1))
+        vnf1 = VnfPerformanceModel(1, "vnf_1", p,
+                                   lambda c: (c["c0"] ** 4 + (.5 * c["c0"])))
+        # return parameters, list of vnfs
+        return p, [vnf0, vnf1]
+
+    @classmethod
+    def generate_sfc_graph(cls, conf, vnfs):
+        # create a directed graph
+        G = nx.DiGraph()
+        # add nodes and assign VNF objects
+        G.add_node(0, vnf=vnfs[0])
+        G.add_node(1, vnf=vnfs[1])
+        # G.add_node(2, vnf=vnfs[1])
+        G.add_node("s", vnf=None)
+        G.add_node("t", vnf=None)
+        # simple linear: s -> 0 -> 1 ->  -> t
+        G.add_edges_from([("s", 0), (0, 1), (1, "t")])
+        return G
+
+
+class ExampleModel(SfcPerformanceModel):
+    """
+    Playground model.
+    """
+
+    @classmethod
+    def generate_vnfs(cls, conf):
+        # define parameters
+        # dict of lists defining possible configuration parameters
+        p = {"c1": list(np.linspace(0.01, 1.0, num=6)),
+             "c2": list(np.linspace(0.01, 1.0, num=6)),
+             "c3": list(np.linspace(0.01, 1.0, num=6))}
         # create vnfs
         # function: config_list -> performance
         # REQUIREMENT: vnf_ids of objects == idx in list
@@ -221,4 +260,3 @@ class SimpleNetworkServiceThroughputModel2D(SfcPerformanceModel):
         # simple linear: s -> 0 -> 1 ->  -> t
         G.add_edges_from([("s", 0), (0, 1), (1, "t")])
         return G
-

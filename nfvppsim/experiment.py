@@ -27,6 +27,7 @@ import nfvppsim.pmodel
 import nfvppsim.selector
 import nfvppsim.predictor
 import nfvppsim.error
+import nfvppsim.plot
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -50,6 +51,8 @@ class Experiment(object):
             conf.get("predictor").get("name"))
         self._error_cls = nfvppsim.error.get_by_name(
             conf.get("error").get("name"))
+        self._plot_cls = nfvppsim.plot.get_by_name(
+            conf.get("plot").get("name"))
         
     def prepare(self):
         """
@@ -65,6 +68,8 @@ class Experiment(object):
             self.conf.get("predictor"))
         self._lst_error = self._error_cls.generate(
             self.conf.get("error"))
+        self._lst_plot = self._plot_cls.generate(
+            self.conf.get("plot"))
         LOG.info("Prepared {}x{} configurations to be simulated.".format(
             self.n_configs,
             self.conf.get("repetitions", 1)))
@@ -117,6 +122,14 @@ class Experiment(object):
                                 tmp_results.append(row)
         self.result_df = pd.DataFrame(tmp_results)
 
+    def plot(self):
+        """
+        Plot results using each initialized plotter.
+        """
+        assert(self.result_df is not None)
+        for p in self._lst_plot:
+            p.plot(self.result_df)
+        
     def store_result(self, path):
         """
         Stores result DF in pickle file if path
