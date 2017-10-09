@@ -104,8 +104,7 @@ class Experiment(object):
         return (len(self._lst_sim_t_max) *
                 len(self._lst_pmodel) *
                 len(self._lst_selector) *
-                len(self._lst_predictor) *
-                len(self._lst_error))
+                len(self._lst_predictor))
 
     def run(self):
         """
