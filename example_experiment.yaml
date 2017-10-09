@@ -26,6 +26,8 @@ predictor:
 error_metrics:
     - name: MSE
     - name: MAE
+    - name: R2
+    - name: EVS
 
 plot:
     name: Boxplot

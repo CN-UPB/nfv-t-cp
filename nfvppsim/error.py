@@ -20,6 +20,7 @@ import logging
 import os
 import re
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import r2_score, explained_variance_score
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -29,10 +30,18 @@ def get_by_name(name):
         return MSE
     if name == "MAE":
         return MAE
+    if name == "R2":
+        return R2
+    if name == "EVS":
+        return EVS
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
 class MSE(object):
+    """
+    Mean squared error regression loss
+    http://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html
+    """
 
     @classmethod
     def generate(cls, conf):
@@ -72,6 +81,10 @@ class MSE(object):
 
 
 class MAE(object):
+    """
+    Mean absolute error regression loss
+    http://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html
+    """
 
     @classmethod
     def generate(cls, conf):
@@ -98,6 +111,97 @@ class MAE(object):
 
     def calculate(self, r_hat, r):
         return mean_absolute_error(r_hat, r)
+
+    def get_results(self):
+        """
+        Getter for global result collection.
+        :return: dict for result row
+        """
+        r = {"error": self.short_name}
+        # r.update(self.params)
+        # LOG.debug("Get results from {}: {}".format(self, r))
+        return r
+
+
+class R2(object):
+    """
+    R^2 (coefficient of determination) regression score function.
+    Best possible score is 1.0 and it can be negative
+    (because the model can be arbitrarily worse). A constant model
+    that always predicts the expected value of y, disregarding
+    the input features, would get a R^2 score of 0.0.
+    http://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html
+    """
+
+    @classmethod
+    def generate(cls, conf):
+        """
+        Generate list of model objects. One for each conf. to be tested.
+        """
+        r = list()
+        r.append(cls())
+        return r
+
+    def __init__(self, **kwargs):
+        LOG.debug("Initialized {} error metric".format(self))
+
+    def __repr__(self):
+        return "{}".format(self.name)
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def short_name(self):
+        return self.name
+
+    def calculate(self, r_hat, r):
+        return r2_score(r_hat, r)
+
+    def get_results(self):
+        """
+        Getter for global result collection.
+        :return: dict for result row
+        """
+        r = {"error": self.short_name}
+        # r.update(self.params)
+        # LOG.debug("Get results from {}: {}".format(self, r))
+        return r
+
+
+class EVS(object):
+    """
+    Explained variance regression score function
+    Best possible score is 1.0, lower values are worse.
+    http://scikit-learn.org/stable/modules/generated/sklearn.metrics.explained_variance_score.html
+    """
+
+    @classmethod
+    def generate(cls, conf):
+        """
+        Generate list of model objects. One for each conf. to be tested.
+        """
+        r = list()
+        r.append(cls())
+        return r
+
+    def __init__(self, **kwargs):
+        LOG.debug("Initialized {} error metric".format(self))
+
+    def __repr__(self):
+        return "{}".format(self.name)
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def short_name(self):
+        return re.sub('[^A-Z]', '', self.name)
+
+    def calculate(self, r_hat, r):
+        return explained_variance_score(r_hat, r)
 
     def get_results(self):
         """
