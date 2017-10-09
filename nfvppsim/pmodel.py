@@ -36,6 +36,8 @@ def get_by_name(name):
         return CrossValidationModel
     if name == "ExampleModel":
         return ExampleModel
+    if name == "NFVSDN17Model":
+        return NFVSDN17Model
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -222,6 +224,46 @@ class CrossValidationModel(SfcPerformanceModel):
         G.add_node("t", vnf=None)
         # simple linear: s -> 0 -> 1 ->  -> t
         G.add_edges_from([("s", 0), (0, 1), (1, "t")])
+        return G
+
+
+class NFVSDN17Model(SfcPerformanceModel):
+    """
+    Model based on single node measurements of NFV-SDN'17 paper.
+    VNF1: Nginx
+    VNF2: Socat
+    VNF3: Squid
+    """
+
+    @classmethod
+    def generate_vnfs(cls, conf):
+        # define parameters
+        # dict of lists defining possible configuration parameters
+        p = {"c1": list(np.linspace(0.01, 1.0, num=20))}
+        # create vnfs
+        # function: config_list -> performance
+        # REQUIREMENT: vnf_ids of objects == idx in list
+        vnf0 = VnfPerformanceModel(0, "vnf_0", p,
+                                   lambda c: (c["c1"] * 9.0))
+        vnf1 = VnfPerformanceModel(1, "vnf_1", p,
+                                   lambda c: (c["c1"] * 3.3))
+        vnf2 = VnfPerformanceModel(2, "vnf_2", p,
+                                   lambda c: (c["c1"] * 1.2))
+        # return parameters, list of vnfs
+        return p, [vnf0, vnf1, vnf2]
+    
+    @classmethod
+    def generate_sfc_graph(cls, conf, vnfs):
+        # create a directed graph
+        G = nx.DiGraph()
+        # add nodes and assign VNF objects
+        G.add_node(0, vnf=vnfs[0])
+        G.add_node(1, vnf=vnfs[1])
+        G.add_node(2, vnf=vnfs[2])
+        G.add_node("s", vnf=None)
+        G.add_node("t", vnf=None)
+        # simple linear: s -> 0 -> 1 ->  -> t
+        G.add_edges_from([("s", 0), (0, 1), (1, 2), (2, "t")])
         return G
 
 

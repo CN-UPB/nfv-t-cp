@@ -1,5 +1,6 @@
 ---
-name: "Cross validation experiment"
+# This is an example configuration for a single experiment.
+name: "Selection algorithms comp. using NFV-SDN'17 paper model."
 author: "Manuel Peuster"
 version: 0.1
 
@@ -7,20 +8,23 @@ version: 0.1
 sim_t_max: null
 repetitions: 100
 # path to write results as pickled Pandas DF 
-result_path: "crossval.pkl"
+result_path: "out/selectors-nfvsdn17-model.pkl"
 
 pmodel:
-    name: CrossValidationModel
+    name: NFVSDN17Model
 
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 40, step: 2}
+      max_samples: {min: 2, max: 40, step: 1}
+    - name: UniformGridSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 40, step: 1}
 
 predictor:
     name: PolynomialRegressionPredictor
     # poly. degree (expandable)
-    degree: {min: 1, max: 6, step: 1}
+    degree: [2, 3, 4, 5]
     
 error_metrics:
     - name: MSE
@@ -28,10 +32,3 @@ error_metrics:
     - name: R2
     - name: EVS
 
-plot:
-    name: Boxplot
-    path: plots
-    title: Error
-    x: k_samples
-    y: error_value
-    n_plots: degree

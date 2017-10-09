@@ -60,8 +60,11 @@ class Experiment(object):
             ecls = nfvppsim.error.get_by_name(em.get("name"))
             self._error_cls_lst.append((ecls, em))
         # plots
-        self._plot_cls = nfvppsim.plot.get_by_name(
-            conf.get("plot").get("name"))
+        if conf.get("plot") is None:
+            self._plot_cls = None
+        else:
+            self._plot_cls = nfvppsim.plot.get_by_name(
+                conf.get("plot").get("name"))
         
     def prepare(self):
         """
@@ -84,8 +87,11 @@ class Experiment(object):
         for ecls, econf in self._error_cls_lst:
             self._lst_error += ecls.generate(econf)
         # plots
-        self._lst_plot = self._plot_cls.generate(
-            self.conf.get("plot"))
+        if self._plot_cls is None:
+            self._lst_plot = list()
+        else:
+            self._lst_plot = self._plot_cls.generate(
+                self.conf.get("plot"))
         LOG.info("Prepared {}x{} configurations to be simulated.".format(
             self.n_configs,
             self.conf.get("repetitions", 1)))
