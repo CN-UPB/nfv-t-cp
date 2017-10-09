@@ -38,4 +38,9 @@ plot:
       title: Error
       x: k_samples
       y: error_value
-      n_plots: degree
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - predictor
+        - degree
+        - error

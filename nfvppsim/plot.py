@@ -20,6 +20,8 @@ import logging
 import os
 import re
 import seaborn as sns
+import pandas as pd
+from nfvppsim.helper import cartesian_product
 
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -49,7 +51,7 @@ class Boxplot(object):
              "path": "plots",
              "x": "k_samples",
              "y": "error_value",
-             "n_plots": "degree"}
+             "n_plots": ["degree"]}
         p.update(kwargs)
         self.params = p
         LOG.debug("Initialized plotter: {}".format(self))
@@ -65,22 +67,45 @@ class Boxplot(object):
     def short_name(self):
         return re.sub('[^A-Z]', '', self.name)
 
+    def filter_to_string(self, filter_dict, path_compatible=True):
+        r = ""
+        for k, v in filter_dict.items():
+            r += "{}-{}_".format(k, v)
+        return r
+
     def plot(self, df):
         """
         Create a simple boxplot using Pandas default boxplot method.
         """
         sns.set()
         sns.set_context("paper")
-        for p_arg in list(set(df[self.params.get("n_plots")])):
-            dff = df[df[self.params.get("n_plots")] == p_arg]
+
+        # config defines arbitrary column names over which we want to iterate
+        # to create multiple plots, we fetch the possible values of each column
+        # from the dataset, and compute a float list (cartesian_product) of
+        # configuration combinations to be plotted
+
+        # TODO move to own function
+        filter_dict = dict()
+        for column in self.params.get("n_plots"):
+            filter_dict[column] = list(set(df[column]))
+        filter_dict_list = cartesian_product(filter_dict)
+
+        # iterate over n_plots filters
+        for f in filter_dict_list:
+            # do some Pandas magic to dynamically filter df by given dict
+            # TODO move to function
+            dff = df.loc[(df[list(f)] == pd.Series(f)).all(axis=1)]
+            # print(f)
+            # print(df1)
             ax = dff.boxplot(self.params.get("y"), self.params.get("x"))
             fig = ax.get_figure()
             fig.suptitle(self.params.get("title"))
-            ax.set_title("{}: {}".format(self.params.get("n_plots"), p_arg))
+            ax.set_title(self.filter_to_string(f))
             ax.set_ylabel(self.params.get("y"))
             ax.set_xlabel(self.params.get("x"))
-            ax.set_ylim([0, .2])
-            path = os.path.join(self.params.get("path"), "plot_{}-{}.pdf"
-                                .format(self.params.get("n_plots"), p_arg))
+            ax.set_ylim([0, .5])
+            path = os.path.join(self.params.get("path"), "plot_{}.pdf"
+                                .format(self.filter_to_string(f)))
             fig.savefig(path, bbox_inches="tight")
             LOG.info("Wrote plot: {}".format(path))
