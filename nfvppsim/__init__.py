@@ -80,6 +80,14 @@ def parse_args():
         default=False,
         dest="no_plot",
         action="store_true")
+
+    parser.add_argument(
+        "--plot-only",
+        help="Only plot. No Run!",
+        required=False,
+        default=False,
+        dest="plot_only",
+        action="store_true")
     
     parser.add_argument(
         "--no-result-print",
@@ -129,24 +137,29 @@ def main():
     show_welcome()
     # read experiment configuration
     conf = read_config(args.config_path)
+    # get result path
+    rpath = conf.get("result_path")
+    if args.result_path:
+        rpath = args.result_path
     # initialize experiment
     e = Experiment(conf)
     # prepare experiment
     if args.no_prepare:
         show_byebye(t_start)
     e.prepare()
+    # plot only (just plot existing Pikle file)
+    if args.plot_only:
+        e.plot(rpath)
+        show_byebye(t_start)
     # run experiment
     if args.no_run:
         show_byebye(t_start)
     e.run()
+    # store results
+    e.store_result(rpath)
     # plot results
     if not args.no_plot:
-        e.plot()
-    # store results
-    rpath = conf.get("result_path")
-    if args.result_path:
-        rpath = args.result_path
-    e.store_result(rpath)
+        e.plot(rpath)
     if args.no_result_print:
         show_byebye(t_start)
     e.print_results()

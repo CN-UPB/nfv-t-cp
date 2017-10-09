@@ -60,11 +60,11 @@ class Experiment(object):
             ecls = nfvppsim.error.get_by_name(em.get("name"))
             self._error_cls_lst.append((ecls, em))
         # plots
-        if conf.get("plot") is None:
-            self._plot_cls = None
-        else:
-            self._plot_cls = nfvppsim.plot.get_by_name(
-                conf.get("plot").get("name"))
+        self._plot_cls_lst = list()
+        if conf.get("plot") is not None:
+            for p in conf.get("plot"):
+                pcls = nfvppsim.plot.get_by_name(p.get("name"))
+            self._plot_cls_lst.append((pcls, p))
         
     def prepare(self):
         """
@@ -87,11 +87,10 @@ class Experiment(object):
         for ecls, econf in self._error_cls_lst:
             self._lst_error += ecls.generate(econf)
         # plots
-        if self._plot_cls is None:
-            self._lst_plot = list()
-        else:
-            self._lst_plot = self._plot_cls.generate(
-                self.conf.get("plot"))
+        self._lst_plot = list()
+        for pcls, pconf in self._plot_cls_lst:
+            self._lst_plot += pcls.generate(pconf)
+
         LOG.info("Prepared {}x{} configurations to be simulated.".format(
             self.n_configs,
             self.conf.get("repetitions", 1)))
@@ -144,13 +143,22 @@ class Experiment(object):
                                 tmp_results.append(row)
         self.result_df = pd.DataFrame(tmp_results)
 
-    def plot(self):
+    def plot(self, data_path):
         """
         Plot results using each initialized plotter.
+        data_path: Path to pickle file to be plotted.
         """
-        assert(self.result_df is not None)
+        df = None
+        try:
+            df = pd.read_pickle(data_path)
+        except:
+            LOG.error("Could not find '{}'. Abort plotting."
+                      .format(data_path))
+            exit(1)
+        assert(df is not None)
+        print(df)
         for p in self._lst_plot:
-            p.plot(self.result_df)
+            p.plot(df)
         
     def store_result(self, path):
         """
