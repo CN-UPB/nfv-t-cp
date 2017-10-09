@@ -14,7 +14,7 @@ pmodel:
     name: ExampleModel
 
 selector:
-    name: UniformRandomSelector
+    name: UniformGridSelector
     # max. no. of samples to be selected (expandable)
     max_samples: {min: 2, max: 12, step: 6}
 
