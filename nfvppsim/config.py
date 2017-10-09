@@ -37,7 +37,7 @@ def read_config(path):
             assert("pmodel" in conf)
             assert("selector" in conf)
             assert("predictor" in conf)
-            assert("error" in conf)
+            assert("error_metrics" in conf)
     except AssertionError as e:
         LOG.exception("Couldn't parse config '{}' {}".format(path, e))
         LOG.error("Abort.")

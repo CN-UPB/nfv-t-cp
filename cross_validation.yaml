@@ -5,7 +5,7 @@ version: 0.1
 
 # time limit for measurement (s) (expandable)
 sim_t_max: null
-repetitions: 2
+repetitions: 100
 # path to write results as pickled Pandas DF 
 result_path: "crossval.pkl"
 
@@ -22,13 +22,14 @@ predictor:
     # poly. degree (expandable)
     degree: {min: 1, max: 6, step: 1}
     
-error:
-    name: MSE
+error_metrics:
+    - name: MSE
+    - name: MAE
 
 plot:
     name: Boxplot
     path: plots
-    title: MSE
+    title: Error
     x: k_samples
     y: error_value
     n_plots: degree

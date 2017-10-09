@@ -234,9 +234,9 @@ class ExampleModel(SfcPerformanceModel):
     def generate_vnfs(cls, conf):
         # define parameters
         # dict of lists defining possible configuration parameters
-        p = {"c1": list(np.linspace(0.01, 1.0, num=6)),
-             "c2": list(np.linspace(0.01, 1.0, num=6)),
-             "c3": list(np.linspace(0.01, 1.0, num=6))}
+        p = {"c1": list(np.linspace(0.01, 1.0, num=3)),
+             "c2": list(np.linspace(0.01, 1.0, num=3)),
+             "c3": list(np.linspace(0.01, 1.0, num=3))}
         # create vnfs
         # function: config_list -> performance
         # REQUIREMENT: vnf_ids of objects == idx in list

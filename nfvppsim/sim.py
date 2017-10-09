@@ -40,7 +40,7 @@ class Profiler(object):
                  pmodel,
                  selector,
                  predictor,
-                 error):
+                 error_lst):
         """
         Initialize profiler for one experiment configuration.
         """
@@ -50,7 +50,7 @@ class Profiler(object):
         self.s = selector
         self.s.set_inputs(self.pm_conf_space)
         self.p = predictor
-        self.e = error
+        self.e_lst = error_lst
         self._tmp_train_c = list()
         self._tmp_train_r = list()
         self._sim_t_total = 0
@@ -126,20 +126,24 @@ class Profiler(object):
         # calculate reference result (evaluate pmodel for all configs)
         r = self.calculate_reference_result()
         # calculate error between prediction (r_hat) and reference results (r)
-        err_val = self.e.calculate(r, r_hat)
-        #  build/return result dict (used as row of a Pandas DF)
-        result = dict()
-        result.update(self.pm.get_results())
-        result.update(self.s.get_results())
-        result.update(self.p.get_results())
-        result.update(self.e.get_results())
-        result.update({"sim_t_total": self._sim_t_total,
-                       "sim_t_mean": np.mean(self._sim_t_mean),
-                       "sim_t_max": until,
-                       "error_value": err_val})
-        LOG.debug("Done. Resulting error={0:.4g}, sim_t_total={1}s".format(
-            err_val, self._sim_t_total))
-        return result
+        # self.e_lst can contain multiple error metrics to be calculated
+        r_lst = list()
+        for e in self.e_lst:
+            err_val = e.calculate(r, r_hat)
+            #  build/return result dict (used as row of a Pandas DF)
+            result = dict()
+            result.update(self.pm.get_results())
+            result.update(self.s.get_results())
+            result.update(self.p.get_results())
+            result.update(e.get_results())
+            result.update({"sim_t_total": self._sim_t_total,
+                           "sim_t_mean": np.mean(self._sim_t_mean),
+                           "sim_t_max": until,
+                           "error_value": err_val})
+            LOG.debug("Done. Resulting error({0})={1:.4g}, sim_t_total={2}s"
+                      .format(e.short_name, err_val, self._sim_t_total))
+            r_lst.append(result)
+        return r_lst
 
         
 def run(sim_t_max, pmodel, selector, predictor, error):
