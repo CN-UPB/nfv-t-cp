@@ -46,9 +46,11 @@ class Experiment(object):
         # pmodel
         self._pmodel_cls = nfvppsim.pmodel.get_by_name(
             conf.get("pmodel").get("name"))
-        # selector
-        self._selector_cls = nfvppsim.selector.get_by_name(
-            conf.get("selector").get("name"))
+        # selector(s)
+        self._selector_cls_lst = list()
+        for s in conf.get("selector"):
+            scls = nfvppsim.selector.get_by_name(s.get("name"))
+            self._selector_cls_lst.append((scls, s))
         # predictor
         self._predictor_cls = nfvppsim.predictor.get_by_name(
             conf.get("predictor").get("name"))
@@ -56,7 +58,7 @@ class Experiment(object):
         self._error_cls_lst = list()
         for em in conf.get("error_metrics"):
             ecls = nfvppsim.error.get_by_name(em.get("name"))
-            self._error_cls_lst.append(ecls)
+            self._error_cls_lst.append((ecls, em))
         # plots
         self._plot_cls = nfvppsim.plot.get_by_name(
             conf.get("plot").get("name"))
@@ -67,15 +69,21 @@ class Experiment(object):
         """
         self._lst_sim_t_max = expand_parameters(
             self.conf.get("sim_t_max"))
+        # pmodel
         self._lst_pmodel = self._pmodel_cls.generate(
             self.conf.get("pmodel"))
-        self._lst_selector = self._selector_cls.generate(
-            self.conf.get("selector"))
+        # selector(s)
+        self._lst_selector = list()
+        for scls, sconf in self._selector_cls_lst:
+            self._lst_selector += scls.generate(sconf)
+        # predictor
         self._lst_predictor = self._predictor_cls.generate(
             self.conf.get("predictor"))
+        # error metrics
         self._lst_error = list()
-        for ecls in self._error_cls_lst:
-            self._lst_error += ecls.generate(self.conf.get("error_metrics"))
+        for ecls, econf in self._error_cls_lst:
+            self._lst_error += ecls.generate(econf)
+        # plots
         self._lst_plot = self._plot_cls.generate(
             self.conf.get("plot"))
         LOG.info("Prepared {}x{} configurations to be simulated.".format(

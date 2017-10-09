@@ -14,9 +14,12 @@ pmodel:
     name: ExampleModel
 
 selector:
-    name: UniformGridSelector
-    # max. no. of samples to be selected (expandable)
-    max_samples: {min: 2, max: 12, step: 6}
+    - name: UniformRandomSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 12, step: 6}
+    - name: UniformGridSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 12, step: 6}
 
 predictor:
     name: PolynomialRegressionPredictor
