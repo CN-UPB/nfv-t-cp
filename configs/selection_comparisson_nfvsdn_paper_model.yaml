@@ -35,7 +35,7 @@ error_metrics:
 plot:
     - name: Boxplot
       path: plots
-      title: Error
+      title: Error Boxplot
       x: k_samples
       y: error_value
       n_plots:

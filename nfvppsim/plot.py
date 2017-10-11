@@ -21,6 +21,7 @@ import os
 import re
 import seaborn as sns
 import pandas as pd
+
 from nfvppsim.helper import cartesian_product
 
 
@@ -33,9 +34,9 @@ def get_by_name(name):
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
-class Boxplot(object):
+class BasePlot(object):
     """
-    Simple boxplots.
+    Base class for plots. Place to put common helpers.
     """
 
     @classmethod
@@ -67,45 +68,74 @@ class Boxplot(object):
     def short_name(self):
         return re.sub('[^A-Z]', '', self.name)
 
-    def filter_to_string(self, filter_dict, path_compatible=True):
+    def _get_plot_name(self, filter_dict):
+        """
+        Generate a plot name based on title and filter.
+        Filter values are encoded in the name.
+        """
         r = ""
-        for k, v in filter_dict.items():
-            r += "{}-{}_".format(k, v)
+        # title to name prefix
+        t = str(self.params.get("title"))
+        t = t.replace(" ", "_")
+        r += t + "_"
+        # unroll filter dict to sting
+        for k in self.params.get("n_plots"):
+            r += "{}-{}_".format(k, filter_dict.get(k))
+        r = r.strip("-_.")
         return r
+
+    def _generate_filters(self, df):
+        """
+        config defines arbitrary column names over which we want to iterate
+        to create multiple plots, we fetch the possible values of each column
+        from the dataset, and compute a float list (cartesian_product) of
+        configuration combinations to be plotted
+        """
+        # extract possible values
+        filter_dict = dict()
+        for column in self.params.get("n_plots"):
+            filter_dict[column] = list(set(df[column]))
+        # all combinations
+        return cartesian_product(filter_dict)
+
+    def _filter_df_by_dict(self, df, filter_dict):
+        """
+        do some Pandas magic to dynamically filter df by given dict
+        filter_dict = {"column1": "value", "column2": ...}
+        """
+        return df.loc[
+            (df[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)]
+
+    def plot(self, df):
+        LOG.warning("BasePlot.plot() not implemented.")
+
+
+class Boxplot(BasePlot):
+    """
+    Simple boxplots.
+    """
 
     def plot(self, df):
         """
         Create a simple boxplot using Pandas default boxplot method.
         """
+        # plot setup
         sns.set()
         sns.set_context("paper")
-
-        # config defines arbitrary column names over which we want to iterate
-        # to create multiple plots, we fetch the possible values of each column
-        # from the dataset, and compute a float list (cartesian_product) of
-        # configuration combinations to be plotted
-
-        # TODO move to own function
-        filter_dict = dict()
-        for column in self.params.get("n_plots"):
-            filter_dict[column] = list(set(df[column]))
-        filter_dict_list = cartesian_product(filter_dict)
-
-        # iterate over n_plots filters
+        # generate filters (on filter per plot)
+        filter_dict_list = self._generate_filters(df)
+        # iterate over all filters
         for f in filter_dict_list:
-            # do some Pandas magic to dynamically filter df by given dict
-            # TODO move to function
-            dff = df.loc[(df[list(f)] == pd.Series(f)).all(axis=1)]
-            # print(f)
-            # print(df1)
+            # select data to be plotted
+            dff = self._filter_df_by_dict(df, f)
             ax = dff.boxplot(self.params.get("y"), self.params.get("x"))
             fig = ax.get_figure()
             fig.suptitle(self.params.get("title"))
-            ax.set_title(self.filter_to_string(f))
+            ax.set_title(self._get_plot_name(f))
             ax.set_ylabel(self.params.get("y"))
             ax.set_xlabel(self.params.get("x"))
             ax.set_ylim([0, .5])
             path = os.path.join(self.params.get("path"), "plot_{}.pdf"
-                                .format(self.filter_to_string(f)))
+                                .format(self._get_plot_name(f)))
             fig.savefig(path, bbox_inches="tight")
             LOG.info("Wrote plot: {}".format(path))

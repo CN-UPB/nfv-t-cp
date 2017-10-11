@@ -7,7 +7,7 @@ version: 0.1
 sim_t_max: null
 repetitions: 100
 # path to write results as pickled Pandas DF 
-result_path: "out/crossval.pkl"
+result_path: "out/cross_validation.pkl"
 
 pmodel:
     name: CrossValidationModel
@@ -20,13 +20,13 @@ selector:
 predictor:
     name: PolynomialRegressionPredictor
     # poly. degree (expandable)
-    degree: {min: 1, max: 6, step: 1}
+    degree: {min: 1, max: 5, step: 1}
     
 error_metrics:
     - name: MSE
-    - name: MAE
-    - name: R2
-    - name: EVS
+    #- name: MAE
+    #- name: R2
+    #- name: EVS
 
 plot:
     - name: Boxplot
