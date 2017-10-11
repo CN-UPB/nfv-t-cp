@@ -21,6 +21,7 @@ import os
 import re
 import seaborn as sns
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from nfvppsim.helper import cartesian_product
 
@@ -31,6 +32,8 @@ LOG = logging.getLogger(os.path.basename(__file__))
 def get_by_name(name):
     if name == "Boxplot":
         return Boxplot
+    if name == "Lineplot":
+        return Lineplot
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -52,7 +55,10 @@ class BasePlot(object):
              "path": "plots",
              "x": "k_samples",
              "y": "error_value",
-             "n_plots": ["degree"]}
+             "n_plots": ["degree"],
+             "fig_width": 16,
+             "fig_height": 12,
+             "fig_dpi": 300}
         p.update(kwargs)
         self.params = p
         LOG.debug("Initialized plotter: {}".format(self))
@@ -107,6 +113,15 @@ class BasePlot(object):
             (df[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)]
 
     def plot(self, df):
+        if self.params.get("disabled"):
+            LOG.info("'{}' disabled. Skipping plot.".format(self.name))
+            return
+        return self._plot(df)
+
+    def _plot(self, df):
+        """
+        Plot method to be overwritten.
+        """
         LOG.warning("BasePlot.plot() not implemented.")
 
 
@@ -115,7 +130,7 @@ class Boxplot(BasePlot):
     Simple boxplots.
     """
 
-    def plot(self, df):
+    def _plot(self, df):
         """
         Create a simple boxplot using Pandas default boxplot method.
         """
@@ -128,13 +143,69 @@ class Boxplot(BasePlot):
         for f in filter_dict_list:
             # select data to be plotted
             dff = self._filter_df_by_dict(df, f)
-            ax = dff.boxplot(self.params.get("y"), self.params.get("x"))
-            fig = ax.get_figure()
+            fig, ax = plt.subplots(
+                figsize=(self.params.get("fig_width"),
+                         self.params.get("fig_height")),
+                dpi=self.params.get("fig_dpi"))
+            dff.boxplot(self.params.get("y"), self.params.get("x"), ax=ax)
             fig.suptitle(self.params.get("title"))
             ax.set_title(self._get_plot_name(f))
             ax.set_ylabel(self.params.get("y"))
             ax.set_xlabel(self.params.get("x"))
-            ax.set_ylim([0, .5])
+            ax.set_ylim([-1, 1])
+            path = os.path.join(self.params.get("path"), "plot_{}.pdf"
+                                .format(self._get_plot_name(f)))
+            fig.savefig(path, bbox_inches="tight")
+            LOG.info("Wrote plot: {}".format(path))
+
+
+class Lineplot(BasePlot):
+    """
+    Simple lineplot.
+    """
+
+    def _plot(self, df):
+        """
+        Create a simple boxplot using Pandas default boxplot method.
+        """
+        # plot setup
+        sns.set()
+        sns.set_context("paper")
+        # generate filters (on filter per plot)
+        filter_dict_list = self._generate_filters(df)
+        # iterate over all filters
+        for f in filter_dict_list:
+            # select data to be plotted
+            dff = self._filter_df_by_dict(df, f)
+            fig, ax = plt.subplots(
+                figsize=(self.params.get("fig_width"),
+                         self.params.get("fig_height")),
+                dpi=self.params.get("fig_dpi"))
+            keys = list(set(dff[self.params.get("line_plots")]))
+            # iterate over line keys
+            for key in keys:
+                # select data for one line
+                dff2 = dff.loc[dff[self.params.get("line_plots")] == key]
+                # calculate mean over all repetitions
+                grp = dff2.groupby(
+                    ["conf_id"])[self.params.get("x"),
+                                 self.params.get("y")].mean()
+                # print(grp)
+                # plot
+                ax = grp.plot(ax=ax,
+                              kind='line',
+                              linewidth=1.0,
+                              marker=".",
+                              x=self.params.get("x"),
+                              y=self.params.get("y"))
+            # create legend
+            lines, _ = ax.get_legend_handles_labels()
+            ax.legend(lines, keys, loc='best')
+            fig.suptitle(self.params.get("title"))
+            ax.set_title(self._get_plot_name(f))
+            ax.set_ylabel(self.params.get("y"))
+            ax.set_xlabel(self.params.get("x"))
+            ax.set_ylim([-1, 1])
             path = os.path.join(self.params.get("path"), "plot_{}.pdf"
                                 .format(self._get_plot_name(f)))
             fig.savefig(path, bbox_inches="tight")

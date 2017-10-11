@@ -24,7 +24,7 @@ selector:
 predictor:
     name: PolynomialRegressionPredictor
     # poly. degree (expandable)
-    degree: [2, 3, 4, 5]
+    degree: [1, 2, 3, 4, 5]
     
 error_metrics:
     - name: MSE
@@ -34,6 +34,7 @@ error_metrics:
 
 plot:
     - name: Boxplot
+      disabled: False
       path: plots
       title: Error Boxplot
       x: k_samples
@@ -41,6 +42,17 @@ plot:
       n_plots:
         # list of columns that distinguish plots
         - selector
+        - predictor
+        - degree
+        - error
+    - name: Lineplot
+      path: plots
+      title: Selector Error Comparison
+      x: k_samples
+      y: error_value
+      line_plots: selector  # column defining lines in plot
+      n_plots:
+        # list of columns that distinguish plots
         - predictor
         - degree
         - error

@@ -33,7 +33,10 @@ LOG = logging.getLogger(os.path.basename(__file__))
 
 
 class Experiment(object):
-    # TODO Refactor: move to own module experiment.py?
+    """
+    An experiment is a single simulation run.
+    Its behavior is defined by the config file.
+    """
 
     def __init__(self, conf):
         """
@@ -64,7 +67,7 @@ class Experiment(object):
         if conf.get("plot") is not None:
             for p in conf.get("plot"):
                 pcls = nfvppsim.plot.get_by_name(p.get("name"))
-            self._plot_cls_lst.append((pcls, p))
+                self._plot_cls_lst.append((pcls, p))
         
     def prepare(self):
         """
