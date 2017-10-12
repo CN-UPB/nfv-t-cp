@@ -16,15 +16,16 @@ pmodel:
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 12, step: 6}
+      max_samples: {min: 2, max: 42, step: 10}
     - name: UniformGridSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 12, step: 6}
+      max_samples: {min: 2, max: 42, step: 10}
 
 predictor:
-    name: PolynomialRegressionPredictor
-    # poly. degree (expandable)
-    degree: [2, 3, 4]
+    #name: PolynomialRegressionPredictor
+    #degree: [2, 3]  # poly. degree (expandable)
+    name: SupportVectorRegressionPredictor
+    epsilon: 0.01
     
 error_metrics:
     - name: MSE
@@ -42,5 +43,5 @@ plot:
         # list of columns that distinguish plots
         - selector
         - predictor
-        - degree
+        - epsilon
         - error

@@ -23,6 +23,7 @@ import re
 from nfvppsim.config import expand_parameters
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
+from sklearn.svm import SVR
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -30,6 +31,8 @@ LOG = logging.getLogger(os.path.basename(__file__))
 def get_by_name(name):
     if name == "PolynomialRegressionPredictor":
         return PolynomialRegressionPredictor
+    if name == "SupportVectorRegressionPredictor":
+        return SupportVectorRegressionPredictor
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -85,6 +88,68 @@ class PolynomialRegressionPredictor(object):
         if self.m is None or self.poly is None:
             LOG.error("Model not trained!")
         c_hat = self.poly.fit_transform(c_hat)
+        return self.m.predict(c_hat)
+
+    def get_results(self):
+        """
+        Getter for global result collection.
+        :return: dict for result row
+        """
+        r = {"predictor": self.short_name}
+        r.update(self.params)
+        # LOG.debug("Get results from {}: {}".format(self, r))
+        return r
+
+
+class SupportVectorRegressionPredictor(object):
+    """
+    Support Vector Regression
+    http://scikit-learn.org/stable/modules/svm.html#svm-regression
+    """
+    # TODO see notes in docu: we may want to normalize the input data (?!)
+
+    @classmethod
+    def generate(cls, conf):
+        """
+        Generate list of model objects. One for each conf. to be tested.
+        """
+        r = list()
+        for e in expand_parameters(conf.get("epsilon")):
+            r.append(cls(epsilon=e))
+        return r
+
+    def __init__(self, **kwargs):
+        # apply default params
+        p = {"epsilon": .1}
+        
+        p.update(kwargs)
+        # members
+        self.m = None
+        self.params = p
+        # disable scipy warning: https://github.com/scipy/scipy/issues/5998
+        warnings.filterwarnings(
+            action="ignore", module="scipy", message="^internal gelsd")
+        LOG.debug("Initialized predictor: {}".format(self))
+
+    def __repr__(self):
+        return "{}({})".format(self.name, self.params)
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    @property
+    def short_name(self):
+        return re.sub('[^A-Z]', '', self.name)
+
+    def train(self, c_tilde, r_tilde):
+        self.m = SVR(C=1.0, epsilon=self.params.get("epsilon"))
+        self.m.fit(c_tilde, r_tilde)
+        LOG.debug("Trained: {}".format(self.m))
+
+    def predict(self, c_hat):
+        if self.m is None:
+            LOG.error("Model not trained!")
         return self.m.predict(c_hat)
 
     def get_results(self):

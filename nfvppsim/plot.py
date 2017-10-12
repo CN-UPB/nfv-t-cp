@@ -152,7 +152,7 @@ class Boxplot(BasePlot):
             ax.set_title(self._get_plot_name(f))
             ax.set_ylabel(self.params.get("y"))
             ax.set_xlabel(self.params.get("x"))
-            ax.set_ylim([-1, 1])
+            ax.set_ylim([-2, 2])
             path = os.path.join(self.params.get("path"), "plot_{}.pdf"
                                 .format(self._get_plot_name(f)))
             fig.savefig(path, bbox_inches="tight")
