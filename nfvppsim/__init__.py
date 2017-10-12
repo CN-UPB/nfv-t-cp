@@ -118,7 +118,7 @@ def show_byebye(t_start=None, rc=0):
     print("*****************************************************")
     print("Simulation done!")
     if t_start:
-        print("Runtime: {0:.3g}s".format(time.time() - t_start))
+        print("Runtime: {0:.3f}s".format(time.time() - t_start))
     print("")
     sys.exit(rc)
 
