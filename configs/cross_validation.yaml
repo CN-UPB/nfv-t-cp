@@ -18,9 +18,9 @@ selector:
       max_samples: {min: 2, max: 40, step: 2}
 
 predictor:
-    name: PolynomialRegressionPredictor
-    # poly. degree (expandable)
-    degree: {min: 1, max: 5, step: 1}
+    - name: PolynomialRegressionPredictor
+      # poly. degree (expandable)
+      degree: {min: 1, max: 5, step: 1}
     
 error_metrics:
     - name: MSE

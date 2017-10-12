@@ -54,7 +54,8 @@ class PolynomialRegressionPredictor(object):
 
     def __init__(self, **kwargs):
         # apply default params
-        p = {"degree": 2}
+        p = {"degree": 2,
+             "epsilon": 0}
         p.update(kwargs)
         # members
         self.m = None
@@ -120,8 +121,8 @@ class SupportVectorRegressionPredictor(object):
 
     def __init__(self, **kwargs):
         # apply default params
-        p = {"epsilon": .1}
-        
+        p = {"degree": 0,
+             "epsilon": 0.1}
         p.update(kwargs)
         # members
         self.m = None

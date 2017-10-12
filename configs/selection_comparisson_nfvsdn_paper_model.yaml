@@ -24,10 +24,12 @@ selector:
       max_samples: {min: 2, max: 90, step: 1}
 
 predictor:
-    name: PolynomialRegressionPredictor
-    # poly. degree (expandable)
-    degree: [1, 2, 3, 4, 5]
-    
+    - name: PolynomialRegressionPredictor
+      # poly. degree (expandable)
+      degree: [1, 2, 3, 4]
+    - name: SupportVectorRegressionPredictor
+      epsilon: [0.001, 0.01, 0.1, 1.0]  # epsilon (expandable)
+
 error_metrics:
     - name: MSE
     - name: MAE
@@ -36,9 +38,8 @@ error_metrics:
 
 plot:
     - name: Boxplot
-      disabled: False
       path: plots
-      title: Error Boxplot
+      title: Error
       x: k_samples
       y: error_value
       n_plots:
@@ -46,6 +47,7 @@ plot:
         - selector
         - predictor
         - degree
+        - epsilon
         - error
     - name: Lineplot
       path: plots
@@ -57,4 +59,16 @@ plot:
         # list of columns that distinguish plots
         - predictor
         - degree
+        - epsilon
+        - error
+    - name: Lineplot
+      # needs fixed argument values for predictors!
+      path: plots
+      title: Predictor Error Comparison
+      x: k_samples
+      y: error_value
+      line_plots: predictor  # column defining lines in plot
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
         - error

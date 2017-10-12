@@ -55,8 +55,10 @@ class Experiment(object):
             scls = nfvppsim.selector.get_by_name(s.get("name"))
             self._selector_cls_lst.append((scls, s))
         # predictor
-        self._predictor_cls = nfvppsim.predictor.get_by_name(
-            conf.get("predictor").get("name"))
+        self._predictor_cls_lst = list()
+        for p in conf.get("predictor"):
+            pcls = nfvppsim.predictor.get_by_name(p.get("name"))
+            self._predictor_cls_lst.append((pcls, p))
         # error metrics
         self._error_cls_lst = list()
         for em in conf.get("error_metrics"):
@@ -83,8 +85,9 @@ class Experiment(object):
         for scls, sconf in self._selector_cls_lst:
             self._lst_selector += scls.generate(sconf)
         # predictor
-        self._lst_predictor = self._predictor_cls.generate(
-            self.conf.get("predictor"))
+        self._lst_predictor = list()
+        for pcls, pconf in self._predictor_cls_lst:
+            self._lst_predictor += pcls.generate(pconf)
         # error metrics
         self._lst_error = list()
         for ecls, econf in self._error_cls_lst:

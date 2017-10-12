@@ -143,6 +143,8 @@ class Boxplot(BasePlot):
         for f in filter_dict_list:
             # select data to be plotted
             dff = self._filter_df_by_dict(df, f)
+            if len(dff) < 1:
+                continue  # nothing to plot
             fig, ax = plt.subplots(
                 figsize=(self.params.get("fig_width"),
                          self.params.get("fig_height")),
@@ -177,6 +179,8 @@ class Lineplot(BasePlot):
         for f in filter_dict_list:
             # select data to be plotted
             dff = self._filter_df_by_dict(df, f)
+            if len(dff) < 1:
+                continue  # nothing to plot
             fig, ax = plt.subplots(
                 figsize=(self.params.get("fig_width"),
                          self.params.get("fig_height")),

@@ -22,10 +22,10 @@ selector:
       max_samples: {min: 2, max: 42, step: 10}
 
 predictor:
-    #name: PolynomialRegressionPredictor
-    #degree: [2, 3]  # poly. degree (expandable)
-    name: SupportVectorRegressionPredictor
-    epsilon: 0.01
+    - name: PolynomialRegressionPredictor
+      degree: [2, 3]  # poly. degree (expandable)
+    - name: SupportVectorRegressionPredictor
+      epsilon: [0.01, 0.1]  # epsilon (expandable)
     
 error_metrics:
     - name: MSE
@@ -43,5 +43,29 @@ plot:
         # list of columns that distinguish plots
         - selector
         - predictor
+        - degree
         - epsilon
+        - error
+    - name: Lineplot
+      path: plots
+      title: Selector Error Comparison
+      x: k_samples
+      y: error_value
+      line_plots: selector  # column defining lines in plot
+      n_plots:
+        # list of columns that distinguish plots
+        - predictor
+        - degree
+        - epsilon
+        - error
+    - name: Lineplot
+      # needs fixed argument values for predictors!
+      path: plots
+      title: Predictor Error Comparison
+      x: k_samples
+      y: error_value
+      line_plots: predictor  # column defining lines in plot
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
         - error
