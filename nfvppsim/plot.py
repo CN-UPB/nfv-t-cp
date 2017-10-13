@@ -19,6 +19,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import logging
 import os
 import re
+import itertools
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -61,6 +62,8 @@ class BasePlot(object):
              "fig_dpi": 300}
         p.update(kwargs)
         self.params = p
+        self.marker = itertools.cycle(
+            ("s", "o", "^", "v", "X", "P", "D", "*", "H"))
         LOG.debug("Initialized plotter: {}".format(self))
 
     def __repr__(self):
@@ -87,10 +90,15 @@ class BasePlot(object):
         # unroll filter dict to sting
         for k in self.params.get("n_plots"):
             r += "{}-{}_".format(k, filter_dict.get(k))
-        r = r.strip("-_.")
-        return r
+        return r.strip("-_. ")
 
-    def _generate_filters(self, df):
+    def _filter_to_string(self, filter_dict):
+        r = ""
+        for k, v in filter_dict.items():
+            r += "{}={} ".format(k, v)
+        return r.strip("-_. ")
+        
+    def _generate_filters(self, df, column_lst):
         """
         config defines arbitrary column names over which we want to iterate
         to create multiple plots, we fetch the possible values of each column
@@ -99,7 +107,7 @@ class BasePlot(object):
         """
         # extract possible values
         filter_dict = dict()
-        for column in self.params.get("n_plots"):
+        for column in column_lst:
             filter_dict[column] = list(set(df[column]))
         # all combinations
         return cartesian_product(filter_dict)
@@ -138,7 +146,8 @@ class Boxplot(BasePlot):
         sns.set()
         sns.set_context("paper")
         # generate filters (on filter per plot)
-        filter_dict_list = self._generate_filters(df)
+        filter_dict_list = self._generate_filters(
+            df, self.params.get("n_plots"))
         # iterate over all filters
         for f in filter_dict_list:
             # select data to be plotted
@@ -173,9 +182,10 @@ class Lineplot(BasePlot):
         # plot setup
         sns.set()
         sns.set_context("paper")
-        # generate filters (on filter per plot)
-        filter_dict_list = self._generate_filters(df)
-        # iterate over all filters
+        # generate filters (one filter per plot)
+        filter_dict_list = self._generate_filters(
+            df, self.params.get("n_plots"))
+        # iterate over all filters to gen. diff. plots
         for f in filter_dict_list:
             # select data to be plotted
             dff = self._filter_df_by_dict(df, f)
@@ -185,11 +195,16 @@ class Lineplot(BasePlot):
                 figsize=(self.params.get("fig_width"),
                          self.params.get("fig_height")),
                 dpi=self.params.get("fig_dpi"))
-            keys = list(set(dff[self.params.get("line_plots")]))
+
+            # generate filters (one filter per plot line)
+            filter_dict_list2 = self._generate_filters(
+                dff, self.params.get("line_plots"))
             # iterate over line keys
-            for key in keys:
+            for f2 in filter_dict_list2:
                 # select data for one line
-                dff2 = dff.loc[dff[self.params.get("line_plots")] == key]
+                dff2 = self._filter_df_by_dict(dff, f2)
+                if len(dff2) < 1:
+                    continue  # nothing to plot
                 # calculate mean over all repetitions
                 grp = dff2.groupby(
                     ["conf_id"])[self.params.get("x"),
@@ -199,12 +214,12 @@ class Lineplot(BasePlot):
                 ax = grp.plot(ax=ax,
                               kind='line',
                               linewidth=1.0,
-                              marker=".",
+                              marker=next(self.marker),
                               x=self.params.get("x"),
-                              y=self.params.get("y"))
+                              y=self.params.get("y"),
+                              label=self._filter_to_string(f2))
             # create legend
-            lines, _ = ax.get_legend_handles_labels()
-            ax.legend(lines, keys, loc='best')
+            ax.legend(loc='best')
             fig.suptitle(self.params.get("title"))
             ax.set_title(self._get_plot_name(f))
             ax.set_ylabel(self.params.get("y"))

@@ -51,7 +51,8 @@ plot:
       title: Selector Error Comparison
       x: k_samples
       y: error_value
-      line_plots: selector  # column defining lines in plot
+      line_plots:  # column defining lines in plot
+        - selector
       n_plots:
         # list of columns that distinguish plots
         - predictor
@@ -64,7 +65,10 @@ plot:
       title: Predictor Error Comparison
       x: k_samples
       y: error_value
-      line_plots: predictor  # column defining lines in plot
+      line_plots:  # column defining lines in plot
+        - predictor
+        - epsilon
+        - degree
       n_plots:
         # list of columns that distinguish plots
         - selector

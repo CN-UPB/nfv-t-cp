@@ -28,7 +28,7 @@ predictor:
       # poly. degree (expandable)
       degree: [1, 2, 3, 4]
     - name: SupportVectorRegressionPredictor
-      epsilon: [0.001, 0.01, 0.1, 1.0]  # epsilon (expandable)
+      epsilon: [0.01, 0.1, 0.5, 1.0]  # epsilon (expandable)
 
 error_metrics:
     - name: MSE
@@ -38,6 +38,7 @@ error_metrics:
 
 plot:
     - name: Boxplot
+      disabled: False
       path: plots
       title: Error
       x: k_samples
@@ -50,11 +51,13 @@ plot:
         - epsilon
         - error
     - name: Lineplot
+      disabled: False
       path: plots
       title: Selector Error Comparison
       x: k_samples
       y: error_value
-      line_plots: selector  # column defining lines in plot
+      line_plots:  # column defining lines in plot
+        - selector
       n_plots:
         # list of columns that distinguish plots
         - predictor
@@ -62,12 +65,16 @@ plot:
         - epsilon
         - error
     - name: Lineplot
+      disabled: False
       # needs fixed argument values for predictors!
       path: plots
       title: Predictor Error Comparison
       x: k_samples
       y: error_value
-      line_plots: predictor  # column defining lines in plot
+      line_plots:
+        - predictor
+        - epsilon
+        - degree
       n_plots:
         # list of columns that distinguish plots
         - selector
