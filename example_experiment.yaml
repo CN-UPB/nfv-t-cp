@@ -6,7 +6,7 @@ version: 0.1
 
 # time limit for measurement (s) (expandable)
 sim_t_max: null
-repetitions: 2
+repetitions: 5
 # path to write results as pickled Pandas DF 
 result_path: "out/test.pkl"
 
@@ -16,16 +16,19 @@ pmodel:
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 42, step: 10}
+      max_samples: {min: 2, max: 42, step: 4}
     - name: UniformGridSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 42, step: 10}
+      max_samples: {min: 2, max: 42, step: 4}
+    - name: UniformGridSelectorRandomOffset
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 42, step: 4}
 
 predictor:
     - name: PolynomialRegressionPredictor
-      degree: [2, 3]  # poly. degree (expandable)
+      degree: [3]  # poly. degree (expandable)
     - name: SupportVectorRegressionPredictor
-      epsilon: [0.01, 0.1]  # epsilon (expandable)
+      epsilon: [0.1]  # epsilon (expandable)
     
 error_metrics:
     - name: MSE

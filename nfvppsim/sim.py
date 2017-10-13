@@ -55,6 +55,10 @@ class Profiler(object):
         self._tmp_train_r = list()
         self._sim_t_total = 0
         self._sim_t_mean = list()
+        # re-initialize models for repetition
+        self.pm.reinitialize()
+        self.s.reinitialize()
+        self.p.reinitialize()
         # initialize simulation environment
         self.env = simpy.Environment()
         self.profile_proc = self.env.process(self.simulate_measurement())

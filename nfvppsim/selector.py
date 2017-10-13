@@ -30,6 +30,8 @@ def get_by_name(name):
         return UniformRandomSelector
     if name == "UniformGridSelector":
         return UniformGridSelector
+    if name == "UniformGridSelectorRandomOffset":
+        return UniformGridSelectorRandomOffset
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -118,20 +120,30 @@ class UniformGridSelector(object):
 
     def __init__(self, **kwargs):
         # apply default params
-        p = {"max_samples": -1}  # -1 infinite samples
+        p = {"max_samples": -1,  # -1 infinite samples
+             "random_offset": False}
         p.update(kwargs)
         # members
         self.pm_inputs = list()
         self.params = p
         self.k_samples = 0
+        self.random_offset = 0
         LOG.debug("Initialized selector: {}".format(self))
 
     def reinitialize(self):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
+        We re-initialize the random grid offset here (if enabled)
         """
-        pass
+        if self.params.get("random_offset"):
+            # calculate step size of grind based on size and max_samples
+            step_size = int(
+                len(self.pm_inputs) / self.params.get("max_samples"))
+            # pick random offset (0, step_size]
+            self.random_offset = np.random.randint(0, step_size)
+            LOG.debug("Re-initialized random grid offset: {}"
+                      .format(self.random_offset))
 
     def set_inputs(self, pm_inputs):
         self.pm_inputs = pm_inputs
@@ -156,9 +168,9 @@ class UniformGridSelector(object):
         # calculate step size of grind based on size and max_samples
         step_size = int(len(self.pm_inputs) / self.params.get("max_samples"))
         # calculate value to be used in this iteration
-        idx = self.k_samples * step_size
+        idx = self.random_offset + (self.k_samples * step_size)
         self.k_samples += 1
-        return self.pm_inputs[idx]
+        return self.pm_inputs[idx % len(self.pm_inputs)]
 
     def has_next(self):
         if self.params.get("max_samples") < 0:
@@ -181,3 +193,13 @@ class UniformGridSelector(object):
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r
+
+
+class UniformGridSelectorRandomOffset(UniformGridSelector):
+    """
+    Same as UniformGridSelector but with random grid offset enabled.
+    """
+    def __init__(self, **kwargs):
+        # change config of base selector
+        kwargs["random_offset"] = True
+        super().__init__(**kwargs)
