@@ -66,6 +66,13 @@ class PolynomialRegressionPredictor(object):
             action="ignore", module="scipy", message="^internal gelsd")
         LOG.debug("Initialized predictor: {}".format(self))
 
+    def reinitialize(self):
+        """
+        Called once for each experiment repetition.
+        Can be used to re-initialize data structures for each repetition.
+        """
+        pass
+
     def __repr__(self):
         return "{}({})".format(self.name, self.params)
 
@@ -131,6 +138,13 @@ class SupportVectorRegressionPredictor(object):
         warnings.filterwarnings(
             action="ignore", module="scipy", message="^internal gelsd")
         LOG.debug("Initialized predictor: {}".format(self))
+
+    def reinitialize(self):
+        """
+        Called once for each experiment repetition.
+        Can be used to re-initialize data structures for each repetition.
+        """
+        pass
 
     def __repr__(self):
         return "{}({})".format(self.name, self.params)

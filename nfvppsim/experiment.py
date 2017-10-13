@@ -133,6 +133,10 @@ class Experiment(object):
                                          self.n_configs))
                         for r_id in range(0, self.conf.get(
                                 "repetitions", 1)):
+                            # re-initialize models for repetition
+                            pm_obj.reinitialize()
+                            s_obj.reinitialize()
+                            p_obj.reinitialize()
                             # Attention: We need to copy the models objects
                             # to have fresh states for each run!
                             # TODO Can we optimize?

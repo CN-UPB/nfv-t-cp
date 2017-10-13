@@ -55,6 +55,13 @@ class UniformRandomSelector(object):
         self.k_samples = 0
         LOG.debug("Initialized selector: {}".format(self))
 
+    def reinitialize(self):
+        """
+        Called once for each experiment repetition.
+        Can be used to re-initialize data structures for each repetition.
+        """
+        pass
+
     def set_inputs(self, pm_inputs):
         self.pm_inputs = pm_inputs
 
@@ -118,6 +125,13 @@ class UniformGridSelector(object):
         self.params = p
         self.k_samples = 0
         LOG.debug("Initialized selector: {}".format(self))
+
+    def reinitialize(self):
+        """
+        Called once for each experiment repetition.
+        Can be used to re-initialize data structures for each repetition.
+        """
+        pass
 
     def set_inputs(self, pm_inputs):
         self.pm_inputs = pm_inputs
