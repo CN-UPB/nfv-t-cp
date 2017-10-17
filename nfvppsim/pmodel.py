@@ -196,13 +196,13 @@ class SfcPerformanceModel(object):
         for (u, v) in G.edges():
             G_new.add_edge("{}_out".format(u), "{}_in".format(v))
         # debugging
-        LOG.debug("Nodes:", G_new.nodes())
-        for e in G_new.edges(data=True):
-            LOG.debug("Edge: {}".format(e))
+        # LOG.debug("Nodes:", G_new.nodes())
+        # for e in G_new.edges(data=True):
+        #    LOG.debug("Edge: {}".format(e))
         # calculate service throughput (solve max_flow problem)
         mf_value, mf_path = nx.maximum_flow(G_new, "s_in", "t_out")
-        LOG.debug("MaxFlow calculation (value/path): {} / {}".format(
-            mf_value, mf_path))
+        # LOG.debug("MaxFlow calculation (value/path): {} / {}".format(
+        #    mf_value, mf_path))
         self.sfc_graph_reduced = G_new
         return mf_value
 
@@ -292,16 +292,19 @@ class ExampleModel(SfcPerformanceModel):
     def generate_vnfs(cls, conf):
         # define parameters
         # dict of lists defining possible configuration parameters
-        p = {"c1": list(np.linspace(0.01, 1.0, num=3)),
-             "c2": list(np.linspace(0.01, 1.0, num=3)),
-             "c3": list(np.linspace(0.01, 1.0, num=3))}
+        p = {"c1": list(np.linspace(0.01, 1.0, num=5)),
+             "c2": list(np.linspace(0.01, 1.0, num=5)),
+             "c3": list(np.linspace(0.01, 1.0, num=5))}
         # create vnfs
         # function: config_list -> performance
         # REQUIREMENT: vnf_ids of objects == idx in list
         vnf0 = VnfPerformanceModel(0, "vnf_0", p,
-                                   lambda c: (c["c1"] * 8.0 + c["c2"] * 1.5))
+                                   lambda c: (c["c1"] * 8.0
+                                              + c["c2"] * 1.5
+                                              + c["c3"] * 0.5))
         vnf1 = VnfPerformanceModel(1, "vnf_1", p,
-                                   lambda c: (c["c1"] * 4.0 + c["c2"]))
+                                   lambda c: (c["c1"]
+                                              + c["c2"] * 4.0))
         # return parameters, list of vnfs
         return p, [vnf0, vnf1]
     

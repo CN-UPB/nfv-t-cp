@@ -34,10 +34,12 @@ def get_by_name(name):
         return UniformGridSelectorRandomOffset
     if name == "UniformGridSelectorIncrementalOffset":
         return UniformGridSelectorIncrementalOffset
+    if name == "PanicGreedyAdaptiveSelector":
+        return PanicGreedyAdaptiveSelector
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
-class UniformRandomSelector(object):
+class Selector(object):
 
     @classmethod
     def generate(cls, conf):
@@ -55,6 +57,7 @@ class UniformRandomSelector(object):
         p.update(kwargs)
         # members
         self.pm_inputs = list()
+        self.pm_parameter = dict()
         self.params = p
         self.k_samples = 0
         LOG.debug("Initialized selector: {}".format(self))
@@ -66,8 +69,9 @@ class UniformRandomSelector(object):
         """
         pass
 
-    def set_inputs(self, pm_inputs):
+    def set_inputs(self, pm_inputs, pm_parameter):
         self.pm_inputs = pm_inputs
+        self.pm_parameter = pm_parameter
 
     def __repr__(self):
         return "{}({})".format(self.name, self.params)
@@ -81,9 +85,8 @@ class UniformRandomSelector(object):
         return re.sub('[^A-Z]', '', self.name)
 
     def next(self):
-        idx = np.random.randint(0, len(self.pm_inputs))
         self.k_samples += 1
-        return self.pm_inputs[idx]
+        LOG.error("Not implemented.")
 
     def has_next(self):
         if self.params.get("max_samples") < 0:
@@ -108,17 +111,25 @@ class UniformRandomSelector(object):
         return r
 
 
-class UniformGridSelector(object):
+class UniformRandomSelector(Selector):
 
-    @classmethod
-    def generate(cls, conf):
-        """
-        Generate list of model objects. One for each conf. to be tested.
-        """
-        r = list()
-        for max_samples in expand_parameters(conf.get("max_samples")):
-            r.append(cls(max_samples=max_samples))
-        return r
+    def __init__(self, **kwargs):
+        # apply default params
+        p = {"max_samples": -1}  # -1 infinite samples
+        p.update(kwargs)
+        # members
+        self.pm_inputs = list()
+        self.params = p
+        self.k_samples = 0
+        LOG.debug("Initialized selector: {}".format(self))
+
+    def next(self):
+        idx = np.random.randint(0, len(self.pm_inputs))
+        self.k_samples += 1
+        return self.pm_inputs[idx]
+
+
+class UniformGridSelector(Selector):
 
     def __init__(self, **kwargs):
         # apply default params
@@ -153,20 +164,6 @@ class UniformGridSelector(object):
             LOG.debug("Re-initialized incremental grid offset: {}"
                       .format(self.offset))
 
-    def set_inputs(self, pm_inputs):
-        self.pm_inputs = pm_inputs
-
-    def __repr__(self):
-        return "{}({})".format(self.name, self.params)
-
-    @property
-    def name(self):
-        return self.__class__.__name__
-
-    @property
-    def short_name(self):
-        return re.sub('[^A-Z]', '', self.name)
-
     def next(self):
         if self.params.get("max_samples") < 0:
             LOG.error("{} will not work without positive max_samples setting."
@@ -179,28 +176,6 @@ class UniformGridSelector(object):
         idx = (self.offset % step_size) + (self.k_samples * step_size)
         self.k_samples += 1
         return self.pm_inputs[idx]
-
-    def has_next(self):
-        if self.params.get("max_samples") < 0:
-            return True  # -1 infinite samples
-        return (self.k_samples < self.params.get("max_samples", 0))
-
-    def feedback(self, c, r):
-        """
-        Inform selector about result for single configuration.
-        """
-        pass  # TODO store as internal state if needed
-
-    def get_results(self):
-        """
-        Getter for global result collection.
-        :return: dict for result row
-        """
-        r = {"selector": self.short_name,
-             "k_samples": self.k_samples}
-        r.update(self.params)
-        # LOG.debug("Get results from {}: {}".format(self, r))
-        return r
 
 
 class UniformGridSelectorRandomOffset(UniformGridSelector):
@@ -221,3 +196,166 @@ class UniformGridSelectorIncrementalOffset(UniformGridSelector):
         # change config of base selector
         kwargs["incremental_offset"] = True
         super().__init__(**kwargs)
+
+
+class PanicGreedyAdaptiveSelector(Selector):
+    """
+    Greedy adaptive selection algorithm presented in PANIC paper.
+    """
+
+    def __init__(self, **kwargs):
+        # apply default params
+        p = {"max_samples": -1,
+             "max_border_points": 4}  # -1 infinite samples
+        p.update(kwargs)
+        # members
+        self.pm_inputs = list()
+        self.pm_parameter = dict()
+        self.params = p
+        self.k_samples = 0
+        self._border_points = None
+        self._previous_samples = list()
+        LOG.debug("Initialized selector: {}".format(self))
+
+    def reinitialize(self, repetition_id):
+        """
+        Called once for each experiment repetition.
+        Can be used to re-initialize data structures for each repetition.
+        """
+        pass
+
+    def _conf_geq(self, d1, d2):
+        """
+        True if all components of d1 >= d2 else False
+        """
+        for k, v in d1.items():
+            if v < d2[k]:
+                return False
+        return True
+
+    def _calc_border_points(self):
+        """
+        calculate the border points to be used for initial selection
+        """
+        # find min/max configs for single VNFs
+        min_conf = self.pm_inputs[0][0].copy()
+        max_conf = self.pm_inputs[0][0].copy()
+        for c in self.pm_inputs:
+            for vnf_c in c:
+                if self._conf_geq(min_conf, vnf_c):
+                    min_conf = vnf_c.copy()
+                if self._conf_geq(vnf_c, max_conf):
+                    max_conf = vnf_c.copy()
+        LOG.debug("min_conf={}".format(min_conf))
+        LOG.debug("max_conf={}".format(max_conf))
+
+        # return all configurations in which at least one VNF
+        # has either a min or a max configuration
+        r = list()
+        for c in self.pm_inputs:
+            for vnf_c in c:
+                if vnf_c == min_conf:
+                    r.append(c)
+                    break
+                if vnf_c == max_conf:
+                    r.append(c)
+                    break
+        LOG.debug("Found {} border points.".format(len(r)))
+        return r
+
+    def _find_midpoint(self, t1, t2):
+        """
+        ti = (ci, ri)
+        midpoint(c1, c2) is defined as the point matching the avg. among
+        each dimension of (c1, c2)
+        """
+
+        def find_closest_parameter(k, v):
+            """
+            We have a discrete parameter space
+            Find the possible paramter value that is closest
+            to v.
+            k = parameter name
+            """
+            min_dist = float("inf")
+            r = self.pm_parameter.get(k)[0]
+            for p in self.pm_parameter.get(k):
+                dist = abs(v - p)
+                if dist < min_dist:
+                    min_dist = dist
+                    r = p
+            return r
+
+        def calc_avg_conf(c1, c2):
+            """
+            calculate the parameter-wise avg. of both configs
+            """
+            avg_conf_result = list()
+            for i in range(0, len(c1)):
+                ac = dict()
+                for k in c1[i].keys():
+                    tmp = (c1[i][k] + c2[i][k]) / 2
+                    ac[k] = find_closest_parameter(k, tmp)
+                avg_conf_result.append(ac)
+            return tuple(avg_conf_result)
+
+        avg_conf = calc_avg_conf(t1[0], t2[0])
+        # LOG.debug("Found midpoint: {}/{} -> {}"
+        #           .format(t1[0], t2[0], avg_conf))
+        return avg_conf
+
+    def _distance(self, t1, t2):
+        """
+        Distance between two configs based on results.
+        ti = (ci, ri)
+        distance according to PANIC paper: |r1 - r2|
+        """
+        return abs(t1[1] - t2[1])
+
+    def _conf_not_used(self, c):
+        """
+        True if c is not in previous samples.
+        """
+        for ps in self._previous_samples:
+            if ps[0] == c:
+                return False
+        return True
+
+    def next(self):
+        # initially select border points if not yet done
+        if self._border_points is None:
+            self._border_points = self._calc_border_points()
+        assert(len(self._border_points)
+               >= self.params.get("max_border_points"))
+
+        # PANIC algorithm (see paper)
+        if self.k_samples < self.params.get("max_border_points"):
+            # select (randomly) border points until "max_border_points"
+            idx = np.random.randint(0, len(self._border_points))
+            result = self._border_points[idx]
+            LOG.debug("Return border point: {}"
+                      .format(result))
+        else:
+            # adaptively select next point based on previous measurements
+            assert(len(self._previous_samples)
+                   >= self.params.get("max_border_points"))
+            max_distance = -1
+            for t1 in self._previous_samples:
+                for t2 in self._previous_samples:
+                    a = self._find_midpoint(t1, t2)
+                    if (self._distance(t1, t2) > max_distance):
+                            # and self._conf_not_used(a)):  # TODO check why this could lead to no point found!
+                        max_distance = self._distance(t1, t2)
+                        result = a
+            LOG.debug("Return mid point: {}"
+                      .format(result))
+        self.k_samples += 1
+        return result
+
+    def feedback(self, c, r):
+        """
+        Inform selector about result for single configuration.
+        """
+        self._previous_samples.append((c, r))
+
+

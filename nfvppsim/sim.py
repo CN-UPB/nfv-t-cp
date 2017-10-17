@@ -49,7 +49,7 @@ class Profiler(object):
         self.pm_conf_space = pmodel.get_conf_space()
         self.pm_conf_space_flat = flatten_conf(self.pm_conf_space)
         self.s = selector
-        self.s.set_inputs(self.pm_conf_space)
+        self.s.set_inputs(self.pm_conf_space, pmodel.parameter)
         self.p = predictor
         self.e_lst = error_lst
         self.repetition_id = repetition_id
