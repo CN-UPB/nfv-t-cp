@@ -32,6 +32,8 @@ def get_by_name(name):
         return UniformGridSelector
     if name == "UniformGridSelectorRandomOffset":
         return UniformGridSelectorRandomOffset
+    if name == "UniformGridSelectorIncrementalOffset":
+        return UniformGridSelectorIncrementalOffset
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -57,7 +59,7 @@ class UniformRandomSelector(object):
         self.k_samples = 0
         LOG.debug("Initialized selector: {}".format(self))
 
-    def reinitialize(self):
+    def reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
@@ -121,16 +123,17 @@ class UniformGridSelector(object):
     def __init__(self, **kwargs):
         # apply default params
         p = {"max_samples": -1,  # -1 infinite samples
-             "random_offset": False}
+             "random_offset": False,
+             "incremental_offset": False}
         p.update(kwargs)
         # members
         self.pm_inputs = list()
         self.params = p
         self.k_samples = 0
-        self.random_offset = 0
+        self.offset = 0
         LOG.debug("Initialized selector: {}".format(self))
 
-    def reinitialize(self):
+    def reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
@@ -141,9 +144,14 @@ class UniformGridSelector(object):
             step_size = int(
                 len(self.pm_inputs) / self.params.get("max_samples"))
             # pick random offset (0, step_size]
-            self.random_offset = np.random.randint(0, step_size)
+            self.offset = np.random.randint(0, step_size)
             LOG.debug("Re-initialized random grid offset: {}"
-                      .format(self.random_offset))
+                      .format(self.offset))
+        if self.params.get("incremental_offset"):
+            # later applied with modulo to fit into step size
+            self.offset = repetition_id
+            LOG.debug("Re-initialized incremental grid offset: {}"
+                      .format(self.offset))
 
     def set_inputs(self, pm_inputs):
         self.pm_inputs = pm_inputs
@@ -168,9 +176,9 @@ class UniformGridSelector(object):
         # calculate step size of grind based on size and max_samples
         step_size = int(len(self.pm_inputs) / self.params.get("max_samples"))
         # calculate value to be used in this iteration
-        idx = self.random_offset + (self.k_samples * step_size)
+        idx = (self.offset % step_size) + (self.k_samples * step_size)
         self.k_samples += 1
-        return self.pm_inputs[idx % len(self.pm_inputs)]
+        return self.pm_inputs[idx]
 
     def has_next(self):
         if self.params.get("max_samples") < 0:
@@ -202,4 +210,14 @@ class UniformGridSelectorRandomOffset(UniformGridSelector):
     def __init__(self, **kwargs):
         # change config of base selector
         kwargs["random_offset"] = True
+        super().__init__(**kwargs)
+
+
+class UniformGridSelectorIncrementalOffset(UniformGridSelector):
+    """
+    Same as UniformGridSelector but with incremental grid offset enabled.
+    """
+    def __init__(self, **kwargs):
+        # change config of base selector
+        kwargs["incremental_offset"] = True
         super().__init__(**kwargs)

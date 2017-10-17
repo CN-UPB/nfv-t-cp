@@ -6,9 +6,9 @@ version: 0.1
 
 # time limit for measurement (s) (expandable)
 sim_t_max: null
-repetitions: 100
+repetitions: 2
 # path to write results as pickled Pandas DF 
-result_path: "out/selectors-nfvsdn17-mode.pkl"
+result_path: "out/selectors-nfvsdn17-model.pkl"
 
 pmodel:
     name: NFVSDN17Model
@@ -22,9 +22,12 @@ selector:
       # max. no. of samples to be selected (expandable)
       # 90 = sqrt(8000)
       max_samples: {min: 2, max: 90, step: 1}
-    - name: UniformGridSelectorRandomOffset
+    #- name: UniformGridSelectorRandomOffset
+    #  # max. no. of samples to be selected (expandable)
+    #  # 90 = sqrt(8000)
+    #  max_samples: {min: 2, max: 90, step: 1}
+    - name: UniformGridSelectorIncrementalOffset
       # max. no. of samples to be selected (expandable)
-      # 90 = sqrt(8000)
       max_samples: {min: 2, max: 90, step: 1}
 
 predictor:

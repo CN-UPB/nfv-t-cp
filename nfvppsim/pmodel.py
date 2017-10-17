@@ -53,7 +53,7 @@ class VnfPerformanceModel(object):
         self.func = func
         LOG.debug("Generated VNF {} with vnf_id={}".format(name, vnf_id))
 
-    def reinitialize(self):
+    def reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
@@ -107,13 +107,13 @@ class SfcPerformanceModel(object):
         LOG.info("\t ... the SFC has {} possible configurations.".format(
             len(self.get_conf_space())))
 
-    def reinitialize(self):
+    def reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
         """
         for v in self.vnfs:
-            v.reinitialize()
+            v.reinitialize(repetition_id)
         pass
 
     def __repr__(self):

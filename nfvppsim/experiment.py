@@ -140,7 +140,8 @@ class Experiment(object):
                                               copy.deepcopy(pm_obj),
                                               copy.deepcopy(s_obj),
                                               copy.deepcopy(p_obj),
-                                              copy.deepcopy(self._lst_error))
+                                              copy.deepcopy(self._lst_error),
+                                              r_id)
                             for row in row_lst:
                                 # extend result
                                 row.update({"conf_id": conf_id,

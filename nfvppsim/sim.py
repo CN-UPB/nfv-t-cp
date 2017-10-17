@@ -40,7 +40,8 @@ class Profiler(object):
                  pmodel,
                  selector,
                  predictor,
-                 error_lst):
+                 error_lst,
+                 repetition_id):
         """
         Initialize profiler for one experiment configuration.
         """
@@ -51,14 +52,15 @@ class Profiler(object):
         self.s.set_inputs(self.pm_conf_space)
         self.p = predictor
         self.e_lst = error_lst
+        self.repetition_id = repetition_id
         self._tmp_train_c = list()
         self._tmp_train_r = list()
         self._sim_t_total = 0
         self._sim_t_mean = list()
         # re-initialize models for repetition
-        self.pm.reinitialize()
-        self.s.reinitialize()
-        self.p.reinitialize()
+        self.pm.reinitialize(self.repetition_id)
+        self.s.reinitialize(self.repetition_id)
+        self.p.reinitialize(self.repetition_id)
         # initialize simulation environment
         self.env = simpy.Environment()
         self.profile_proc = self.env.process(self.simulate_measurement())
@@ -150,6 +152,6 @@ class Profiler(object):
         return r_lst
 
         
-def run(sim_t_max, pmodel, selector, predictor, error):
-    p = Profiler(pmodel, selector, predictor, error)
+def run(sim_t_max, pmodel, selector, predictor, error, repetition_id):
+    p = Profiler(pmodel, selector, predictor, error, repetition_id)
     return p.run(until=sim_t_max)

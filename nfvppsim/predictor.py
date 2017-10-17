@@ -66,7 +66,7 @@ class PolynomialRegressionPredictor(object):
             action="ignore", module="scipy", message="^internal gelsd")
         LOG.debug("Initialized predictor: {}".format(self))
 
-    def reinitialize(self):
+    def reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
@@ -139,7 +139,7 @@ class SupportVectorRegressionPredictor(object):
             action="ignore", module="scipy", message="^internal gelsd")
         LOG.debug("Initialized predictor: {}".format(self))
 
-    def reinitialize(self):
+    def reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
