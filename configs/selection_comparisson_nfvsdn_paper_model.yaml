@@ -32,7 +32,7 @@ selector:
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 2, max: 90, step: 1}
-      max_border_points: 5
+      max_border_points: 40
 
 predictor:
     - name: PolynomialRegressionPredictor
