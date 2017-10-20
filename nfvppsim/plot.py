@@ -59,7 +59,9 @@ class BasePlot(object):
              "n_plots": ["degree"],
              "fig_width": 16,
              "fig_height": 12,
-             "fig_dpi": 300}
+             "fig_dpi": 300,
+             "y_lim_min": -1.0,
+             "y_lim_max": 1.0}
         p.update(kwargs)
         self.params = p
         self.marker = itertools.cycle(
@@ -163,7 +165,8 @@ class Boxplot(BasePlot):
             ax.set_title(self._get_plot_name(f))
             ax.set_ylabel(self.params.get("y"))
             ax.set_xlabel(self.params.get("x"))
-            ax.set_ylim([-2, 2])
+            ax.set_ylim([self.params.get("y_lim_min"),
+                         self.params.get("y_lim_max")])
             path = os.path.join(self.params.get("path"), "plot_{}.pdf"
                                 .format(self._get_plot_name(f)))
             fig.savefig(path, bbox_inches="tight")
@@ -224,7 +227,8 @@ class Lineplot(BasePlot):
             ax.set_title(self._get_plot_name(f))
             ax.set_ylabel(self.params.get("y"))
             ax.set_xlabel(self.params.get("x"))
-            ax.set_ylim([-1, 1])
+            ax.set_ylim([self.params.get("y_lim_min"),
+                         self.params.get("y_lim_max")])
             path = os.path.join(self.params.get("path"), "plot_{}.pdf"
                                 .format(self._get_plot_name(f)))
             fig.savefig(path, bbox_inches="tight")

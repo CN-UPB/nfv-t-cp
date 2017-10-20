@@ -54,6 +54,8 @@ plot:
       title: Error
       x: k_samples
       y: error_value
+      y_lim_min: -2.0
+      y_lim_max: 2.0
       n_plots:
         # list of columns that distinguish plots
         - selector
@@ -67,6 +69,8 @@ plot:
       title: Selector Error Comparison
       x: k_samples
       y: error_value
+      y_lim_min: -1.0
+      y_lim_max: 1.0
       line_plots:  # column defining lines in plot
         - selector
       n_plots:
@@ -82,6 +86,8 @@ plot:
       title: Predictor Error Comparison
       x: k_samples
       y: error_value
+      y_lim_min: -1.0
+      y_lim_max: 1.0
       line_plots:
         - predictor
         - epsilon
