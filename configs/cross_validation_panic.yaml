@@ -1,0 +1,98 @@
+---
+# This is an example configuration for a single experiment.
+name: "Cross validation with PANIC results"
+author: "Manuel Peuster"
+version: 0.1
+
+# time limit for measurement (s) (expandable)
+sim_t_max: null
+repetitions: 100
+# path to write results as pickled Pandas DF 
+result_path: "out/cross-validation-panic.pkl"
+
+pmodel:
+    name: PanicTerrasortModel
+
+selector:
+    - name: UniformRandomSelector
+      # max. no. of samples to be selected (expandable)
+      # 90 = sqrt(8000)
+      max_samples: {min: 5, max: 27, step: 1}
+    #- name: UniformGridSelector
+    #  # max. no. of samples to be selected (expandable)
+    #  # 90 = sqrt(8000)
+    #  max_samples: {min: 2, max: 90, step: 1}
+    #- name: UniformGridSelectorRandomOffset
+    #  # max. no. of samples to be selected (expandable)
+    #  # 90 = sqrt(8000)
+    #  max_samples: {min: 2, max: 90, step: 1}
+    - name: UniformGridSelectorIncrementalOffset
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 5, max: 27, step: 1}
+    - name: PanicGreedyAdaptiveSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 5, max: 27, step: 1}
+      max_border_points: 2
+
+predictor:
+    - name: PolynomialRegressionPredictor
+      # poly. degree (expandable)
+      degree: [1, 2, 3, 4]
+    - name: SupportVectorRegressionPredictor
+      epsilon: [0.01, 0.1, 0.5, 1.0]  # epsilon (expandable)
+
+error_metrics:
+    - name: MSE
+    - name: MAE
+    - name: R2
+    - name: EVS
+
+plot:
+    - name: Boxplot
+      disabled: False
+      path: plots
+      title: Error
+      x: k_samples
+      y: error_value
+      y_lim_min: null
+      y_lim_max: null
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - predictor
+        - degree
+        - epsilon
+        - error
+    - name: Lineplot
+      disabled: False
+      path: plots
+      title: Selector Error Comparison
+      x: k_samples
+      y: error_value
+      y_lim_min: null
+      y_lim_max: null
+      line_plots:  # column defining lines in plot
+        - selector
+      n_plots:
+        # list of columns that distinguish plots
+        - predictor
+        - degree
+        - epsilon
+        - error
+    - name: Lineplot
+      disabled: False
+      # needs fixed argument values for predictors!
+      path: plots
+      title: Predictor Error Comparison
+      x: k_samples
+      y: error_value
+      y_lim_min: null
+      y_lim_max: null
+      line_plots:
+        - predictor
+        - epsilon
+        - degree
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - error

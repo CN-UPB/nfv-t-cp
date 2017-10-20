@@ -38,6 +38,8 @@ def get_by_name(name):
         return ExampleModel
     if name == "NFVSDN17Model":
         return NFVSDN17Model
+    if name == "PanicTerrasortModel":
+        return PanicTerrasortModel
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -267,7 +269,7 @@ class NFVSDN17Model(SfcPerformanceModel):
                                    lambda c: (c["c1"] * 1.2))
         # return parameters, list of vnfs
         return p, [vnf0, vnf1, vnf2]
-    
+
     @classmethod
     def generate_sfc_graph(cls, conf, vnfs):
         # create a directed graph
@@ -280,6 +282,43 @@ class NFVSDN17Model(SfcPerformanceModel):
         G.add_node("t", vnf=None)
         # simple linear: s -> 0 -> 1 ->  -> t
         G.add_edges_from([("s", 0), (0, 1), (1, 2), (2, "t")])
+        return G
+
+
+class PanicTerrasortModel(SfcPerformanceModel):
+    """
+    Model based on single node measurements of PANIC paper.
+    Attention: Smaller result is better (runntime)
+    VNF1: Terrasort
+    """
+
+    @classmethod
+    def generate_vnfs(cls, conf):
+        # define parameters
+        # dict of lists defining possible configuration parameters
+        p = {"cluster_size": list(range(2, 11)),
+             "data_size": list(range(10, 60, 10)),
+             "cores": [1, 2, 4]}
+        # create vnfs
+        # function: config_list -> performance
+        # REQUIREMENT: vnf_ids of objects == idx in list
+        vnf0 = VnfPerformanceModel(0, "vnf_0", p,
+                                   lambda c: (((-50 * c["cluster_size"] + 700)
+                                               + (12.75 * c["data_size"]
+                                                  - 37.5)) / 2 * c["cores"]))
+        # return parameters, list of vnfs
+        return p, [vnf0]
+    
+    @classmethod
+    def generate_sfc_graph(cls, conf, vnfs):
+        # create a directed graph
+        G = nx.DiGraph()
+        # add nodes and assign VNF objects
+        G.add_node(0, vnf=vnfs[0])
+        G.add_node("s", vnf=None)
+        G.add_node("t", vnf=None)
+        # simple linear: s -> 0 -> t
+        G.add_edges_from([("s", 0), (0, "t")])
         return G
 
 
@@ -307,7 +346,7 @@ class ExampleModel(SfcPerformanceModel):
                                               + c["c2"] * 4.0))
         # return parameters, list of vnfs
         return p, [vnf0, vnf1]
-    
+
     @classmethod
     def generate_sfc_graph(cls, conf, vnfs):
         # create a directed graph
