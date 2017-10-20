@@ -47,8 +47,12 @@ class Selector(object):
         Generate list of model objects. One for each conf. to be tested.
         """
         r = list()
-        for max_samples in expand_parameters(conf.get("max_samples")):
-            r.append(cls(max_samples=max_samples))
+        # extract expansion parameter but keep the others
+        conf_max_samples = conf.get("max_samples")
+        del conf["max_samples"]
+        # generate one object for each expanded parameter
+        for max_samples in expand_parameters(conf_max_samples):
+            r.append(cls(max_samples=max_samples, **conf))
         return r
 
     def __init__(self, **kwargs):
@@ -170,8 +174,10 @@ class UniformGridSelector(Selector):
                       .format(self))
             LOG.error("Exit!")
             exit(1)
-        # calculate step size of grind based on size and max_samples
+        # calculate step size of grid based on size and max_samples
         step_size = int(len(self.pm_inputs) / self.params.get("max_samples"))
+        if step_size < 1:
+            LOG.warning("Bad config: max_samples larger than config. space!")
         # calculate value to be used in this iteration
         idx = (self.offset % step_size) + (self.k_samples * step_size)
         self.k_samples += 1
