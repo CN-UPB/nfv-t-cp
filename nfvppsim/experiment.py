@@ -19,6 +19,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import logging
 import os
 import copy
+import datetime
 import pandas as pd
 
 from nfvppsim import sim
@@ -175,6 +176,12 @@ class Experiment(object):
         if path is None:
             LOG.warning("'result_path' not specified. No results stored.")
             return
+        # add timestamp to path
+        fname = os.path.basename(path)
+        nfname = "{}_{}".format(
+            datetime.datetime.now().strftime("%Y-%m-%d_%H-%M"),
+            fname)
+        path = path.replace(fname, nfname)
         with open(path, "wb") as f:
             self.result_df.to_pickle(f)
         LOG.info("Wrote result with {} rows to '{}'".format(
