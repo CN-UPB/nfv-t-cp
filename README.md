@@ -12,6 +12,10 @@ This repo is intended to be open sourced once the paper is submitted.
 
 * `nfvppsim -c example_experiment.yaml`
 
+## Plot
+
+* `nfvppsim --plot out/2018-01-22_09-06_test.pkl`
+
 ## Test
 
 * `py.test ...`

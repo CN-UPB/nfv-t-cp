@@ -171,6 +171,7 @@ class Boxplot(BasePlot):
                                 .format(self._get_plot_name(f)))
             fig.savefig(path, bbox_inches="tight")
             LOG.info("Wrote plot: {}".format(path))
+            plt.close()
 
 
 class Lineplot(BasePlot):
@@ -233,3 +234,4 @@ class Lineplot(BasePlot):
                                 .format(self._get_plot_name(f)))
             fig.savefig(path, bbox_inches="tight")
             LOG.info("Wrote plot: {}".format(path))
+            plt.close()

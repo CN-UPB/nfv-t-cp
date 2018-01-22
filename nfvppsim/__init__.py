@@ -74,27 +74,18 @@ def parse_args():
         action="store_true")
 
     parser.add_argument(
-        "--no-plot",
-        help="Do not plot results.",
+        "--plot",
+        help="Plot the given results.",
         required=False,
-        default=False,
-        dest="no_plot",
-        action="store_true")
-
-    parser.add_argument(
-        "--plot-only",
-        help="Only plot. No Run!",
-        required=False,
-        default=False,
-        dest="plot_only",
-        action="store_true")
+        default=None,
+        dest="plot")
     
     parser.add_argument(
-        "--no-result-print",
-        help="Do not print results.",
+        "--result-print",
+        help="Print results as Pandas table.",
         required=False,
         default=False,
-        dest="no_result_print",
+        dest="result_print",
         action="store_true")
 
     parser.add_argument(
@@ -148,8 +139,8 @@ def main():
         show_byebye(t_start)
     e.prepare()
     # plot only (just plot existing Pikle file)
-    if args.plot_only:
-        e.plot(rpath)
+    if args.plot is not None:
+        e.plot(args.plot)
         show_byebye(t_start)
     # run experiment
     if args.no_run:
@@ -157,12 +148,8 @@ def main():
     e.run()
     # store results
     e.store_result(rpath)
-    # plot results
-    if not args.no_plot:
-        e.plot(rpath)
-    if args.no_result_print:
-        show_byebye(t_start)
-    e.print_results()
+    if args.result_print:
+        e.print_results()
     # show bye bye screen
     show_byebye(t_start)
 
