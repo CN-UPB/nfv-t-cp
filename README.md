@@ -14,7 +14,7 @@ This repo is intended to be open sourced once the paper is submitted.
 
 ## Plot
 
-* `nfvppsim --plot out/2018-01-22_09-06_test.pkl`
+* `nfvppsim -c configs/cross_validation_panic.yaml --plot ../nfv-pp-sim-result-archive/results/2018-01-22_08-40_cross-validation-panic.pkl`
 
 ## Test
 

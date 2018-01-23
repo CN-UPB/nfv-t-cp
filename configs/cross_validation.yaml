@@ -8,6 +8,7 @@ sim_t_max: null
 repetitions: 100
 # path to write results as pickled Pandas DF 
 result_path: "out/cross_validation.pkl"
+result_path_add_timestamp: False
 
 pmodel:
     name: CrossValidationModel

@@ -60,8 +60,8 @@ class BasePlot(object):
              "fig_width": 16,
              "fig_height": 12,
              "fig_dpi": 300,
-             "y_lim_min": -1.0,
-             "y_lim_max": 1.0}
+             "y_lim_min": None,
+             "y_lim_max": None}
         p.update(kwargs)
         self.params = p
         self.marker = itertools.cycle(

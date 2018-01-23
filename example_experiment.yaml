@@ -9,6 +9,7 @@ sim_t_max: null
 repetitions: 5
 # path to write results as pickled Pandas DF 
 result_path: "out/test.pkl"
+result_path_add_timestamp: False
 
 pmodel:
     name: ExampleModel

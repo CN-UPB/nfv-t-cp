@@ -6,18 +6,20 @@ version: 0.1
 
 # time limit for measurement (s) (expandable)
 sim_t_max: null
-repetitions: 100
+repetitions: 20
 # path to write results as pickled Pandas DF 
 result_path: "out/cross-validation-panic.pkl"
+result_path_add_timestamp: False
 
 pmodel:
     name: PanicTerrasortModel
 
+# PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
+# max_samples: {min: 5, max: 27, step: 1}
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      # 90 = sqrt(8000)
-      max_samples: {min: 5, max: 27, step: 1}
+      max_samples: {min: 2, max: 50, step: 1}
     #- name: UniformGridSelector
     #  # max. no. of samples to be selected (expandable)
     #  # 90 = sqrt(8000)
@@ -26,12 +28,12 @@ selector:
     #  # max. no. of samples to be selected (expandable)
     #  # 90 = sqrt(8000)
     #  max_samples: {min: 2, max: 90, step: 1}
-    - name: UniformGridSelectorIncrementalOffset
-      # max. no. of samples to be selected (expandable)
-      max_samples: {min: 5, max: 27, step: 1}
+    #- name: UniformGridSelectorIncrementalOffset
+    #  # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 5, max: 27, step: 1}
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 5, max: 27, step: 1}
+      max_samples: {min: 2, max: 50, step: 1}
       max_border_points: 2
 
 predictor:
@@ -45,7 +47,7 @@ error_metrics:
     - name: MSE
     - name: MAE
     - name: R2
-    - name: EVS
+    #- name: EVS
 
 plot:
     - name: Boxplot
@@ -80,7 +82,7 @@ plot:
         - epsilon
         - error
     - name: Lineplot
-      disabled: False
+      disabled: True
       # needs fixed argument values for predictors!
       path: plots
       title: Predictor Error Comparison
