@@ -6,9 +6,9 @@ version: 0.1
 
 # time limit for measurement (s) (expandable)
 sim_t_max: null
-repetitions: 20
+repetitions: 50
 # path to write results as pickled Pandas DF 
-result_path: "out/cross-validation-panic.pkl"
+result_path: "out/cross_validation_panic_terrasort.pkl"
 result_path_add_timestamp: False
 
 pmodel:
@@ -39,9 +39,9 @@ selector:
 predictor:
     - name: PolynomialRegressionPredictor
       # poly. degree (expandable)
-      degree: [1, 2, 3, 4]
+      degree: [2, 3, 4]
     - name: SupportVectorRegressionPredictor
-      epsilon: [0.01, 0.1, 0.5, 1.0]  # epsilon (expandable)
+      epsilon: [0.01, 0.1, 0.5]  # epsilon (expandable)
 
 error_metrics:
     - name: MSE
