@@ -51,7 +51,7 @@ error_metrics:
 
 plot:
     - name: Boxplot
-      disabled: False
+      disabled: True
       path: plots
       title: Error
       x: k_samples

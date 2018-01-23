@@ -49,6 +49,14 @@ def parse_args():
         dest="config_path")
 
     parser.add_argument(
+        "-r",
+        "--repetitions",
+        help="Number of repetitions (overwrites config).",
+        required=False,
+        default=None,
+        dest="repetitions")
+
+    parser.add_argument(
         "-v",
         "--verbose",
         help="Output debug messages.",
@@ -90,7 +98,7 @@ def parse_args():
 
     parser.add_argument(
         "--result-path",
-        help="Path for results file (overwrites config)",
+        help="Path for results file (overwrites config).",
         required=False,
         default=None,
         dest="result_path")
@@ -130,8 +138,11 @@ def main():
     conf = read_config(args.config_path)
     # get result path
     rpath = conf.get("result_path")
+    # overwrite config parameters given as arguments
     if args.result_path:
         rpath = args.result_path
+    if args.repetitions:
+        conf["repetitions"] = int(args.repetitions)
     # initialize experiment
     e = Experiment(conf)
     # prepare experiment
