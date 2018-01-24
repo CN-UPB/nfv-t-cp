@@ -19,7 +19,7 @@ pmodel:
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 50, step: 1}
+      max_samples: {min: 2, max: 10, step: 1}
     #- name: UniformGridSelector
     #  # max. no. of samples to be selected (expandable)
     #  # 90 = sqrt(8000)
@@ -33,7 +33,7 @@ selector:
     #  max_samples: {min: 5, max: 27, step: 1}
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 50, step: 1}
+      max_samples: {min: 2, max: 10, step: 1}
       max_border_points: 2
 
 predictor:

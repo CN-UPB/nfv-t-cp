@@ -335,6 +335,7 @@ class PanicGreedyAdaptiveSelector(Selector):
                >= self.params.get("max_border_points"))
 
         # PANIC algorithm (see paper)
+        # TODO this does not seem to work right!!! 
         if self.k_samples < self.params.get("max_border_points"):
             # select (randomly) border points until "max_border_points"
             idx = np.random.randint(0, len(self._border_points))

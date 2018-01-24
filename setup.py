@@ -39,7 +39,8 @@ setup(name='nfvppsim',
           "coloredlogs",
           "networkx",
           "matplotlib",
-          "seaborn"
+          "seaborn",
+          "pytest"
       ],
       zip_safe=False,
       entry_points={
