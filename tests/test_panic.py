@@ -65,7 +65,7 @@ class TestPanicSelector(unittest.TestCase):
 
     def _new_PGAS(self, max_samples=12, max_border_points=4, conf={}):
         s = PanicGreedyAdaptiveSelector(max_samples=max_samples,
-                                        max_border_points=4,
+                                        max_border_points=max_border_points,
                                         **conf)
         s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM_PARAMETERS)
         return s
@@ -81,13 +81,14 @@ class TestPanicSelector(unittest.TestCase):
 
     def test_next_until_max_border_points(self):
         MS = 48
-        MBP = 6
+        MBP = 12
         s = self._new_PGAS(max_samples=MS, max_border_points=MBP)
         bp = s._calc_border_points()
         # pick MS samples
         for i in range(0, MS):
             # get next point to check
             p = s.next()
+            self.assertIsNotNone(p)
             # inform selector about result of previous sample
             s.feedback(p, 0)
             if i < MBP:

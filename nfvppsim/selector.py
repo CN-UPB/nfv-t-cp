@@ -378,6 +378,7 @@ class PanicGreedyAdaptiveSelector(Selector):
         return True
 
     def next(self):
+        result = None
         # initially select border points if not yet done
         if self._border_points is None:
             self._border_points = self._calc_border_points()
@@ -396,12 +397,22 @@ class PanicGreedyAdaptiveSelector(Selector):
             for t1 in self._previous_samples:
                 for t2 in self._previous_samples:
                     a = self._find_midpoint(t1, t2)
-                    if (self._distance(t1, t2) > max_distance):
-                            # and self._conf_not_used(a)):  # TODO check why this could lead to no point found!
+                    if (self._distance(t1, t2) > max_distance
+                            # attention PANIC BUG: can get stuck local min/max
+                            and self._conf_not_used(a)):
                         max_distance = self._distance(t1, t2)
                         result = a
             LOG.debug("Return mid point: {}"
                       .format(result))
+        # workaround for PANIC BUG (randomly re-return result)
+        # TODO find a better solution for this (e.g. neighbor points of a)
+        if result is None:
+            idx = np.random.randint(0, len(self._previous_samples))
+            result = self._previous_samples[idx][0]
+            LOG.warning("PANIC selector got stuck."
+                        + " Re-using configurations after {} samples.".format(
+                            len(self._previous_samples)
+                        ))     
         self.k_samples += 1
         return result
 
