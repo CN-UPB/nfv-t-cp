@@ -19,6 +19,7 @@ This repo is intended to be open sourced once the paper is submitted.
 ## Test
 
 * `pytest`
+' `pytest -v -s --log-level DEBUG`
 
 ## Profiling
 

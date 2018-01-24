@@ -29,9 +29,9 @@ class PerformanceModel_1VNF(SfcPerformanceModel):
     @classmethod
     def generate_vnfs(cls, conf):
         # define possible parameters
-        p = {"c1": [1, 2, 3],
-             "c2": [4, 5],
-             "c3": [6, 7, 8]}
+        p = {"c1": [11, 21, 31, 41, 51],
+             "c2": [12, 22, 32, 42],
+             "c3": [13, 23, 33, 43, 53]}
         # create vnfs
         vnf0 = VnfPerformanceModel(0, "vnf_0", p,
                                    lambda c: (((1 * c["c1"] + 0)
@@ -76,7 +76,24 @@ class TestPanicSelector(unittest.TestCase):
 
     def test_calc_border_points(self):
         s = self._new_PGAS()
-        s._calc_border_points()
+        bp = s._calc_border_points()
+        self.assertEqual(len(bp), 52)
+
+    def test_next_until_max_border_points(self):
+        MS = 48
+        MBP = 6
+        s = self._new_PGAS(max_samples=MS, max_border_points=MBP)
+        bp = s._calc_border_points()
+        # pick MS samples
+        for i in range(0, MS):
+            # get next point to check
+            p = s.next()
+            # inform selector about result of previous sample
+            s.feedback(p, 0)
+            if i < MBP:
+                # ensure that MPB are border points not midpoints
+                self.assertIn(p, bp)
+        self.assertEqual(len(s._previous_samples), MS)
 
 
 if __name__ == '__main__':
