@@ -18,7 +18,7 @@ This repo is intended to be open sourced once the paper is submitted.
 
 ## Test
 
-* `pytest -t tests/ -v`
+* `pytest`
 
 ## Profiling
 
