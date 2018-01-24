@@ -412,7 +412,7 @@ class PanicGreedyAdaptiveSelector(Selector):
             LOG.warning("PANIC selector got stuck."
                         + " Re-using configurations after {} samples.".format(
                             len(self._previous_samples)
-                        ))     
+                        ))
         self.k_samples += 1
         return result
 
