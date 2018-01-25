@@ -19,7 +19,8 @@ This repo is intended to be open sourced once the paper is submitted.
 ## Test
 
 * `pytest`
-' `pytest -v -s --log-level DEBUG`
+* `pytest -v -s --log-level DEBUG`
+* `pytest -v -s -k "midpoint"` (run tests that match keyword)
 
 ## Profiling
 

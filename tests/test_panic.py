@@ -96,6 +96,43 @@ class TestPanicSelector(unittest.TestCase):
                 self.assertIn(p, bp)
         self.assertEqual(len(s._previous_samples), MS)
 
+    def test_distance(self):
+        s = self._new_PGAS()
+        d = s._distance((None, 1), (None, 6))
+        self.assertEqual(d, 5)
+        d = s._distance((None, -1), (None, 6))
+        self.assertEqual(d, 7)
+        d = s._distance((None, 1), (None, -3))
+        self.assertEqual(d, 4)
+        d = s._distance((None, 2), (None, 2))
+        self.assertEqual(d, 0)
+
+    def test_find_midpoint(self):
+        s = self._new_PGAS()
+        # Define discrete conf. space, since the
+        # method should only return points that exist
+        # in this discrete space. Irrespective
+        # of the input parameter of the method (cf. test3).
+        discrete_params = {"c1": [1, 4, 5, 6, 10],
+                           "c2": [2, 3, 4, 5, 6, 7],
+                           "c3": [20, 10, 30, 40]}
+        s.set_inputs(None, discrete_params)
+        # test 1
+        p1 = [{"c1": 1, "c2": 2, "c3": 10}]
+        p2 = [{"c1": 10, "c2": 4, "c3": 30}]
+        mp = s._find_midpoint((p1, 0), (p2, 0))
+        self.assertEqual(mp, ({"c1": 5, "c2": 3, "c3": 20},))
+        # test 2
+        p1 = [{"c1": 5, "c2": 4, "c3": 30}]
+        p2 = [{"c1": 1, "c2": 7, "c3": 30}]
+        mp = s._find_midpoint((p1, 0), (p2, 0))
+        self.assertEqual(mp, ({"c1": 4, "c2": 5, "c3": 30},))
+        # test 3
+        p1 = [{"c1": -10, "c2": 7, "c3": 40}]
+        p2 = [{"c1": 10, "c2": 6, "c3": 10}]
+        mp = s._find_midpoint((p1, 0), (p2, 0))
+        self.assertEqual(mp, ({"c1": 1, "c2": 6, "c3": 20},))
+
 
 if __name__ == '__main__':
     unittest.main()

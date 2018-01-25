@@ -347,10 +347,10 @@ class PanicGreedyAdaptiveSelector(Selector):
             calculate the parameter-wise avg. of both configs
             """
             avg_conf_result = list()
-            for i in range(0, len(c1)):
+            for i in range(0, len(c1)):  # iterate over VNFs
                 ac = dict()
-                for k in c1[i].keys():
-                    tmp = (c1[i][k] + c2[i][k]) / 2
+                for k in c1[i].keys():  # iterate over conf. parameter
+                    tmp = (c1[i][k] + c2[i][k]) / 2  # calculate avarage
                     ac[k] = find_closest_parameter(k, tmp)
                 avg_conf_result.append(ac)
             return tuple(avg_conf_result)
