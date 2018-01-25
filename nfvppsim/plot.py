@@ -210,18 +210,37 @@ class Lineplot(BasePlot):
                 if len(dff2) < 1:
                     continue  # nothing to plot
                 # calculate mean over all repetitions
-                grp = dff2.groupby(
+                means = dff2.groupby(
                     ["conf_id"])[self.params.get("x"),
                                  self.params.get("y")].mean()
-                # print(grp)
+                # print(means)
+                # calculate confidence intervals (for error bars)
+                # see: https://stackoverflow.com/questions/
+                # 44603615/plot-95-confidence-interval-errorbar-python-pandas-dataframes
+                std = dff2.groupby(
+                    ["conf_id"])[self.params.get("y")].std()
+                p025 = dff2.groupby(
+                    ["conf_id"])[self.params.get("y")].quantile(0.025)
+                p975 = dff2.groupby(
+                    ["conf_id"])[self.params.get("y")].quantile(0.975)
+                print("std: {}".format(std))
+                # print("p025: {}".format(p025))
+                # print("p975: {}".format(p975))
+
+                #print(len(means))
+                #print(len(p025))
+                #print(len(p975))
+
                 # plot
-                ax = grp.plot(ax=ax,
-                              kind='line',
-                              linewidth=1.0,
-                              marker=next(self.marker),
-                              x=self.params.get("x"),
-                              y=self.params.get("y"),
-                              label=self._filter_to_string(f2))
+                ax = means.plot(ax=ax,
+                                kind='line',
+                                linewidth=1.0,
+                                marker=next(self.marker),
+                                x=self.params.get("x"),
+                                y=self.params.get("y"),
+                                yerr=2*std,
+                                # yerr=[means - p025, p975 - means],
+                                label=self._filter_to_string(f2))
             # create legend
             ax.legend(loc='best')
             fig.suptitle(self.params.get("title"))
