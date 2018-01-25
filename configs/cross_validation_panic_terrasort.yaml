@@ -6,7 +6,7 @@ version: 0.1
 
 # time limit for measurement (s) (expandable)
 sim_t_max: null
-repetitions: 100
+repetitions: 1000
 # path to write results as pickled Pandas DF 
 result_path: "out/cross_validation_panic_terrasort.pkl"
 result_path_add_timestamp: False
@@ -16,21 +16,20 @@ pmodel:
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
 # max_samples: {min: 5, max: 27, step: 1}
+# 90 = sqrt(8000)
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 2, max: 50, step: 1}
     #- name: UniformGridSelector
     #  # max. no. of samples to be selected (expandable)
-    #  # 90 = sqrt(8000)
     #  max_samples: {min: 2, max: 90, step: 1}
-    #- name: UniformGridSelectorRandomOffset
-    #  # max. no. of samples to be selected (expandable)
-    #  # 90 = sqrt(8000)
-    #  max_samples: {min: 2, max: 90, step: 1}
-    #- name: UniformGridSelectorIncrementalOffset
-    #  # max. no. of samples to be selected (expandable)
-    #  max_samples: {min: 5, max: 27, step: 1}
+    - name: UniformGridSelectorRandomOffset
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 50, step: 1}
+    - name: UniformGridSelectorIncrementalOffset
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 5, max: 50, step: 1}
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 2, max: 50, step: 1}
