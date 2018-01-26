@@ -218,19 +218,21 @@ class Lineplot(BasePlot):
                 # see: https://stackoverflow.com/questions/
                 # 44603615/plot-95-confidence-interval-errorbar-python-pandas-dataframes
                 std = dff2.groupby(
-                    ["conf_id"])[self.params.get("y")].std()
-                p025 = dff2.groupby(
-                    ["conf_id"])[self.params.get("y")].quantile(0.025)
-                p975 = dff2.groupby(
-                    ["conf_id"])[self.params.get("y")].quantile(0.975)
-                print("std: {}".format(std))
+                    ["conf_id"])[self.params.get("y")].std().reset_index()
+                # p025 = dff2.groupby(
+                #    ["conf_id"])[self.params.get("y")].quantile(0.025).reset_index()
+                # p975 = dff2.groupby(
+                #    ["conf_id"])[self.params.get("y")].quantile(0.975).reset_index()
+                # print("std: {}".format(std))
+                # print("2*std: {}".format(std["error_value"]*2))
                 # print("p025: {}".format(p025))
                 # print("p975: {}".format(p975))
-
-                #print(len(means))
-                #print(len(p025))
-                #print(len(p975))
-
+                adparams = dict()
+                # optional error bar setup
+                if self.params.get("error_bars"):
+                    adparams.update({"yerr": list(std["error_value"]*2),
+                                     "capsize": 4.0,
+                                     "capthick": 1.0})
                 # plot
                 ax = means.plot(ax=ax,
                                 kind='line',
@@ -238,9 +240,8 @@ class Lineplot(BasePlot):
                                 marker=next(self.marker),
                                 x=self.params.get("x"),
                                 y=self.params.get("y"),
-                                # yerr=2*std,
-                                # yerr=[means - p025, p975 - means],
-                                label=self._filter_to_string(f2))
+                                label=self._filter_to_string(f2),
+                                **adparams)
             # create legend
             ax.legend(loc='best')
             fig.suptitle(self.params.get("title"))

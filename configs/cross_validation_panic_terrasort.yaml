@@ -50,7 +50,7 @@ error_metrics:
 
 plot:
     - name: Boxplot
-      disabled: True
+      disabled: False
       path: plots
       title: Error
       x: k_samples
@@ -70,6 +70,7 @@ plot:
       title: Selector Error Comparison
       x: k_samples
       y: error_value
+      error_bars: True
       y_lim_min: null
       y_lim_max: null
       line_plots:  # column defining lines in plot
@@ -87,6 +88,7 @@ plot:
       title: Predictor Error Comparison
       x: k_samples
       y: error_value
+      error_bars: True
       y_lim_min: null
       y_lim_max: null
       line_plots:
