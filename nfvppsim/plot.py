@@ -230,7 +230,7 @@ class Lineplot(BasePlot):
                 adparams = dict()
                 # optional error bar setup
                 if self.params.get("error_bars"):
-                    adparams.update({"yerr": list(std["error_value"]*2),
+                    adparams.update({"yerr": list(std["error_value"]*2.0),
                                      "capsize": 4.0,
                                      "capthick": 1.0})
                 # plot
