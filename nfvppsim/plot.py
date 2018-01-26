@@ -238,7 +238,7 @@ class Lineplot(BasePlot):
                                 marker=next(self.marker),
                                 x=self.params.get("x"),
                                 y=self.params.get("y"),
-                                yerr=2*std,
+                                # yerr=2*std,
                                 # yerr=[means - p025, p975 - means],
                                 label=self._filter_to_string(f2))
             # create legend

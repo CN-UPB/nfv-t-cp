@@ -20,20 +20,20 @@ pmodel:
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 50, step: 1}
+      max_samples: {min: 2, max: 27, step: 1}
     #- name: UniformGridSelector
     #  # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 90, step: 1}
     - name: UniformGridSelectorRandomOffset
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 50, step: 1}
+      max_samples: {min: 2, max: 27, step: 1}
     - name: UniformGridSelectorIncrementalOffset
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 5, max: 50, step: 1}
+      max_samples: {min: 5, max: 27, step: 1}
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 50, step: 1}
-      max_border_points: 12
+      max_samples: {min: 2, max: 27, step: 1}
+      max_border_points: 8  # PANIC: 2^d (d=parameter space dimension)
 
 predictor:
     - name: PolynomialRegressionPredictor
