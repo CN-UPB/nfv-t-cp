@@ -164,7 +164,8 @@ class UniformGridSelector(Selector):
                       .format(self.offset))
         if self.params.get("incremental_offset"):
             # later applied with modulo to fit into step size
-            self.offset = repetition_id
+            self.offset = (float(len(self.pm_inputs))
+                           / self.params.get("max_samples"))
             LOG.debug("Re-initialized incremental grid offset: {}"
                       .format(self.offset))
 
@@ -179,9 +180,9 @@ class UniformGridSelector(Selector):
         if step_size < 1:
             LOG.warning("Bad config: max_samples larger than config. space!")
         # calculate value to be used in this iteration
-        idx = (self.offset % step_size) + (self.k_samples * step_size)
+        idx = int(self.offset / 2.0 + (self.k_samples * step_size))
         self.k_samples += 1
-        return self.pm_inputs[idx]
+        return self.pm_inputs[idx % len(self.pm_inputs)]
 
 
 class UniformGridSelectorRandomOffset(UniformGridSelector):
