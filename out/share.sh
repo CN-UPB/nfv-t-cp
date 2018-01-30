@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 -m http.server 8778
+python -m http.server 8800
