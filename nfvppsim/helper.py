@@ -51,3 +51,8 @@ def flatten_conf(cl):
             tmp += d.values()
         r.append(tmp)
     return r
+
+
+def dict_to_short_str(d):
+    return "-".join(
+        "{!s}={!r}".format(key, val) for (key, val) in d.items())

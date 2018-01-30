@@ -21,6 +21,7 @@ import os
 import warnings
 import re
 from nfvppsim.config import expand_parameters
+from nfvppsim.helper import dict_to_short_str
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVR
@@ -84,6 +85,11 @@ class PolynomialRegressionPredictor(object):
     def short_name(self):
         return re.sub('[^A-Z]', '', self.name)
 
+    @property
+    def short_config(self):
+        return "{}_{}".format(
+            self.short_name, dict_to_short_str(self.params))
+
     def train(self, c_tilde, r_tilde):
         self.poly = PolynomialFeatures(degree=self.params.get("degree"))
         c_tilde = self.poly.fit_transform(c_tilde)
@@ -103,7 +109,8 @@ class PolynomialRegressionPredictor(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {"predictor": self.short_name}
+        r = {"predictor": self.short_name,
+             "predictor_conf": self.short_config}
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r
@@ -157,6 +164,11 @@ class SupportVectorRegressionPredictor(object):
     def short_name(self):
         return re.sub('[^A-Z]', '', self.name)
 
+    @property
+    def short_config(self):
+        return "{}_{}".format(
+            self.short_name, dict_to_short_str(self.params))
+
     def train(self, c_tilde, r_tilde):
         self.m = SVR(C=1.0, epsilon=self.params.get("epsilon"))
         self.m.fit(c_tilde, r_tilde)
@@ -172,7 +184,8 @@ class SupportVectorRegressionPredictor(object):
         Getter for global result collection.
         :return: dict for result row
         """
-        r = {"predictor": self.short_name}
+        r = {"predictor": self.short_name,
+             "predictor_conf": self.short_config}
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r

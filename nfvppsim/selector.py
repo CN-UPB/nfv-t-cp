@@ -21,6 +21,7 @@ import logging
 import os
 import re
 from nfvppsim.config import expand_parameters
+from nfvppsim.helper import dict_to_short_str
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -50,6 +51,7 @@ class Selector(object):
         # extract expansion parameter but keep the others
         conf_max_samples = conf.get("max_samples")
         del conf["max_samples"]
+        del conf["name"]  # no name in params (implicitly given by class)
         # generate one object for each expanded parameter
         for max_samples in expand_parameters(conf_max_samples):
             r.append(cls(max_samples=max_samples, **conf))
@@ -88,6 +90,11 @@ class Selector(object):
     def short_name(self):
         return re.sub('[^A-Z]', '', self.name)
 
+    @property
+    def short_config(self):
+        return "{}_{}".format(
+            self.short_name, dict_to_short_str(self.params))
+
     def next(self):
         self.k_samples += 1
         LOG.error("Not implemented.")
@@ -109,6 +116,7 @@ class Selector(object):
         :return: dict for result row
         """
         r = {"selector": self.short_name,
+             "selector_conf": self.short_config,
              "k_samples": self.k_samples}
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
