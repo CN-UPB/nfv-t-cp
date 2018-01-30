@@ -72,8 +72,9 @@ plot:
       y: error_value
       y_lim_min: -1.0
       y_lim_max: 1.0
-      line_plots:  # column defining lines in plot
-        - selector
+      # column that distinguishes lines in plot
+      hue: selector_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
       n_plots:
         # list of columns that distinguish plots
         - predictor
@@ -89,10 +90,9 @@ plot:
       y: error_value
       y_lim_min: -1.0
       y_lim_max: 1.0
-      line_plots:
-        - predictor
-        - epsilon
-        - degree
+      # column that distinguishes lines in plot
+      hue: predictor_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
       n_plots:
         # list of columns that distinguish plots
         - selector

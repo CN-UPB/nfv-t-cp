@@ -184,8 +184,10 @@ class Lineplot(BasePlot):
         Create a simple boxplot using Pandas default boxplot method.
         """
         # plot setup
-        sns.set()
-        sns.set_context("paper")
+        sns.set(style="whitegrid")
+        sns.set_context("paper", rc={
+                        "lines.linewidth": 0.5,
+                        "lines.markersize": 10})
         # generate filters (one filter per plot)
         filter_dict_list = self._generate_filters(
             df, self.params.get("n_plots"))
@@ -200,48 +202,14 @@ class Lineplot(BasePlot):
                          self.params.get("fig_height")),
                 dpi=self.params.get("fig_dpi"))
 
-            # generate filters (one filter per plot line)
-            filter_dict_list2 = self._generate_filters(
-                dff, self.params.get("line_plots"))
-            # iterate over line keys
-            for f2 in filter_dict_list2:
-                # select data for one line
-                dff2 = self._filter_df_by_dict(dff, f2)
-                if len(dff2) < 1:
-                    continue  # nothing to plot
-                # calculate mean over all repetitions
-                means = dff2.groupby(
-                    ["conf_id"])[self.params.get("x"),
-                                 self.params.get("y")].mean()
-                # print(means)
-                # calculate confidence intervals (for error bars)
-                # see: https://stackoverflow.com/questions/
-                # 44603615/plot-95-confidence-interval-errorbar-python-pandas-dataframes
-                std = dff2.groupby(
-                    ["conf_id"])[self.params.get("y")].std().reset_index()
-                # p025 = dff2.groupby(
-                #    ["conf_id"])[self.params.get("y")].quantile(0.025).reset_index()
-                # p975 = dff2.groupby(
-                #    ["conf_id"])[self.params.get("y")].quantile(0.975).reset_index()
-                # print("std: {}".format(std))
-                # print("2*std: {}".format(std["error_value"]*2))
-                # print("p025: {}".format(p025))
-                # print("p975: {}".format(p975))
-                adparams = dict()
-                # optional error bar setup
-                if self.params.get("error_bars"):
-                    adparams.update({"yerr": list(std["error_value"]*2.0),
-                                     "capsize": 4.0,
-                                     "capthick": 1.0})
-                # plot
-                ax = means.plot(ax=ax,
-                                kind='line',
-                                linewidth=1.0,
-                                marker=next(self.marker),
-                                x=self.params.get("x"),
-                                y=self.params.get("y"),
-                                label=self._filter_to_string(f2),
-                                **adparams)
+            sns.pointplot(ax=ax,
+                          data=dff,
+                          x=self.params.get("x"),
+                          y=self.params.get("y"),
+                          hue=self.params.get("hue"),
+                          ci=self.params.get("error_bars"),  # ci="sd" or ci=95
+                          capsize=.3)
+
             # create legend
             ax.legend(loc='best')
             fig.suptitle(self.params.get("title"))

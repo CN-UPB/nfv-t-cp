@@ -53,7 +53,7 @@ plot:
       disabled: True
       path: plots
       title: Error
-      x: k_samples
+      x: max_samples
       y: error_value
       y_lim_min: null
       y_lim_max: null
@@ -68,13 +68,13 @@ plot:
       disabled: False
       path: plots
       title: Selector Error Comparison
-      x: k_samples
+      x: max_samples
       y: error_value
-      error_bars: True
+      # column that distinguishes lines in plot
+      hue: selector
+      error_bars: 95  # ="sd" or =95 (for ci)
       y_lim_min: null
       y_lim_max: null
-      line_plots:  # column defining lines in plot
-        - selector
       n_plots:
         # list of columns that distinguish plots
         - predictor
@@ -86,15 +86,17 @@ plot:
       # needs fixed argument values for predictors!
       path: plots
       title: Predictor Error Comparison
-      x: k_samples
+      x: max_samples
       y: error_value
-      error_bars: True
+      # column that distinguishes lines in plot
+      hue: predictor_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
       y_lim_min: null
       y_lim_max: null
-      line_plots:
-        - predictor
-        - epsilon
-        - degree
+      #line_plots:
+      #  - predictor
+      #  - epsilon
+      #  - degree
       n_plots:
         # list of columns that distinguish plots
         - selector

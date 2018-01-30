@@ -62,8 +62,9 @@ plot:
       title: Selector Error Comparison
       x: k_samples
       y: error_value
-      line_plots:  # column defining lines in plot
-        - selector
+      # column that distinguishes lines in plot
+      hue: selector_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
       n_plots:
         # list of columns that distinguish plots
         - predictor
@@ -76,10 +77,9 @@ plot:
       title: Predictor Error Comparison
       x: k_samples
       y: error_value
-      line_plots:  # column defining lines in plot
-        - predictor
-        - epsilon
-        - degree
+      # column that distinguishes lines in plot
+      hue: predictor_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
       n_plots:
         # list of columns that distinguish plots
         - selector
