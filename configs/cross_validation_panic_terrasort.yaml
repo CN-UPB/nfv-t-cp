@@ -71,7 +71,7 @@ plot:
       x: max_samples
       y: error_value
       # column that distinguishes lines in plot
-      hue: selector
+      hue: selector_conf
       error_bars: 95  # ="sd" or =95 (for ci)
       y_lim_min: null
       y_lim_max: null
@@ -82,7 +82,7 @@ plot:
         - epsilon
         - error
     - name: Lineplot
-      disabled: True
+      disabled: False
       # needs fixed argument values for predictors!
       path: plots
       title: Predictor Error Comparison
@@ -93,10 +93,6 @@ plot:
       error_bars: 95  # ="sd" or =95 (for ci)
       y_lim_min: null
       y_lim_max: null
-      #line_plots:
-      #  - predictor
-      #  - epsilon
-      #  - degree
       n_plots:
         # list of columns that distinguish plots
         - selector

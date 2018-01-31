@@ -92,8 +92,11 @@ class Selector(object):
 
     @property
     def short_config(self):
+        # sort out config parameters that change in each simulation
+        sparams = self.params.copy()
+        del sparams["max_samples"]
         return "{}_{}".format(
-            self.short_name, dict_to_short_str(self.params))
+            self.short_name, dict_to_short_str(sparams))
 
     def next(self):
         self.k_samples += 1
