@@ -46,9 +46,8 @@ class Predictor(object):
         """
         r = list()
         for degree in expand_parameters(conf.get("degree", 2)):
-            r.append(cls(degree=degree))
-        for e in expand_parameters(conf.get("epsilon", 0.1)):
-            r.append(cls(epsilon=e))
+            for e in expand_parameters(conf.get("epsilon", 0.1)):
+                r.append(cls(degree=degree, epsilon=e))
         return r
 
     def __init__(self, **kwargs):

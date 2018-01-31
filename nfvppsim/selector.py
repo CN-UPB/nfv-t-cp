@@ -192,6 +192,7 @@ class UniformGridSelector(Selector):
             LOG.warning("Bad config: max_samples larger than config. space!")
         # calculate value to be used in this iteration
         idx = int(self.offset / 2.0 + (self.k_samples * step_size))
+        LOG.warning("max_samples: {} next idx: {}/{}".format(self.params.get("max_samples"), idx, len(self.pm_inputs)))
         self.k_samples += 1
         return self.pm_inputs[idx % len(self.pm_inputs)]
 
