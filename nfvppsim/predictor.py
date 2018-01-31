@@ -37,11 +37,7 @@ def get_by_name(name):
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
-class PolynomialRegressionPredictor(object):
-    """
-    Polynomial interpolation with given degree based on sklearn.
-    http://scikit-learn.org/stable/auto_examples/linear_model/plot_polynomial_interpolation.html
-    """
+class Predictor(object):
 
     @classmethod
     def generate(cls, conf):
@@ -51,28 +47,14 @@ class PolynomialRegressionPredictor(object):
         r = list()
         for degree in expand_parameters(conf.get("degree", 2)):
             r.append(cls(degree=degree))
+        for e in expand_parameters(conf.get("epsilon", 0.1)):
+            r.append(cls(epsilon=e))
         return r
 
     def __init__(self, **kwargs):
-        # apply default params
-        p = {"degree": 2,
-             "epsilon": 0}
-        p.update(kwargs)
-        # members
-        self.m = None
-        self.poly = None
-        self.params = p
         # disable scipy warning: https://github.com/scipy/scipy/issues/5998
         warnings.filterwarnings(
             action="ignore", module="scipy", message="^internal gelsd")
-        LOG.debug("Initialized predictor: {}".format(self))
-
-    def reinitialize(self, repetition_id):
-        """
-        Called once for each experiment repetition.
-        Can be used to re-initialize data structures for each repetition.
-        """
-        pass
 
     def __repr__(self):
         return "{}({})".format(self.name, self.params)
@@ -89,6 +71,49 @@ class PolynomialRegressionPredictor(object):
     def short_config(self):
         return "{}_{}".format(
             self.short_name, dict_to_short_str(self.params))
+
+    def reinitialize(self, repetition_id):
+        """
+        Called once for each experiment repetition.
+        Can be used to re-initialize data structures for each repetition.
+        """
+        pass
+
+    def train(self, c_tilde, r_tilde):
+        LOG.error("Not implemented.")
+
+    def predict(self, c_hat):
+        LOG.error("Not implemented.")
+
+    def get_results(self):
+        """
+        Getter for global result collection.
+        :return: dict for result row
+        """
+        r = {"predictor": self.short_name,
+             "predictor_conf": self.short_config}
+        r.update(self.params)
+        # LOG.debug("Get results from {}: {}".format(self, r))
+        return r
+    
+
+class PolynomialRegressionPredictor(Predictor):
+    """
+    Polynomial interpolation with given degree based on sklearn.
+    http://scikit-learn.org/stable/auto_examples/linear_model/plot_polynomial_interpolation.html
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # apply default params
+        p = {"degree": 2,
+             "epsilon": 0.1}
+        p.update(kwargs)
+        # members
+        self.m = None
+        self.poly = None
+        self.params = p
+        LOG.debug("Initialized predictor: {}".format(self))
 
     def train(self, c_tilde, r_tilde):
         self.poly = PolynomialFeatures(degree=self.params.get("degree"))
@@ -104,70 +129,24 @@ class PolynomialRegressionPredictor(object):
         c_hat = self.poly.fit_transform(c_hat)
         return self.m.predict(c_hat)
 
-    def get_results(self):
-        """
-        Getter for global result collection.
-        :return: dict for result row
-        """
-        r = {"predictor": self.short_name,
-             "predictor_conf": self.short_config}
-        r.update(self.params)
-        # LOG.debug("Get results from {}: {}".format(self, r))
-        return r
 
-
-class SupportVectorRegressionPredictor(object):
+class SupportVectorRegressionPredictor(Predictor):
     """
     Support Vector Regression
     http://scikit-learn.org/stable/modules/svm.html#svm-regression
     """
     # TODO see notes in docu: we may want to normalize the input data (?!)
 
-    @classmethod
-    def generate(cls, conf):
-        """
-        Generate list of model objects. One for each conf. to be tested.
-        """
-        r = list()
-        for e in expand_parameters(conf.get("epsilon", 0.1)):
-            r.append(cls(epsilon=e))
-        return r
-
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         # apply default params
-        p = {"degree": 0,
+        p = {"degree": 2,
              "epsilon": 0.1}
         p.update(kwargs)
         # members
         self.m = None
         self.params = p
-        # disable scipy warning: https://github.com/scipy/scipy/issues/5998
-        warnings.filterwarnings(
-            action="ignore", module="scipy", message="^internal gelsd")
         LOG.debug("Initialized predictor: {}".format(self))
-
-    def reinitialize(self, repetition_id):
-        """
-        Called once for each experiment repetition.
-        Can be used to re-initialize data structures for each repetition.
-        """
-        pass
-
-    def __repr__(self):
-        return "{}({})".format(self.name, self.params)
-
-    @property
-    def name(self):
-        return self.__class__.__name__
-
-    @property
-    def short_name(self):
-        return re.sub('[^A-Z]', '', self.name)
-
-    @property
-    def short_config(self):
-        return "{}_{}".format(
-            self.short_name, dict_to_short_str(self.params))
 
     def train(self, c_tilde, r_tilde):
         self.m = SVR(C=1.0, epsilon=self.params.get("epsilon"))
@@ -178,14 +157,3 @@ class SupportVectorRegressionPredictor(object):
         if self.m is None:
             LOG.error("Model not trained!")
         return self.m.predict(c_hat)
-
-    def get_results(self):
-        """
-        Getter for global result collection.
-        :return: dict for result row
-        """
-        r = {"predictor": self.short_name,
-             "predictor_conf": self.short_config}
-        r.update(self.params)
-        # LOG.debug("Get results from {}: {}".format(self, r))
-        return r

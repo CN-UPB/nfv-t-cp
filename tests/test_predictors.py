@@ -53,7 +53,7 @@ class TestPolyRegressionPredictor(unittest.TestCase):
         r =  p.get_results()
         self.assertEqual(r.get("predictor"), "PRP")
         self.assertEqual(r.get("degree"), 2)
-        self.assertEqual(r.get("epsilon"), 0)
+        self.assertEqual(r.get("epsilon"), 0.1)
         
 
 class TestSupportVectorRegressionPredictor(unittest.TestCase):
@@ -88,5 +88,5 @@ class TestSupportVectorRegressionPredictor(unittest.TestCase):
         p = SupportVectorRegressionPredictor.generate({})[0]
         r =  p.get_results()
         self.assertEqual(r.get("predictor"), "SVRP")
-        self.assertEqual(r.get("degree"), 0)
+        self.assertEqual(r.get("degree"), 2)
         self.assertEqual(r.get("epsilon"), 0.1)
