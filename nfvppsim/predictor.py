@@ -49,7 +49,7 @@ class PolynomialRegressionPredictor(object):
         Generate list of model objects. One for each conf. to be tested.
         """
         r = list()
-        for degree in expand_parameters(conf.get("degree")):
+        for degree in expand_parameters(conf.get("degree", 2)):
             r.append(cls(degree=degree))
         return r
 
@@ -129,7 +129,7 @@ class SupportVectorRegressionPredictor(object):
         Generate list of model objects. One for each conf. to be tested.
         """
         r = list()
-        for e in expand_parameters(conf.get("epsilon")):
+        for e in expand_parameters(conf.get("epsilon", 0.1)):
             r.append(cls(epsilon=e))
         return r
 
