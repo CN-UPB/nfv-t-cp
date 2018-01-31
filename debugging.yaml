@@ -1,55 +1,62 @@
 ---
 # This is an example configuration for a single experiment.
-name: "Example experiment"
+name: "Cross validation with PANIC results"
 author: "Manuel Peuster"
 version: 0.1
 
 # time limit for measurement (s) (expandable)
 sim_t_max: null
-repetitions: 5
+repetitions: 1
 # path to write results as pickled Pandas DF 
-result_path: "out/test.pkl"
+result_path: "out/debugging.pkl"
 result_path_add_timestamp: False
 
 pmodel:
-    name: ExampleModel
+    name: PanicTerrasortModel
 
+# PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
+# max_samples: {min: 5, max: 27, step: 1}
+# 90 = sqrt(8000)
 selector:
     #- name: UniformRandomSelector
     #  # max. no. of samples to be selected (expandable)
-    #  max_samples: {min: 2, max: 42, step: 4}
+    #  max_samples: {min: 2, max: 27, step: 1}
     #- name: UniformGridSelector
     #  # max. no. of samples to be selected (expandable)
-    #  max_samples: {min: 2, max: 42, step: 4}
+    #  max_samples: {min: 2, max: 27, step: 1}
     - name: UniformGridSelectorRandomOffset
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 42, step: 4}
+      max_samples: {min: 12, max: 13, step: 1}
     - name: UniformGridSelectorIncrementalOffset
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 42, step: 4}
+      max_samples: {min: 12, max: 13, step: 1}
     #- name: PanicGreedyAdaptiveSelector
     #  # max. no. of samples to be selected (expandable)
-    #  max_samples: {min: 2, max: 42, step: 4}
-    #  max_border_points: 5
+    #  max_samples: {min: 2, max: 27, step: 1}
+    #  max_border_points: 8  # PANIC: 2^d (d=parameter space dimension)
 
 predictor:
     - name: PolynomialRegressionPredictor
-      degree: [3]  # poly. degree (expandable)
-    - name: SupportVectorRegressionPredictor
-      epsilon: [0.1]  # epsilon (expandable)
-    
+      # poly. degree (expandable)
+      degree: [2]
+    #- name: SupportVectorRegressionPredictor
+    #  epsilon: [0.01, 0.1, 0.5]  # epsilon (expandable)
+
 error_metrics:
     - name: MSE
     - name: MAE
     - name: R2
-    - name: EVS
+    #- name: EVS
 
 plot:
     - name: Boxplot
+      disabled: True
       path: plots
       title: Error
-      x: k_samples
+      x: max_samples
       y: error_value
+      y_lim_min: null
+      y_lim_max: null
       n_plots:
         # list of columns that distinguish plots
         - selector
@@ -58,13 +65,16 @@ plot:
         - epsilon
         - error
     - name: Lineplot
+      disabled: False
       path: plots
       title: Selector Error Comparison
-      x: k_samples
+      x: max_samples
       y: error_value
       # column that distinguishes lines in plot
       hue: selector_conf
       error_bars: 95  # ="sd" or =95 (for ci)
+      y_lim_min: null
+      y_lim_max: null
       n_plots:
         # list of columns that distinguish plots
         - predictor
@@ -72,14 +82,17 @@ plot:
         - epsilon
         - error
     - name: Lineplot
+      disabled: False
       # needs fixed argument values for predictors!
       path: plots
       title: Predictor Error Comparison
-      x: k_samples
+      x: max_samples
       y: error_value
       # column that distinguishes lines in plot
       hue: predictor_conf
       error_bars: 95  # ="sd" or =95 (for ci)
+      y_lim_min: null
+      y_lim_max: null
       n_plots:
         # list of columns that distinguish plots
         - selector

@@ -17,6 +17,7 @@ limitations under the License.
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import numpy as np
+import random
 import logging
 import os
 import re
@@ -165,18 +166,21 @@ class UniformGridSelector(Selector):
         Can be used to re-initialize data structures for each repetition.
         We re-initialize the random grid offset here (if enabled)
         """
+        # calculate step size of grind based on size and max_samples
+        self.step_size = (float(len(self.pm_inputs))
+                          / float(self.params.get("max_samples")))
+        if self.step_size < 1:
+            LOG.warning("Bad config: max_samples larger than config. space!")
         if self.params.get("random_offset"):
-            # calculate step size of grind based on size and max_samples
-            step_size = int(
-                len(self.pm_inputs) / self.params.get("max_samples"))
             # pick random offset (0, step_size]
-            self.offset = np.random.randint(0, step_size)
+            self.offset = random.uniform(0.0, 1.0) * self.step_size
             LOG.debug("Re-initialized random grid offset: {}"
                       .format(self.offset))
         if self.params.get("incremental_offset"):
-            # later applied with modulo to fit into step size
-            self.offset = (float(len(self.pm_inputs))
-                           / self.params.get("max_samples"))
+            # applied with modulo to fit into step size
+            self.offset = ((0.1 * self.step_size)
+                           * repetition_id
+                           % int(self.step_size))
             LOG.debug("Re-initialized incremental grid offset: {}"
                       .format(self.offset))
 
@@ -186,13 +190,11 @@ class UniformGridSelector(Selector):
                       .format(self))
             LOG.error("Exit!")
             exit(1)
-        # calculate step size of grid based on size and max_samples
-        step_size = int(len(self.pm_inputs) / self.params.get("max_samples"))
-        if step_size < 1:
-            LOG.warning("Bad config: max_samples larger than config. space!")
         # calculate value to be used in this iteration
-        idx = int(self.offset / 2.0 + (self.k_samples * step_size))
-        LOG.warning("max_samples: {} next idx: {}/{}".format(self.params.get("max_samples"), idx, len(self.pm_inputs)))
+        idx = (int(round(
+            self.offset + (self.k_samples * self.step_size)))
+               % len(self.pm_inputs))
+        # increment number of already seen samples
         self.k_samples += 1
         return self.pm_inputs[idx % len(self.pm_inputs)]
 
