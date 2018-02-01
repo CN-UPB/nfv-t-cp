@@ -280,7 +280,7 @@ class NFVSDN17Model(SfcPerformanceModel):
         G.add_node(2, vnf=vnfs[2])
         G.add_node("s", vnf=None)
         G.add_node("t", vnf=None)
-        # simple linear: s -> 0 -> 1 ->  -> t
+        # simple linear: s -> 0 -> 1 -> 2 -> t
         G.add_edges_from([("s", 0), (0, 1), (1, 2), (2, "t")])
         return G
 
