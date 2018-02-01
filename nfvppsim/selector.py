@@ -36,6 +36,8 @@ def get_by_name(name):
         return UniformGridSelectorRandomOffset
     if name == "UniformGridSelectorIncrementalOffset":
         return UniformGridSelectorIncrementalOffset
+    if name == "UniformGridSelectorRandomStepBias":
+        return UniformGridSelectorRandomStepBias
     if name == "PanicGreedyAdaptiveSelector":
         return PanicGreedyAdaptiveSelector
     raise NotImplementedError("'{}' not implemented".format(name))
@@ -190,13 +192,20 @@ class UniformGridSelector(Selector):
                       .format(self))
             LOG.error("Exit!")
             exit(1)
+        # apply step bias if enabled
+        step_bias = 0.0
+        if self.params.get("step_bias"):
+            step_bias = self.get_step_bias()
         # calculate value to be used in this iteration
         idx = (int(round(
-            self.offset + (self.k_samples * self.step_size)))
+            self.offset + (self.k_samples * self.step_size) + step_bias))
                % len(self.pm_inputs))
+        # LOG.warning("{}: ss:{}, offset {}, bias:{: 01.2f}, idx:{:04d}, v:{}"
+        #            .format(self.short_name, self.step_size,
+        #                    self.offset, step_bias, idx, self.pm_inputs[idx]))
         # increment number of already seen samples
         self.k_samples += 1
-        return self.pm_inputs[idx % len(self.pm_inputs)]
+        return self.pm_inputs[idx]
 
 
 class UniformGridSelectorRandomOffset(UniformGridSelector):
@@ -207,6 +216,25 @@ class UniformGridSelectorRandomOffset(UniformGridSelector):
         # change config of base selector
         kwargs["random_offset"] = True
         super().__init__(**kwargs)
+
+
+class UniformGridSelectorRandomStepBias(UniformGridSelector):
+    """
+    Same as UniformGridSelector but with random bias that
+    influences step size.
+    """
+    def __init__(self, **kwargs):
+        # change config of base selector
+        kwargs["step_bias"] = True
+        super().__init__(**kwargs)
+
+    def get_step_bias(self, e=0.1):
+        """
+        Offset added/substracted from next step.
+        In this case rnd * e * step_size: Move point
+        for e*100% of step_size / left, right.
+        """
+        return np.random.normal() * e * self.step_size
 
 
 class UniformGridSelectorIncrementalOffset(UniformGridSelector):
