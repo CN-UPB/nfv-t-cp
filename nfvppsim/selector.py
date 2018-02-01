@@ -195,7 +195,7 @@ class UniformGridSelector(Selector):
         # apply step bias if enabled
         step_bias = 0.0
         if self.params.get("step_bias"):
-            step_bias = self.get_step_bias()
+            step_bias = self.get_step_bias(self.params.get("step_bias_e"))
         # calculate value to be used in this iteration
         idx = (int(round(
             self.offset + (self.k_samples * self.step_size) + step_bias))
@@ -226,6 +226,7 @@ class UniformGridSelectorRandomStepBias(UniformGridSelector):
     def __init__(self, **kwargs):
         # change config of base selector
         kwargs["step_bias"] = True
+        kwargs["step_bias_e"] = 0.5
         super().__init__(**kwargs)
 
     def get_step_bias(self, e=0.1):

@@ -21,9 +21,9 @@ selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 2, max: 27, step: 1}
-    - name: UniformGridSelector
+    #- name: UniformGridSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 27, step: 1}
+    #  max_samples: {min: 2, max: 27, step: 1}
     #- name: UniformGridSelectorRandomOffset
       # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 27, step: 1}
