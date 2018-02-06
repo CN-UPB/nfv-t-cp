@@ -37,7 +37,7 @@ def get_by_name(name):
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
-class MSE(object):
+class BaseError(object):
     """
     Mean squared error regression loss
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html
@@ -67,7 +67,8 @@ class MSE(object):
         return re.sub('[^A-Z]', '', self.name)
 
     def calculate(self, r_hat, r):
-        return mean_squared_error(r_hat, r)
+        LOG.error("Error calculation not implemented.")
+        return 0
 
     def get_results(self):
         """
@@ -80,50 +81,25 @@ class MSE(object):
         return r
 
 
-class MAE(object):
+class MSE(BaseError):
+    """
+    Mean squared error regression loss
+    http://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html
+    """
+    def calculate(self, r_hat, r):
+        return mean_squared_error(r_hat, r)
+
+
+class MAE(BaseError):
     """
     Mean absolute error regression loss
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html
     """
-
-    @classmethod
-    def generate(cls, conf):
-        """
-        Generate list of model objects. One for each conf. to be tested.
-        """
-        r = list()
-        r.append(cls())
-        return r
-
-    def __init__(self, **kwargs):
-        LOG.debug("Initialized {} error metric".format(self))
-
-    def __repr__(self):
-        return "{}".format(self.name)
-
-    @property
-    def name(self):
-        return self.__class__.__name__
-
-    @property
-    def short_name(self):
-        return re.sub('[^A-Z]', '', self.name)
-
     def calculate(self, r_hat, r):
         return mean_absolute_error(r_hat, r)
 
-    def get_results(self):
-        """
-        Getter for global result collection.
-        :return: dict for result row
-        """
-        r = {"error": self.short_name}
-        # r.update(self.params)
-        # LOG.debug("Get results from {}: {}".format(self, r))
-        return r
 
-
-class R2(object):
+class R2(BaseError):
     """
     R^2 (coefficient of determination) regression score function.
     Best possible score is 1.0 and it can be negative
@@ -132,83 +108,15 @@ class R2(object):
     the input features, would get a R^2 score of 0.0.
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html
     """
-
-    @classmethod
-    def generate(cls, conf):
-        """
-        Generate list of model objects. One for each conf. to be tested.
-        """
-        r = list()
-        r.append(cls())
-        return r
-
-    def __init__(self, **kwargs):
-        LOG.debug("Initialized {} error metric".format(self))
-
-    def __repr__(self):
-        return "{}".format(self.name)
-
-    @property
-    def name(self):
-        return self.__class__.__name__
-
-    @property
-    def short_name(self):
-        return self.name
-
     def calculate(self, r_hat, r):
         return r2_score(r_hat, r)
 
-    def get_results(self):
-        """
-        Getter for global result collection.
-        :return: dict for result row
-        """
-        r = {"error": self.short_name}
-        # r.update(self.params)
-        # LOG.debug("Get results from {}: {}".format(self, r))
-        return r
 
-
-class EVS(object):
+class EVS(BaseError):
     """
     Explained variance regression score function
     Best possible score is 1.0, lower values are worse.
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.explained_variance_score.html
     """
-
-    @classmethod
-    def generate(cls, conf):
-        """
-        Generate list of model objects. One for each conf. to be tested.
-        """
-        r = list()
-        r.append(cls())
-        return r
-
-    def __init__(self, **kwargs):
-        LOG.debug("Initialized {} error metric".format(self))
-
-    def __repr__(self):
-        return "{}".format(self.name)
-
-    @property
-    def name(self):
-        return self.__class__.__name__
-
-    @property
-    def short_name(self):
-        return re.sub('[^A-Z]', '', self.name)
-
     def calculate(self, r_hat, r):
         return explained_variance_score(r_hat, r)
-
-    def get_results(self):
-        """
-        Getter for global result collection.
-        :return: dict for result row
-        """
-        r = {"error": self.short_name}
-        # r.update(self.params)
-        # LOG.debug("Get results from {}: {}".format(self, r))
-        return r
