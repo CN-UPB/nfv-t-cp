@@ -20,6 +20,7 @@ import logging
 import os
 import re
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import median_absolute_error
 from sklearn.metrics import r2_score, explained_variance_score
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -34,6 +35,8 @@ def get_by_name(name):
         return R2
     if name == "EVS":
         return EVS
+    if name == "MEDAE":
+        return MEDAE
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -86,8 +89,8 @@ class MSE(BaseError):
     Mean squared error regression loss
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html
     """
-    def calculate(self, r_hat, r):
-        return mean_squared_error(r_hat, r)
+    def calculate(self, r, r_hat):
+        return mean_squared_error(r, r_hat)
 
 
 class MAE(BaseError):
@@ -95,8 +98,17 @@ class MAE(BaseError):
     Mean absolute error regression loss
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html
     """
-    def calculate(self, r_hat, r):
-        return mean_absolute_error(r_hat, r)
+    def calculate(self, r, r_hat):
+        return mean_absolute_error(r, r_hat)
+
+
+class MEDAE(BaseError):
+    """
+    MEDIAN absolute error regression loss
+  http://scikit-learn.org/stable/modules/generated/sklearn.metrics.median_absolute_error.html#sklearn.metrics.median_absolute_error
+    """
+    def calculate(self, r, r_hat):
+        return median_absolute_error(r, r_hat)
 
 
 class R2(BaseError):
@@ -108,8 +120,8 @@ class R2(BaseError):
     the input features, would get a R^2 score of 0.0.
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html
     """
-    def calculate(self, r_hat, r):
-        return r2_score(r_hat, r)
+    def calculate(self, r, r_hat):
+        return r2_score(r, r_hat)
 
 
 class EVS(BaseError):
@@ -118,5 +130,5 @@ class EVS(BaseError):
     Best possible score is 1.0, lower values are worse.
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.explained_variance_score.html
     """
-    def calculate(self, r_hat, r):
-        return explained_variance_score(r_hat, r)
+    def calculate(self, r, r_hat):
+        return explained_variance_score(r, r_hat)

@@ -43,6 +43,7 @@ error_metrics:
     - name: MAE
     - name: R2
     - name: EVS
+    - name: MEDAE
 
 plot:
     - name: Boxplot
