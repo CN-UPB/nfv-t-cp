@@ -28,7 +28,7 @@ LOG = logging.getLogger(os.path.basename(__file__))
 
 
 # global cache vars
-CACHE_C_SPACE = None
+CACHE_C_SPACE = dict()  # model -> cache
 
 
 def get_by_name(name):
@@ -151,14 +151,14 @@ class SfcPerformanceModel(object):
         :return: list of configuration tuples of one dict per VNF of graph
         """
         global CACHE_C_SPACE
-        if CACHE_C_SPACE is not None:
+        if CACHE_C_SPACE.get(self.name) is not None:
             LOG.debug("Using configuration space from cache.")
-            return CACHE_C_SPACE
+            return CACHE_C_SPACE.get(self.name)
         # config space for one VNF
         cf = self.get_conf_space_vnf()
         # config space for n VNFs in the SFC
         cs = list(it.product(cf, repeat=len(self._get_vnfs_from_sg())))
-        CACHE_C_SPACE = cs
+        CACHE_C_SPACE[self.name] = cs
         return cs
     
     def _get_vnfs_from_sg(self):
