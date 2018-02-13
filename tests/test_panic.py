@@ -56,7 +56,7 @@ class TestPanicSelector(unittest.TestCase):
         # instantiate a performance model for the tests
         [pm] = PerformanceModel_1VNF.generate(None)
         # definition of possible PM parameters
-        self.DEFAULT_PM_PARAMETERS = pm.parameter
+        self.DEFAULT_PM = pm
         # cross product of possible PM parameters
         self.DEFAULT_PM_INPUTS = pm.get_conf_space()
 
@@ -67,7 +67,7 @@ class TestPanicSelector(unittest.TestCase):
         s = PanicGreedyAdaptiveSelector(max_samples=max_samples,
                                         max_border_points=max_border_points,
                                         **conf)
-        s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM_PARAMETERS)
+        s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
         return s
 
     def test_initialize(self):
@@ -113,10 +113,16 @@ class TestPanicSelector(unittest.TestCase):
         # method should only return points that exist
         # in this discrete space. Irrespective
         # of the input parameter of the method (cf. test3).
-        discrete_params = {"c1": [1, 4, 5, 6, 10],
-                           "c2": [2, 3, 4, 5, 6, 7],
-                           "c3": [20, 10, 30, 40]}
-        s.set_inputs(None, discrete_params)
+
+        class FakePM(object):
+            pass
+            
+        fpm = FakePM()
+        fpm.parameter = {"c1": [1, 4, 5, 6, 10],
+                         "c2": [2, 3, 4, 5, 6, 7],
+                         "c3": [20, 10, 30, 40]}
+        
+        s.set_inputs(None, fpm)
         # test 1
         p1 = [{"c1": 1, "c2": 2, "c3": 10}]
         p2 = [{"c1": 10, "c2": 4, "c3": 30}]

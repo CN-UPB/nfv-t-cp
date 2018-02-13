@@ -138,29 +138,32 @@ class SfcPerformanceModel(object):
         r = {"pmodel": self.short_name}
         return r
     
-    def get_conf_space_vnf(self):
+    def get_conf_space_vnf(self, modified_parameter=None):
         """
         Return the configuration space for a single VNF.
         :return: list of configuration dicts
         """
+        if modified_parameter:
+            return cartesian_product(modified_parameter)
         return cartesian_product(self.parameter)
 
-    def get_conf_space(self):
+    def get_conf_space(self, modified_parameter=None, no_cache=False):
         """
         Return the COMPLETE configuration space for this model.
         :return: list of configuration tuples of one dict per VNF of graph
         """
         global CACHE_C_SPACE
-        if CACHE_C_SPACE.get(self.name) is not None:
+        if CACHE_C_SPACE.get(self.name) is not None and no_cache is False:
             LOG.debug("Using configuration space from cache.")
             return CACHE_C_SPACE.get(self.name)
         # config space for one VNF
-        cf = self.get_conf_space_vnf()
+        cf = self.get_conf_space_vnf(modified_parameter)
         # config space for n VNFs in the SFC
         cs = list(it.product(cf, repeat=len(self._get_vnfs_from_sg())))
-        CACHE_C_SPACE[self.name] = cs
+        if no_cache is False:
+            CACHE_C_SPACE[self.name] = cs
         return cs
-    
+
     def _get_vnfs_from_sg(self):
         """
         Return VNF objects from SG.
@@ -208,7 +211,7 @@ class SfcPerformanceModel(object):
         self.sfc_graph_reduced = G_new
         return mf_value
 
-    
+
 class CrossValidationModel(SfcPerformanceModel):
     """
     Model from Jupyter prototype. Used for cross validation.

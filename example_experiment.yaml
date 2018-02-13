@@ -27,6 +27,8 @@ selector:
     - name: UniformGridSelectorIncrementalOffset
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 2, max: 42, step: 4}
+    - name: HyperGridSelector
+      max_samples: {min: 2, max: 42, step: 4}
     #- name: PanicGreedyAdaptiveSelector
     #  # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 42, step: 4}

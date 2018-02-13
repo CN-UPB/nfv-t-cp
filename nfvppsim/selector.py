@@ -38,6 +38,8 @@ def get_by_name(name):
         return UniformGridSelectorIncrementalOffset
     if name == "UniformGridSelectorRandomStepBias":
         return UniformGridSelectorRandomStepBias
+    if name == "HyperGridSelector":
+        return HyperGridSelector
     if name == "PanicGreedyAdaptiveSelector":
         return PanicGreedyAdaptiveSelector
     raise NotImplementedError("'{}' not implemented".format(name))
@@ -78,9 +80,10 @@ class Selector(object):
         """
         pass
 
-    def set_inputs(self, pm_inputs, pm_parameter):
+    def set_inputs(self, pm_inputs, pm):
         self.pm_inputs = pm_inputs
-        self.pm_parameter = pm_parameter
+        self.pm_parameter = pm.parameter
+        self.pm = pm
 
     def __repr__(self):
         return "{}({})".format(self.name, self.params)
@@ -246,6 +249,65 @@ class UniformGridSelectorIncrementalOffset(UniformGridSelector):
         # change config of base selector
         kwargs["incremental_offset"] = True
         super().__init__(**kwargs)
+
+
+class HyperGridSelector(Selector):
+
+    def __init__(self, **kwargs):
+        # apply default params
+        p = {"max_samples": -1}
+        p.update(kwargs)
+        # members
+        self.pm_inputs = list()
+        self.params = p
+        self.k_samples = 0
+        LOG.debug("Initialized selector: {}".format(self))
+
+    def _get_n_samples_from_list(self, lst, n):
+        """
+        Equally spaced samples from list.
+        If n==1: midpoint
+        If n > 1: Start, End and n-2 midpoints
+        """
+        if n > len(lst):
+            n = len(lst)
+        if n == 1:
+            return [lst[int(len(lst)/2)]]
+        elif n > 1:  # first last and mid elements
+            return [lst[int(idx)] for idx in np.linspace(0, len(lst)-1, n)]
+        return []  # n==0
+
+    def _calculate_grid(self):
+        m_parameters = len(self.pm_parameter)
+        n_vnfs = len(self.pm_inputs[0])
+        # samples per feature
+        spf = self.params.get("max_samples")**(1/float(n_vnfs * m_parameters))
+        # compute reduced parameter set
+        reduced_parameters = dict()
+        for pk, pv in self.pm_parameter.items():
+            reduced_parameters[pk] = self._get_n_samples_from_list(
+                pv, int(spf + 1))
+        # expand reduced parameter set using the pmodel object
+        cs = self.pm.get_conf_space(
+            modified_parameter=reduced_parameters, no_cache=True)
+        # adapt grid to max_samples
+        self.csr = [cs[int(idx)]
+                    for idx in np.linspace(0, len(cs)-1,
+                                           self.params.get("max_samples"))]
+        return self.csr
+
+    def set_inputs(self, pm_inputs, pm_parameter):
+        super().set_inputs(pm_inputs, pm_parameter)
+        assert(len(self.pm_inputs) > 0)
+        self._calculate_grid()
+
+    def reinitialize(self, repetition_id):
+        pass
+
+    def next(self):
+        r = self.csr[self.k_samples % len(self.csr)]
+        self.k_samples += 1
+        return r
 
 
 class PanicGreedyAdaptiveSelector(Selector):

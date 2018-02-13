@@ -33,6 +33,8 @@ selector:
     - name: UniformGridSelectorRandomStepBias
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 2, max: 90, step: 1}
+    - name: HyperGridSelector
+      max_samples: {min: 2, max: 90, step: 1}
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 2, max: 90, step: 1}
@@ -54,7 +56,7 @@ error_metrics:
 
 plot:
     - name: Boxplot
-      disabled: False
+      disabled: True
       path: plots
       title: Error
       x: k_samples
@@ -74,8 +76,8 @@ plot:
       title: Selector Error Comparison
       x: k_samples
       y: error_value
-      y_lim_min: -1.0
-      y_lim_max: 1.0
+      y_lim_min: -3.0
+      y_lim_max: 3.0
       # column that distinguishes lines in plot
       hue: selector_conf
       error_bars: 95  # ="sd" or =95 (for ci)
@@ -92,8 +94,8 @@ plot:
       title: Predictor Error Comparison
       x: k_samples
       y: error_value
-      y_lim_min: -1.0
-      y_lim_max: 1.0
+      y_lim_min: -2.0
+      y_lim_max: 2.0
       # column that distinguishes lines in plot
       hue: predictor_conf
       error_bars: 95  # ="sd" or =95 (for ci)

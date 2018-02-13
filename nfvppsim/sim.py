@@ -5,12 +5,7 @@ ALL RIGHTS RESERVED.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+bess or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
@@ -49,7 +44,7 @@ class Profiler(object):
         self.pm_conf_space = pmodel.get_conf_space()
         self.pm_conf_space_flat = flatten_conf(self.pm_conf_space)
         self.s = selector
-        self.s.set_inputs(self.pm_conf_space, pmodel.parameter)
+        self.s.set_inputs(self.pm_conf_space, pmodel)
         self.p = predictor
         self.e_lst = error_lst
         self.repetition_id = repetition_id
