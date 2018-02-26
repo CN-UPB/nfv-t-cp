@@ -421,7 +421,7 @@ class TCPaperModel5VNFSimple(SfcPerformanceModel):
                                    lambda c: (c["p1"] * 0.4))
         vnf4 = VnfPerformanceModel(0, "vnf4", p,
                                    lambda c: (c["p1"] * 0.2))
-        
+
         # return parameters, list of vnfs
         return p, [vnf0, vnf1, vnf2, vnf3, vnf4]
 

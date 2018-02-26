@@ -527,3 +527,49 @@ class PanicGreedyAdaptiveSelector(Selector):
         Inform selector about result for single configuration.
         """
         self._previous_samples.append((c, r))
+
+
+class WeightedVnfSelector(Selector):
+    """
+    UPB's weighted VNF selector.
+    """
+
+    def __init__(self, **kwargs):
+        # apply default params
+        p = {"max_samples": -1,
+             "exponential_border_points": False}
+        p.update(kwargs)
+        # members
+        self.pm_inputs = list()
+        self.pm_parameter = dict()
+        self.params = p
+        self.k_samples = 0
+        self._border_points = None
+        self._previous_samples = list()
+        LOG.debug("Initialized selector: {}".format(self))
+
+    def reinitialize(self, repetition_id):
+        """
+        Called once for each experiment repetition.
+        Can be used to re-initialize data structures for each repetition.
+        """
+        pass
+
+    def _calc_border_points(self):
+        # TODO implement
+        return list()
+
+    def next(self):
+        result = None
+        # initially select border points if not yet done
+        if self._border_points is None:
+            self._border_points = self._calc_border_points()
+        # TODO implement
+        self.k_samples += 1
+        return result
+
+    def feedback(self, c, r):
+        """
+        Inform selector about result for single configuration.
+        """
+        self._previous_samples.append((c, r))
