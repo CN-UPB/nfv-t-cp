@@ -40,6 +40,10 @@ def get_by_name(name):
         return NFVSDN17Model
     if name == "PanicTerrasortModel":
         return PanicTerrasortModel
+    if name == "TCPaperModel5VNF":
+        return TCPaperModel5VNF
+    if name == "TCPaperModel5VNFSimple":
+        return TCPaperModel5VNFSimple
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -311,7 +315,7 @@ class PanicTerrasortModel(SfcPerformanceModel):
                                                   - 37.5)) / 2 * c["cores"]))
         # return parameters, list of vnfs
         return p, [vnf0]
-    
+
     @classmethod
     def generate_sfc_graph(cls, conf, vnfs):
         # create a directed graph
@@ -322,6 +326,123 @@ class PanicTerrasortModel(SfcPerformanceModel):
         G.add_node("t", vnf=None)
         # simple linear: s -> 0 -> t
         G.add_edges_from([("s", 0), (0, "t")])
+        return G
+
+
+class TCPaperModel5VNF(SfcPerformanceModel):
+    """
+               - (v2)
+    (s) - (v1)         (v4) - (v5) - (t)
+               - (v3)
+    """
+
+    @classmethod
+    def generate_vnfs(cls, conf):
+        # define parameters
+        # dict of lists defining possible configuration parameters
+        # use normalized inputs for now
+        p = {"cpu": list(np.linspace(0.1, 1.0, num=3)),
+             "mem": list(np.linspace(0.1, 1.0, num=2)),
+             "sriov": [0, 1]}
+
+        # create vnfs
+        # function: config_list -> performance
+        # REQUIREMENT: vnf_ids of objects == idx in list
+        vnf0 = VnfPerformanceModel(0, "vnf0", p,
+                                   lambda c: (c["cpu"] * 9.0
+                                              + c["mem"] * 0.5
+                                              + c["sriov"] * 0.0))
+        vnf1 = VnfPerformanceModel(0, "vnf1", p,
+                                   lambda c: (c["cpu"] * .8
+                                              + c["mem"] * 2.5
+                                              + c["sriov"] * 0.0))
+        vnf2 = VnfPerformanceModel(0, "vnf2", p,
+                                   lambda c: (c["cpu"] * .8
+                                              + c["mem"] * 2.5
+                                              + c["sriov"] * 0.0))
+        vnf3 = VnfPerformanceModel(0, "vnf3", p,
+                                   lambda c: (c["cpu"] * 2.0
+                                              + c["mem"] * 0.0
+                                              + c["sriov"] * 2.0))
+        vnf4 = VnfPerformanceModel(0, "vnf4", p,
+                                   lambda c: (c["cpu"] * 1.0
+                                              + c["mem"] * 1.0
+                                              + c["sriov"] * 1.0))
+        # return parameters, list of vnfs
+        return p, [vnf0, vnf1, vnf2, vnf3, vnf4]
+
+    @classmethod
+    def generate_sfc_graph(cls, conf, vnfs):
+        # create a directed graph
+        G = nx.DiGraph()
+        # add nodes and assign VNF objects
+        G.add_node(0, vnf=vnfs[0])
+        G.add_node(1, vnf=vnfs[1])
+        G.add_node(2, vnf=vnfs[2])
+        G.add_node(3, vnf=vnfs[3])
+        G.add_node(4, vnf=vnfs[4])
+        G.add_node("s", vnf=None)
+        G.add_node("t", vnf=None)
+        # s -> 0 -> 1,2 -> 3 -> 4 -> t
+        G.add_edges_from([("s", 0),
+                          (0, 1), (0, 2),
+                          (1, 3), (2, 3),
+                          (3, 4),
+                          (4, "t")])
+        return G
+
+
+class TCPaperModel5VNFSimple(SfcPerformanceModel):
+    """
+               - (v2)
+    (s) - (v1)         (v4) - (v5) - (t)
+               - (v3)
+
+    Simple version with only one parameter per VNF!
+    """
+
+    @classmethod
+    def generate_vnfs(cls, conf):
+        # define parameters
+        # dict of lists defining possible configuration parameters
+        # use normalized inputs for now
+        p = {"p1": list(np.linspace(0.0, 1.0, num=10))}
+
+        # create vnfs
+        # function: config_list -> performance
+        # REQUIREMENT: vnf_ids of objects == idx in list
+        vnf0 = VnfPerformanceModel(0, "vnf0", p,
+                                   lambda c: (c["p1"] * 0.2))
+        vnf1 = VnfPerformanceModel(0, "vnf1", p,
+                                   lambda c: (c["p1"] * 0.1))
+        vnf2 = VnfPerformanceModel(0, "vnf2", p,
+                                   lambda c: (c["p1"] * 0.1))
+        vnf3 = VnfPerformanceModel(0, "vnf3", p,
+                                   lambda c: (c["p1"] * 0.4))
+        vnf4 = VnfPerformanceModel(0, "vnf4", p,
+                                   lambda c: (c["p1"] * 0.2))
+        
+        # return parameters, list of vnfs
+        return p, [vnf0, vnf1, vnf2, vnf3, vnf4]
+
+    @classmethod
+    def generate_sfc_graph(cls, conf, vnfs):
+        # create a directed graph
+        G = nx.DiGraph()
+        # add nodes and assign VNF objects
+        G.add_node(0, vnf=vnfs[0])
+        G.add_node(1, vnf=vnfs[1])
+        G.add_node(2, vnf=vnfs[2])
+        G.add_node(3, vnf=vnfs[3])
+        G.add_node(4, vnf=vnfs[4])
+        G.add_node("s", vnf=None)
+        G.add_node("t", vnf=None)
+        # s -> 0 -> 1,2 -> 3 -> 4 -> t
+        G.add_edges_from([("s", 0),
+                          (0, 1), (0, 2),
+                          (1, 3), (2, 3),
+                          (3, 4),
+                          (4, "t")])
         return G
 
 
