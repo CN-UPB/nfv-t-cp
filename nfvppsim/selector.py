@@ -21,6 +21,7 @@ import random
 import logging
 import os
 import re
+import itertools as it
 from nfvppsim.config import expand_parameters
 from nfvppsim.helper import dict_to_short_str
 
@@ -555,8 +556,48 @@ class WeightedVnfSelector(Selector):
         """
         pass
 
-    def _calc_border_points(self):
-        # TODO implement
+    def _get_vnf_bp_minmax(self, p1, p2):
+        """
+        Call (p_min, p_max) to get max BPs
+        Call (p_max, p_min) to get min BPs
+        """
+        points = list()
+        vnf_max_list = [p2 for vnf in self.pm.vnfs]
+        # add 0 point (all VNFs with all parameters p2)
+        points.append(tuple(vnf_max_list.copy()))
+        # add n further points with one VNF set to p1
+        for n in range(0, len(self.pm.vnfs)):
+            tmp = vnf_max_list.copy()
+            tmp[n] = p1  # set one VNF to p1
+            points.append(tuple(tmp))
+        return points
+
+    def _calc_border_points(self, mode=0):
+        """
+        Border points across VNFs.
+        Modes:
+        - 0: return n + 1 BPs (fix. to max)
+        - 1: return n - 1 BPs (fix. to min)
+        - 2: return 2*(n + 1) BPs (combine min/max from 1/0)
+        - 3: return 2^n BPs (cross product over min/max points of VNFs)
+        """
+        # preparations
+        p = self.pm_parameter
+        p_min = dict()
+        p_max = dict()
+        for k, v in p.items():
+            p_min[k] = min(v)
+            p_max[k] = max(v)
+        # calculate result depending on mode
+        if mode == 0:
+            return self._get_vnf_bp_minmax(p_min, p_max)
+        if mode == 1:
+            return self._get_vnf_bp_minmax(p_max, p_min)
+        if mode == 2:
+            return (self._get_vnf_bp_minmax(p_min, p_max)
+                    + self._get_vnf_bp_minmax(p_max, p_min))
+        if mode == 3:
+            pass  # TODO implement mode 3
         return list()
 
     def next(self):

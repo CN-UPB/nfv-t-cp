@@ -33,7 +33,8 @@ class PerformanceModel_4VNF(SfcPerformanceModel):
         # define parameters
         # dict of lists defining possible configuration parameters
         # use normalized inputs for now
-        p = {"p1": list(np.linspace(0.0, 1.0, num=10))}
+        p = {"p1": list(np.linspace(0.0, 1.0, num=5)),
+             "p2": list(np.linspace(0.5, 1.5, num=4))}
 
         # create vnfs
         # function: config_list -> performance
@@ -91,8 +92,21 @@ class TestWeightedVnfSelector(unittest.TestCase):
         s = self._new_WVS()
         del s
 
-    def test_calc_border_points(self):
-        pass
+    def test_calc_border_points_wvs(self):
+        n_vnfs = 4
+        s = self._new_WVS()
+        r = s._calc_border_points(mode=0)
+        self.assertEqual(len(r), n_vnfs + 1,
+                         msg="wrong number of border points returned")
+        r = s._calc_border_points(mode=1)
+        self.assertEqual(len(r), n_vnfs + 1,
+                         msg="wrong number of border points returned")
+        r = s._calc_border_points(mode=2)
+        self.assertEqual(len(r), 2 * n_vnfs + 2,
+                         msg="wrong number of border points returned")
+        r = s._calc_border_points(mode=3)
+        self.assertEqual(len(r), 0,  # TODO not implemented yet
+                         msg="wrong number of border points returned")
 
     def test_calc_weights(self):
         pass
