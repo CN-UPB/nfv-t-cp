@@ -21,7 +21,6 @@ import random
 import logging
 import os
 import re
-import itertools as it
 from nfvppsim.config import expand_parameters
 from nfvppsim.helper import dict_to_short_str
 
@@ -538,7 +537,7 @@ class WeightedVnfSelector(Selector):
     def __init__(self, **kwargs):
         # apply default params
         p = {"max_samples": -1,
-             "exponential_border_points": False}
+             "border_point_mode": 0}
         p.update(kwargs)
         # members
         self.pm_inputs = list()
@@ -546,6 +545,7 @@ class WeightedVnfSelector(Selector):
         self.params = p
         self.k_samples = 0
         self._border_points = None
+        self._weights = None
         self._previous_samples = list()
         LOG.debug("Initialized selector: {}".format(self))
 
@@ -581,6 +581,7 @@ class WeightedVnfSelector(Selector):
         - 2: return 2*(n + 1) BPs (combine min/max from 1/0)
         - 3: return 2^n BPs (cross product over min/max points of VNFs)
         """
+        LOG.debug("WVS calculating border points with mode={}".format(mode))
         # preparations
         p = self.pm_parameter
         p_min = dict()
@@ -600,12 +601,76 @@ class WeightedVnfSelector(Selector):
             pass  # TODO implement mode 3
         return list()
 
+    def _distance(self, r1, r2):
+        """
+        Use Euclidean distance as default.
+        """
+        return float(abs(r1 - r2))
+
+    def _get_vnf_idx_ordered_by_weight(self, weights):
+        # ordered indexes of weight array
+        w_idx = np.argsort(weights)[::-1]
+        # normalize values to vnf indexes (mode > 1)
+        # also de duplicate
+        return [i % len(self.pm.vnfs) for i in w_idx]
+
+    def _calc_weights(self, mode=0):
+        """
+        Returns a list of weights.
+        There could be more than one weight per VNF in mode > 1.
+        The idx of the list value is x*vnf_id.
+        Weights are normalized
+        """
+        n_vnfs = len(self.pm.vnfs)
+        samples = self._previous_samples
+        # input validation
+        if mode == 0 or mode == 1:
+            assert(len(samples) == n_vnfs + 1)
+        elif mode == 2:
+            assert(len(samples) == 2 * n_vnfs + 2)
+        else:  # TODO implement mode 3
+            return []
+        # calculate distances
+        dists = list()
+        base_index = 0
+        for i in range(0, len(samples)):
+            # always compare against 0 element in list
+            # this element is a multiple of (n_vnfs + 1)
+            if i % (n_vnfs + 1) == 0:
+                base_index = i
+            else:
+                # actual distance calculation
+                dists.append(
+                    self._distance(
+                        samples[base_index][1],
+                        samples[i][1]))
+        # normalize weigths to [0.0, 1.0]
+        if sum(dists) == 0:  # should not happen
+            LOG.warning("WVS: All distances have been 0!")
+            return dists
+        norm = [d/sum(dists) for d in dists]
+        return norm
+
     def next(self):
-        result = None
+        result = tuple([0,0,0,0])  # TODO set to None
         # initially select border points if not yet done
         if self._border_points is None:
-            self._border_points = self._calc_border_points()
-        # TODO implement
+            self._border_points = self._calc_border_points(
+                mode=self.params.get("border_point_mode"))
+        # first return all our border points to get some initial results
+        if len(self._border_points) > 0:
+            p = self._border_points.pop(0)
+            print(p)
+            return p
+        # compute weights once we have returned all border points
+        if self._weights is None:
+            self._weights = self._calc_weights(
+                mode=self.params.get("border_point_mode"))
+        # select next points using the weigths
+        prioritized_vnf_idxs = self._get_vnf_idx_ordered_by_weight(
+            self._weights)
+        # TODO select points from vnf with most priority (random, uniform)
+        print(prioritized_vnf_idxs)
         self.k_samples += 1
         return result
 

@@ -83,16 +83,18 @@ class TestWeightedVnfSelector(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def _new_WVS(self, max_samples=60, conf={}):
-        s = WeightedVnfSelector(max_samples=max_samples, **conf)
+    def _new_WVS(self, max_samples=60, border_point_mode=0, conf={}):
+        s = WeightedVnfSelector(max_samples=max_samples,
+                                border_point_mode=border_point_mode,
+                                **conf)
         s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
         return s
 
-    def test_initialize(self):
+    def test_wvs_initialize(self):
         s = self._new_WVS()
         del s
 
-    def test_calc_border_points_wvs(self):
+    def test_wvs_calc_border_points(self):
         n_vnfs = 4
         s = self._new_WVS()
         r = s._calc_border_points(mode=0)
@@ -108,13 +110,73 @@ class TestWeightedVnfSelector(unittest.TestCase):
         self.assertEqual(len(r), 0,  # TODO not implemented yet
                          msg="wrong number of border points returned")
 
-    def test_calc_weights(self):
-        pass
+    def test_wvs_distance(self):
+        s = self._new_WVS()
+        self.assertEqual(s._distance(0, 2), 2.0)
+        self.assertEqual(s._distance(1, 1), 0.0)
+        self.assertEqual(s._distance(-1, 2.0), 3.0)
+        self.assertEqual(s._distance(3, -1), 4.0)
+        self.assertEqual(s._distance(-3, -2), 1.0)
 
-    def test_next_until_max_border_points(self):
-        pass
+    def test_wvs_calc_weights(self):
+        for mode in [0, 1]:
+            s = self._new_WVS(border_point_mode=mode)
+            # add fake feedback results for weight calculation
+            s.feedback(0, 0)
+            s.feedback(1, 1)
+            s.feedback(2, 5)
+            s.feedback(3, 3)
+            s.feedback(4, -2)
+            # calculate weights
+            w = s._calc_weights(mode=mode)
+            self.assertEqual(len(w), len(s.pm.vnfs))
+        mode = 2
+        s = self._new_WVS(border_point_mode=mode)
+        # add fake feedback results for weight calculation
+        # max
+        s.feedback(0, 0)
+        s.feedback(1, 1)
+        s.feedback(2, 5)
+        s.feedback(3, 3)
+        s.feedback(4, -2)
+        # min
+        s.feedback(0, 0)
+        s.feedback(1, -1)
+        s.feedback(2, 2)
+        s.feedback(3, -7)
+        s.feedback(4, 2)
+        # calculate weights
+        w = s._calc_weights(mode=mode)
+        self.assertEqual(len(w), len(s.pm.vnfs) * 2)
+        # TODO mode 3
 
-    def test_next_after_max_border_points(self):
+    def test_wvs_get_vnf_idx_ordered_by_weight(self):
+        w1 = [0.0909, 0.45, 0.27, 0.18]
+        w2 = [0.0434, 0.217, 0.13, 0.086, 0.04, 0.086, 0.304, 0.086]
+        s = self._new_WVS()
+        r1 = s._get_vnf_idx_ordered_by_weight(w1)
+        self.assertEqual(r1, [1, 2, 3, 0])
+        r2 = s._get_vnf_idx_ordered_by_weight(w2)
+        self.assertEqual(r2, [2, 1, 2, 3, 1, 3, 0, 0])
+
+    def test_wvs_next_until_max_border_points(self):
+        n_vnfs = 4
+        n_bps = [n_vnfs + 1, n_vnfs + 1, 2 * n_vnfs + 2]
+        for mode in range(0, 3):  # TODO mode 3 not implemented yet
+            s = self._new_WVS(border_point_mode=mode)
+            for i in range(0, n_bps[mode] + 1):
+                c = s.next()
+                s.feedback(c, 0)
+                # validate point
+                self.assertTrue(c is not None)
+                self.assertEqual(len(c), n_vnfs)
+                # check if weight calculation is triggered
+                if i < n_bps[mode]:
+                    self.assertTrue(s._weights is None)
+                else:
+                    self.assertTrue(s._weights is not None)
+
+    def test_wvs_next_after_max_border_points(self):
         pass
 
     
