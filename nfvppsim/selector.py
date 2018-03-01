@@ -42,6 +42,8 @@ def get_by_name(name):
         return HyperGridSelector
     if name == "PanicGreedyAdaptiveSelector":
         return PanicGreedyAdaptiveSelector
+    if name == "WeightedVnfSelector":
+        return WeightedVnfSelector
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -53,7 +55,7 @@ class Selector(object):
         Generate list of model objects. One for each conf. to be tested.
         """
         r = list()
-        # extract expansion parameter but keep the others
+        # extract max_samples parameter because it is the X axis
         conf_max_samples = conf.get("max_samples")
         del conf["max_samples"]
         del conf["name"]  # no name in params (implicitly given by class)
@@ -538,6 +540,7 @@ class WeightedVnfSelector(Selector):
         # apply default params
         p = {"max_samples": -1,
              "border_point_mode": 0,
+             "sampling_mode_maxmin": 0,
              "p_samples_per_vnf": -1}
         p.update(kwargs)
         # members
@@ -734,7 +737,8 @@ class WeightedVnfSelector(Selector):
                     self._active_vnf_idx, self.k_samples))
             # get configuration to return
             result = self._sample_points_of_vnf_random(
-                self._active_vnf_idx, mode=0)
+                self._active_vnf_idx,
+                mode=self.params.get("sampling_mode_maxmin"))
             self.p_samples += 1
             # if p_samples_per_vnf is reached: trigger VNF idx switch
             if (self.p_samples >= self.params.get("p_samples_per_vnf")

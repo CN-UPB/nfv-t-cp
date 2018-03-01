@@ -86,10 +86,12 @@ class TestWeightedVnfSelector(unittest.TestCase):
 
     def _new_WVS(self, max_samples=60,
                  border_point_mode=0,
+                 sampling_mode_maxmin=0,
                  p_samples_per_vnf=-1,
                  conf={}):
         s = WeightedVnfSelector(max_samples=max_samples,
                                 border_point_mode=border_point_mode,
+                                sampling_mode_maxmin=sampling_mode_maxmin,
                                 p_samples_per_vnf=p_samples_per_vnf,
                                 **conf)
         s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
