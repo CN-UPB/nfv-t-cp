@@ -17,6 +17,7 @@ limitations under the License.
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import unittest
+import random
 import networkx as nx
 import numpy as np
 from nfvppsim.selector import WeightedVnfSelector
@@ -83,9 +84,13 @@ class TestWeightedVnfSelector(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def _new_WVS(self, max_samples=60, border_point_mode=0, conf={}):
+    def _new_WVS(self, max_samples=60,
+                 border_point_mode=0,
+                 p_samples_per_vnf=-1,
+                 conf={}):
         s = WeightedVnfSelector(max_samples=max_samples,
                                 border_point_mode=border_point_mode,
+                                p_samples_per_vnf=p_samples_per_vnf,
                                 **conf)
         s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
         return s
@@ -159,26 +164,54 @@ class TestWeightedVnfSelector(unittest.TestCase):
         r2 = s._get_vnf_idx_ordered_by_weight(w2)
         self.assertEqual(r2, [2, 1, 2, 3, 1, 3, 0, 0])
 
-    def test_wvs_next_until_max_border_points(self):
+    def test_wvs_sample_points_of_vnf_random(self):
+        mode = 0
+        n_vnfs = 4
+        s = self._new_WVS(border_point_mode=mode)
+        p_min, p_max = s._get_min_max_parameter()
+        for repetition in range(0, 100):  # try it 100 times
+            for vnf_idx in range(0, n_vnfs):
+                r = s._sample_points_of_vnf_random(vnf_idx, mode=mode)
+                # print(r)
+                self.assertEqual(len(r), n_vnfs)
+                for tst_idx in range(0, n_vnfs):
+                    if tst_idx == vnf_idx:
+                        self.assertNotEqual(r[tst_idx], p_max)
+                        self.assertNotEqual(r[tst_idx], p_min)
+                        self.assertEqual(len(r[tst_idx]), len(s.pm.parameter))
+                    else:  # fixed VNF config
+                        if mode == 0:
+                            self.assertEqual(r[tst_idx], p_max)
+                        else:
+                            self.assertEqual(r[tst_idx], p_min)
+
+    def test_wvs_next(self):
         n_vnfs = 4
         n_bps = [n_vnfs + 1, n_vnfs + 1, 2 * n_vnfs + 2]
-        for mode in range(0, 3):  # TODO mode 3 not implemented yet
-            s = self._new_WVS(border_point_mode=mode)
-            for i in range(0, n_bps[mode] + 1):
-                c = s.next()
-                s.feedback(c, 0)
-                # validate point
-                self.assertTrue(c is not None)
-                self.assertEqual(len(c), n_vnfs)
-                # check if weight calculation is triggered
-                if i < n_bps[mode]:
-                    self.assertTrue(s._weights is None)
-                else:
-                    self.assertTrue(s._weights is not None)
+        p_samples_per_vnf_lst = [-1, 1, 10, 100]
+        for pspv in p_samples_per_vnf_lst:
+            for mode in range(0, 3):  # TODO mode 3 not implemented yet
+                s = self._new_WVS(
+                    border_point_mode=mode,
+                    p_samples_per_vnf=pspv
+                )
+                # reference border point list (the internal one is modified)
+                bps = s._calc_border_points(mode=mode)
+                for i in range(0, (n_bps[mode] + 1) * 10):  # 10x tests
+                    c = s.next()
+                    # give random feedback
+                    s.feedback(c, random.uniform(1, 10))
+                    # validate point
+                    self.assertTrue(c is not None)
+                    self.assertEqual(len(c), n_vnfs)
+                    # check if weight calculation is triggered
+                    if i < n_bps[mode]:
+                        self.assertTrue(s._weights is None)
+                        self.assertIn(c, bps)
+                    else:
+                        self.assertTrue(s._weights is not None)
+                        self.assertNotIn(c, bps)
 
-    def test_wvs_next_after_max_border_points(self):
-        pass
 
-    
 if __name__ == '__main__':
     unittest.main()

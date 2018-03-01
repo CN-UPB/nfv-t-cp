@@ -537,15 +537,18 @@ class WeightedVnfSelector(Selector):
     def __init__(self, **kwargs):
         # apply default params
         p = {"max_samples": -1,
-             "border_point_mode": 0}
+             "border_point_mode": 0,
+             "p_samples_per_vnf": -1}
         p.update(kwargs)
         # members
         self.pm_inputs = list()
         self.pm_parameter = dict()
         self.params = p
         self.k_samples = 0
+        self.p_samples = 0
         self._border_points = None
         self._weights = None
+        self._prioritized_vnf_idxs = None
         self._previous_samples = list()
         LOG.debug("Initialized selector: {}".format(self))
 
@@ -554,7 +557,12 @@ class WeightedVnfSelector(Selector):
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
         """
-        pass
+        self.k_samples = 0
+        self.p_samples = 0
+        self._border_points = None
+        self._weights = None
+        self._prioritized_vnf_idxs = None
+        self._previous_samples = list()
 
     def _get_vnf_bp_minmax(self, p1, p2):
         """
@@ -562,15 +570,24 @@ class WeightedVnfSelector(Selector):
         Call (p_max, p_min) to get min BPs
         """
         points = list()
-        vnf_max_list = [p2 for vnf in self.pm.vnfs]
+        vnf_config_list = [p2 for vnf in self.pm.vnfs]
         # add 0 point (all VNFs with all parameters p2)
-        points.append(tuple(vnf_max_list.copy()))
+        points.append(tuple(vnf_config_list.copy()))
         # add n further points with one VNF set to p1
         for n in range(0, len(self.pm.vnfs)):
-            tmp = vnf_max_list.copy()
+            tmp = vnf_config_list.copy()
             tmp[n] = p1  # set one VNF to p1
             points.append(tuple(tmp))
         return points
+
+    def _get_min_max_parameter(self):
+        p = self.pm_parameter
+        p_min = dict()
+        p_max = dict()
+        for k, v in p.items():
+            p_min[k] = min(v)
+            p_max[k] = max(v)
+        return p_min, p_max
 
     def _calc_border_points(self, mode=0):
         """
@@ -583,12 +600,7 @@ class WeightedVnfSelector(Selector):
         """
         LOG.debug("WVS calculating border points with mode={}".format(mode))
         # preparations
-        p = self.pm_parameter
-        p_min = dict()
-        p_max = dict()
-        for k, v in p.items():
-            p_min[k] = min(v)
-            p_max[k] = max(v)
+        p_min, p_max = self._get_min_max_parameter()
         # calculate result depending on mode
         if mode == 0:
             return self._get_vnf_bp_minmax(p_min, p_max)
@@ -611,8 +623,9 @@ class WeightedVnfSelector(Selector):
         # ordered indexes of weight array
         w_idx = np.argsort(weights)[::-1]
         # normalize values to vnf indexes (mode > 1)
-        # also de duplicate
-        return [i % len(self.pm.vnfs) for i in w_idx]
+        r = [i % len(self.pm.vnfs) for i in w_idx]
+        LOG.debug("WVS: Prioritized VNF idxs: {}".format(r))
+        return r
 
     def _calc_weights(self, mode=0):
         """
@@ -649,28 +662,85 @@ class WeightedVnfSelector(Selector):
             LOG.warning("WVS: All distances have been 0!")
             return dists
         norm = [d/sum(dists) for d in dists]
+        LOG.debug("WVS: Calculated weights: {}".format(norm))
         return norm
 
+    def _get_point_with_given_vnf_parameter(self, vnf_idx, p_base, p_vnf):
+        """
+        vnf_idx: Index of the VNF to which another config is applied
+        p_base: Config applied too all VNFs except vnf_idx
+        p_vnf: Config applied to vnf_idx
+        """
+        tmp_lst = [p_base for vnf in self.pm.vnfs]
+        tmp_lst[vnf_idx] = p_vnf
+        return tuple(tmp_lst)
+
+    def _sample_points_of_vnf_random(self, vnf_idx, mode=0):
+        """
+        Returns configuration points that only differ.
+        in parameters of the given VNF.
+        Random sampling.
+        Modes:
+        - 0: fix other VNF configs to max
+        - 1: fix other VNF configs to min
+        """
+        # preparations
+        p_min, p_max = self._get_min_max_parameter()
+        p_base = p_max
+        if mode > 0:
+            p_base = p_min
+        # get all VNF configs to select from
+        vnf_conf_space_lst = self.pm.get_conf_space_vnf()
+        # select single VNF config to be applied to vnf_idx
+        # random but without p_max/p_min
+        p_vnf = p_min
+        while p_vnf == p_min or p_vnf == p_max:
+            # pick random until we have something which is not p_min / p_max
+            r_idx = np.random.randint(0, len(vnf_conf_space_lst))
+            p_vnf = vnf_conf_space_lst[r_idx]
+        return self._get_point_with_given_vnf_parameter(
+            vnf_idx, p_base, p_vnf)
+
+    def _pre_calculate_prioritized_samples_for_vnfs(
+            self,
+            prioritized_vnf_idxs,
+            p_samples_per_vnf,
+            mode=0):
+        return list()
+
     def next(self):
-        result = tuple([0,0,0,0])  # TODO set to None
+        result = None
         # initially select border points if not yet done
         if self._border_points is None:
             self._border_points = self._calc_border_points(
                 mode=self.params.get("border_point_mode"))
         # first return all our border points to get some initial results
         if len(self._border_points) > 0:
-            p = self._border_points.pop(0)
-            print(p)
-            return p
-        # compute weights once we have returned all border points
-        if self._weights is None:
-            self._weights = self._calc_weights(
-                mode=self.params.get("border_point_mode"))
-        # select next points using the weigths
-        prioritized_vnf_idxs = self._get_vnf_idx_ordered_by_weight(
-            self._weights)
-        # TODO select points from vnf with most priority (random, uniform)
-        print(prioritized_vnf_idxs)
+            result = self._border_points.pop(0)
+            # print(result)
+        else:  # then return points from VNFs with high weights
+            if self._weights is None:
+                # compute weights once we have returned all border points
+                self._weights = self._calc_weights(
+                    mode=self.params.get("border_point_mode"))
+                # select next points using the weigths
+                self._prioritized_vnf_idxs = \
+                    self._get_vnf_idx_ordered_by_weight(self._weights)
+            #  return p samples, then switch to next VNF
+            if self.p_samples == 0 and len(self._prioritized_vnf_idxs) > 0:
+                # store current active VNF index
+                self._active_vnf_idx = self._prioritized_vnf_idxs.pop(0)
+                LOG.debug("WVS New VNF idx selected: {} (at k={})".format(
+                    self._active_vnf_idx, self.k_samples))
+            # get configuration to return
+            result = self._sample_points_of_vnf_random(
+                self._active_vnf_idx, mode=0)
+            self.p_samples += 1
+            # if p_samples_per_vnf is reached: trigger VNF idx switch
+            if (self.p_samples >= self.params.get("p_samples_per_vnf")
+                    and self.params.get("p_samples_per_vnf") > 0):
+                self.p_samples = 0
+        # return and increase sample count
         self.k_samples += 1
         return result
 
