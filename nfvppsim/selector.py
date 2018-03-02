@@ -690,7 +690,7 @@ class WeightedVnfSelector(Selector):
         # preparations
         p_min, p_max = self._get_min_max_parameter()
         p_base = p_max
-        if mode > 0:
+        if mode == 1:
             p_base = p_min
         # get all VNF configs to select from
         vnf_conf_space_lst = self.pm.get_conf_space_vnf()

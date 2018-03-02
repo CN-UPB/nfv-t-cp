@@ -42,7 +42,7 @@ selector:
     - name: WeightedVnfSelector
       max_samples: {min: 2, max: 90, step: 1}
       border_point_mode: 0  # 0 = max, 1 = min, 2 = both
-      sampling_mode_maxmin: 0,  # 0 = max, 1 = min
+      sampling_mode_maxmin: 0 # 0 = max, 1 = min
       p_samples_per_vnf: -1  # number of samples before switching to VNF with smaller weight
     #- name: WeightedVnfSelector
     #  max_samples: {min: 2, max: 90, step: 1}
