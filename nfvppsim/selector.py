@@ -701,6 +701,8 @@ class WeightedVnfSelector(Selector):
             # pick random until we have something which is not p_min / p_max
             r_idx = np.random.randint(0, len(vnf_conf_space_lst))
             p_vnf = vnf_conf_space_lst[r_idx]
+            if len(vnf_conf_space_lst) < 3:
+                break  # ensure to stop in small conf spaces
         return self._get_point_with_given_vnf_parameter(
             vnf_idx, p_base, p_vnf)
 
