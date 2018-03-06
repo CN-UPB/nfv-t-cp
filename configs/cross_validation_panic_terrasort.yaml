@@ -11,8 +11,8 @@ repetitions: 1000
 result_path: "out/cross_validation_panic_terrasort.pkl"
 result_path_add_timestamp: False
 
-pmodel:
-    name: PanicTerrasortModel
+pmodels:
+    - name: PanicTerrasortModel
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
 # max_samples: {min: 5, max: 27, step: 1}
@@ -68,6 +68,7 @@ plot:
         - degree
         - epsilon
         - error
+        - pmodel
     - name: Lineplot
       disabled: False
       path: plots
@@ -85,6 +86,7 @@ plot:
         - degree
         - epsilon
         - error
+        - pmodel
     - name: Lineplot
       disabled: False
       # needs fixed argument values for predictors!
@@ -101,3 +103,4 @@ plot:
         # list of columns that distinguish plots
         - selector
         - error
+        - pmodel

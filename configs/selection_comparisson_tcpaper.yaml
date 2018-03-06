@@ -11,8 +11,8 @@ repetitions: 50
 result_path: "out/selectors-TCPaperModel5VNF-model.pkl"
 result_path_add_timestamp: False
 
-pmodel:
-    name: TCPaperModel4VNF
+pmodels:
+    - name: TCPaperModel4VNF
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
 # max_samples: {min: 5, max: 27, step: 1}
@@ -20,7 +20,7 @@ pmodel:
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 90, step: 1}
+      max_samples: {min: 2, max: 50, step: 1}
     #- name: UniformGridSelector
       # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 27, step: 1}
@@ -37,10 +37,10 @@ selector:
     #  max_samples: {min: 2, max: 90, step: 1}
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 90, step: 1}
+      max_samples: {min: 2, max: 50, step: 1}
       max_border_points: 32  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 90, step: 1}
+      max_samples: {min: 2, max: 50, step: 1}
       border_point_mode: 0  # 0 = max, 1 = min, 2 = both
       sampling_mode_maxmin: 0 # 0 = max, 1 = min
       p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
@@ -80,6 +80,7 @@ plot:
         - degree
         - epsilon
         - error
+        - pmodel
     - name: Lineplot
       disabled: False
       path: plots
@@ -97,6 +98,7 @@ plot:
         - degree
         - epsilon
         - error
+        - pmodel
     - name: Lineplot
       disabled: False
       # needs fixed argument values for predictors!
@@ -113,3 +115,4 @@ plot:
         # list of columns that distinguish plots
         - selector
         - error
+        - pmodel

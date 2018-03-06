@@ -34,7 +34,7 @@ def read_config(path):
             assert("version" in conf)
             assert("sim_t_max" in conf)
             assert("repetitions" in conf)
-            assert("pmodel" in conf)
+            assert("pmodels" in conf)
             assert("selector" in conf)
             assert("predictor" in conf)
             assert("error_metrics" in conf)

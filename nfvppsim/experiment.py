@@ -48,8 +48,10 @@ class Experiment(object):
         self.result_df = None
         # get classes of modules to be use based on config
         # pmodel
-        self._pmodel_cls = nfvppsim.pmodel.get_by_name(
-            conf.get("pmodel").get("name"))
+        self._pmodel_cls_lst = list()
+        for p in conf.get("pmodels"):
+            pcls = nfvppsim.pmodel.get_by_name(p.get("name"))
+            self._pmodel_cls_lst.append((pcls, p))
         # selector(s)
         self._selector_cls_lst = list()
         for s in conf.get("selector"):
@@ -79,8 +81,9 @@ class Experiment(object):
         self._lst_sim_t_max = expand_parameters(
             self.conf.get("sim_t_max"))
         # pmodel
-        self._lst_pmodel = self._pmodel_cls.generate(
-            self.conf.get("pmodel"))
+        self._lst_pmodel = list()
+        for pmcls, pmconf in self._pmodel_cls_lst:
+            self._lst_pmodel += pmcls.generate(pmconf)
         # selector(s)
         self._lst_selector = list()
         for scls, sconf in self._selector_cls_lst:
