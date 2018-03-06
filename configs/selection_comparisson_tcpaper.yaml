@@ -12,7 +12,7 @@ result_path: "out/selectors-TCPaperModel5VNF-model.pkl"
 result_path_add_timestamp: False
 
 pmodel:
-    name: TCPaperModel5VNFSimple
+    name: TCPaperModel4VNF
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
 # max_samples: {min: 5, max: 27, step: 1}
