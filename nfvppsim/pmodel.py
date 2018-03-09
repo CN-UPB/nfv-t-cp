@@ -166,8 +166,9 @@ class SfcPerformanceModel(object):
         :return: dict for result row
         """
         r = {"pmodel": self.short_name}
+        r.update(self.conf)
         return r
-    
+
     def get_conf_space_vnf(self, modified_parameter=None):
         """
         Return the configuration space for a single VNF.
@@ -590,7 +591,7 @@ class RandomSyntheticModel(SfcPerformanceModel):
         # define parameters
         # dict of lists defining possible configuration parameters
         # use normalized inputs for now
-        p = {"p1": list(np.linspace(0.0, 1.0, num=2))}
+        p = {"p1": list(np.linspace(0.0, 1.0, num=10))}
 
         # randomly pick synthetic functions
         fn0 = cls.grf(conf)

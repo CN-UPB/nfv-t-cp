@@ -13,7 +13,7 @@ result_path_add_timestamp: False
 
 pmodels:
     - name: RandomSyntheticModel
-      n_model_instances: 2
+      n_model_instances: 5
       a1_range: [0.1, 2.0]
       func_set: [1, 2, 3, 4, 5, 6, 7, 8]
 
