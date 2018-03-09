@@ -19,6 +19,8 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import logging
 import os
 import re
+import math
+import random
 import numpy as np
 import networkx as nx
 import itertools as it
@@ -44,6 +46,8 @@ def get_by_name(name):
         return TCPaperModel4VNF
     if name == "TCPaperModel5VNFSimple":
         return TCPaperModel5VNFSimple
+    if name == "RandomSyntheticModel":
+        return RandomSyntheticModel
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -84,13 +88,24 @@ class SfcPerformanceModel(object):
         """
         Generate list of model objects. One for each conf. to be tested.
         """
-        # TODO change to generate real multiple models based on cnfigs
-        parameter, vnf_lst = cls.generate_vnfs(conf)
-        sfc_graph = cls.generate_sfc_graph(conf, vnf_lst)
-        LOG.info("Generated SFC graph with nodes={} and edges={}"
-                 .format(sfc_graph.nodes(), sfc_graph.edges()))
-        pm_obj = cls(parameter=parameter, vnfs=vnf_lst, sfc_graph=sfc_graph)
-        return [pm_obj]
+        n_model_instances = 1
+        if conf is not None:
+            n_model_instances = conf.get("n_model_instances", 1)
+        model_lst = list()
+        # can generate n_model_instances (useful for randomization)
+        for mid in range(0, n_model_instances):
+            parameter, vnf_lst = cls.generate_vnfs(conf)
+            sfc_graph = cls.generate_sfc_graph(conf, vnf_lst)
+            LOG.info("Generated SFC graph with nodes={} and edges={}"
+                     .format(sfc_graph.nodes(), sfc_graph.edges()))
+            pm_obj = cls(parameter=parameter,
+                         vnfs=vnf_lst,
+                         sfc_graph=sfc_graph,
+                         conf=conf,
+                         mid=mid)
+            pm_obj.initialize()
+            model_lst.append(pm_obj)
+        return model_lst
     
     @classmethod
     def generate_vnfs(cls, conf):
@@ -104,6 +119,8 @@ class SfcPerformanceModel(object):
         self.parameter = kwargs.get("parameter", {})
         self.vnfs = kwargs.get("vnfs", [])
         self.sfc_graph = kwargs.get("sfc_graph")
+        self.conf = kwargs.get("conf", {})
+        self.mid = kwargs.get("mid", 0)
         LOG.info("Initialized performance model: '{}' with {} VNFs ...".format(
             self, len(self.vnfs)))
         LOG.info("\t ... the SFC graph has {} nodes and {} edges ...".format(
@@ -113,6 +130,12 @@ class SfcPerformanceModel(object):
         LOG.info("\t ... the SFC has {} possible configurations.".format(
             len(self.get_conf_space())))
 
+    def initialize(self):
+        """
+        Called after generation.
+        """
+        pass
+
     def reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
@@ -120,7 +143,6 @@ class SfcPerformanceModel(object):
         """
         for v in self.vnfs:
             v.reinitialize(repetition_id)
-        pass
 
     def __repr__(self):
         return "{}".format(
@@ -128,11 +150,15 @@ class SfcPerformanceModel(object):
 
     @property
     def name(self):
-        return self.__class__.__name__
+        return "{}.{}".format(
+            self.__class__.__name__,
+            self.mid)
 
     @property
     def short_name(self):
-        return re.sub('[^A-Z]', '', self.name)
+        return "{}.{}".format(
+            re.sub('[^A-Z]', '', self.name),
+            self.mid)
 
     def get_results(self):
         """
@@ -477,4 +503,133 @@ class ExampleModel(SfcPerformanceModel):
         G.add_node("t", vnf=None)
         # simple linear: s -> 0 -> 1 ->  -> t
         G.add_edges_from([("s", 0), (0, 1), (1, "t")])
+        return G
+
+
+class RandomSyntheticModel(SfcPerformanceModel):
+    """
+    Randomized Performance Model
+    - 1 prameter per VNF
+    - f synthetic performance functions
+    - TODO 1...4 VNFs
+    - TODO topologies: l1-l4, d2-d4
+    - TODO random bias
+    func. source: http://ieeexplore.ieee.org/document/8257924/
+
+    Conf. Parameter:
+    - a1_range = [0.1, 2.0]
+    - func_set = [1, 2, 3, 4, 5, 6, 7, 8]  (or a subset of these)
+    """
+    @classmethod
+    def grf(cls, conf):
+        """
+        Get Random Function
+        """
+        # prepare synthetic func. generation
+        assert(conf is not None)
+        assert("a1_range" in conf)
+        assert("func_set" in conf)
+        # randomly set global coefficient(s)
+        a1 = random.uniform(
+            conf.get("a1_range")[0],
+            conf.get("a1_range")[1])
+        fnum = random.choice(conf.get("func_set"))
+        assert(fnum >= 1 and fnum <= 8)
+        LOG.debug("Selected synthetic function no. {}".format(fnum))
+
+        # synthetic functions
+        def f1(x):
+            return a1*x
+
+        def f2(x):
+            return a1*x**2
+
+        def f3(x):
+            return math.exp(f1(x))
+
+        def f4(x):
+            return math.exp(abs(f1(x)))
+
+        def f5(x):
+            return math.exp(-(f1(x)**2))
+
+        def f6(x):
+            return math.exp(-(f2(x)))
+
+        def f7(x):
+            return math.cos(f1(x)) * f3(x)
+
+        def f8(x):
+            return f2(x) * f6(x)
+
+        # ok, how to use Pyhton's getattr for netsed functions?
+        # a = getattr(cls.grf, "f2")(1) does not work.
+        # use a manual selection, even if its ugly:
+        if fnum == 1:
+            return f1
+        elif fnum == 2:
+            return f2
+        elif fnum == 3:
+            return f3
+        elif fnum == 4:
+            return f4
+        elif fnum == 5:
+            return f5
+        elif fnum == 6:
+            return f6
+        elif fnum == 7:
+            return f7
+        elif fnum == 8:
+            return f8
+        else:
+            raise BaseException("Function not found!")
+        return None
+
+    @classmethod
+    def generate_vnfs(cls, conf):
+        # define parameters
+        # dict of lists defining possible configuration parameters
+        # use normalized inputs for now
+        p = {"p1": list(np.linspace(0.0, 1.0, num=2))}
+
+        # randomly pick synthetic functions
+        fn0 = cls.grf(conf)
+        fn1 = cls.grf(conf)
+        fn2 = cls.grf(conf)
+        fn3 = cls.grf(conf)
+        fn4 = cls.grf(conf)
+
+        # create vnfs and assign functions
+        vnf0 = VnfPerformanceModel(0, "vnf0", p,
+                                   lambda c: fn0(c["p1"]))
+        vnf1 = VnfPerformanceModel(0, "vnf1", p,
+                                   lambda c: fn1(c["p1"]))
+        vnf2 = VnfPerformanceModel(0, "vnf2", p,
+                                   lambda c: fn2(c["p1"]))
+        vnf3 = VnfPerformanceModel(0, "vnf3", p,
+                                   lambda c: fn3(c["p1"]))
+        vnf4 = VnfPerformanceModel(0, "vnf4", p,
+                                   lambda c: fn4(c["p1"]))
+
+        # return parameters, list of vnfs
+        return p, [vnf0, vnf1, vnf2, vnf3, vnf4]
+
+    @classmethod
+    def generate_sfc_graph(cls, conf, vnfs):
+        # create a directed graph
+        G = nx.DiGraph()
+        # add nodes and assign VNF objects
+        G.add_node(0, vnf=vnfs[0])
+        G.add_node(1, vnf=vnfs[1])
+        G.add_node(2, vnf=vnfs[2])
+        G.add_node(3, vnf=vnfs[3])
+        G.add_node(4, vnf=vnfs[4])
+        G.add_node("s", vnf=None)
+        G.add_node("t", vnf=None)
+        # s -> 0 -> 1,2 -> 3 -> 4 -> t
+        G.add_edges_from([("s", 0),
+                          (0, 1), (0, 2),
+                          (1, 3), (2, 3),
+                          (3, 4),
+                          (4, "t")])
         return G

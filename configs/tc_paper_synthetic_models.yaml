@@ -1,0 +1,121 @@
+---
+# This is an example configuration for a single experiment.
+name: "Selection algorithms comp. using RandomSynthetic Performance Model"
+author: "Manuel Peuster"
+version: 0.1
+
+# time limit for measurement (s) (expandable)
+sim_t_max: null
+repetitions: 50
+# path to write results as pickled Pandas DF 
+result_path: "out/tc_paper_random_synthetic_pmodels.pkl"
+result_path_add_timestamp: False
+
+pmodels:
+    - name: RandomSyntheticModel
+      n_model_instances: 2
+      a1_range: [0.1, 2.0]
+      func_set: [1, 2, 3, 4, 5, 6, 7, 8]
+
+# PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
+# max_samples: {min: 5, max: 27, step: 1}
+# 90 = sqrt(8000)
+selector:
+    - name: UniformRandomSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 50, step: 2}
+    #- name: UniformGridSelector
+      # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 2, max: 27, step: 1}
+    #- name: UniformGridSelectorRandomOffset
+      # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 2, max: 27, step: 1}
+    #- name: UniformGridSelectorIncrementalOffset
+      # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 2, max: 27, step: 1}
+    #- name: UniformGridSelectorRandomStepBias
+    #  # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 2, max: 90, step: 1}
+    #- name: HyperGridSelector
+    #  max_samples: {min: 2, max: 90, step: 1}
+    - name: PanicGreedyAdaptiveSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 50, step: 2}
+      max_border_points: 32  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
+    - name: WeightedVnfSelector
+      max_samples: {min: 2, max: 50, step: 2}
+      border_point_mode: 0  # 0 = max, 1 = min, 2 = both
+      sampling_mode_maxmin: 0 # 0 = max, 1 = min
+      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
+    #- name: WeightedVnfSelector
+    #  max_samples: {min: 2, max: 90, step: 1}
+    #  border_point_mode: 0  # 0 = max, 1 = min, 2 = both
+    #  sampling_mode_maxmin: 0,  # 0 = max, 1 = min
+    #  p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
+
+predictor:
+    - name: PolynomialRegressionPredictor
+      # poly. degree (expandable)
+      degree: [2, 3]
+    - name: SupportVectorRegressionPredictor
+      epsilon: [0.01, 0.1]  # epsilon (expandable)
+
+error_metrics:
+    - name: MSE
+    - name: MAE
+    - name: R2
+    - name: EVS
+    - name: MEDAE
+
+plot:
+    - name: Boxplot
+      disabled: True
+      path: plots
+      title: Error
+      x: k_samples
+      y: error_value
+      y_lim_min: -2.0
+      y_lim_max: 2.0
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - predictor
+        - degree
+        - epsilon
+        - error
+        - pmodel
+    - name: Lineplot
+      disabled: False
+      path: plots
+      title: Selector Error Comparison
+      x: k_samples
+      y: error_value
+      y_lim_min: -1.0
+      y_lim_max: 1.0
+      # column that distinguishes lines in plot
+      hue: selector_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
+      n_plots:
+        # list of columns that distinguish plots
+        - predictor
+        - degree
+        - epsilon
+        - error
+        - pmodel
+    - name: Lineplot
+      disabled: False
+      # needs fixed argument values for predictors!
+      path: plots
+      title: Predictor Error Comparison
+      x: k_samples
+      y: error_value
+      y_lim_min: -1.0
+      y_lim_max: 1.0
+      # column that distinguishes lines in plot
+      hue: predictor_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - error
+        - pmodel
