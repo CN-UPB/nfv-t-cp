@@ -117,6 +117,11 @@ class TestWeightedVnfSelector(unittest.TestCase):
         self.assertEqual(len(r), 0,  # TODO not implemented yet
                          msg="wrong number of border points returned")
 
+    def test_get_median_parameter(self):
+        s = self._new_WVS()
+        m = s._get_median_parameter()
+        self.assertEqual(m, {'p2': 0.99999999999999989, 'p1': 0.5})
+
     def test_wvs_distance(self):
         s = self._new_WVS()
         self.assertEqual(s._distance(0, 2), 2.0)

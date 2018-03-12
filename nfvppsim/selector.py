@@ -21,6 +21,7 @@ import random
 import logging
 import os
 import re
+import statistics
 from nfvppsim.config import expand_parameters
 from nfvppsim.helper import dict_to_short_str
 
@@ -592,6 +593,13 @@ class WeightedVnfSelector(Selector):
             p_max[k] = max(v)
         return p_min, p_max
 
+    def _get_median_parameter(self):
+        p = self.pm_parameter
+        p_median = dict()
+        for k, v in p.items():
+            p_median[k] = statistics.median(v)
+        return p_median
+
     def _calc_border_points(self, mode=0):
         """
         Border points across VNFs.
@@ -686,12 +694,16 @@ class WeightedVnfSelector(Selector):
         Modes:
         - 0: fix other VNF configs to max
         - 1: fix other VNF configs to min
+        - 2: fix other VNF configs to median
         """
         # preparations
         p_min, p_max = self._get_min_max_parameter()
+        p_median = self._get_median_parameter()
         p_base = p_max
         if mode == 1:
             p_base = p_min
+        if mode == 2:
+            p_base = p_median
         # get all VNF configs to select from
         vnf_conf_space_lst = self.pm.get_conf_space_vnf()
         # select single VNF config to be applied to vnf_idx
