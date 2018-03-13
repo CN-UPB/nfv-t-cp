@@ -88,33 +88,41 @@ class SfcPerformanceModel(object):
         """
         Generate list of model objects. One for each conf. to be tested.
         """
+        if conf is None:
+            conf = dict()
         n_model_instances = 1
         if conf is not None:
             n_model_instances = conf.get("n_model_instances", 1)
         model_lst = list()
-        # can generate n_model_instances (useful for randomization)
-        for mid in range(0, n_model_instances):
-            parameter, vnf_lst = cls.generate_vnfs(conf)
-            sfc_graph = cls.generate_sfc_graph(conf, vnf_lst)
-            LOG.info("Generated SFC graph with nodes={} and edges={}"
-                     .format(sfc_graph.nodes(), sfc_graph.edges()))
-            pm_obj = cls(parameter=parameter,
-                         vnfs=vnf_lst,
-                         sfc_graph=sfc_graph,
-                         conf=conf,
-                         mid=mid)
-            pm_obj.initialize()
-            model_lst.append(pm_obj)
+        if conf.get("topologies") is None:
+            conf["topologies"] = ["default"]
+        # generate models for each topology
+        for t in conf.get("topologies"):
+            new_conf = conf.copy()
+            new_conf["topology"] = t
+            # can generate n_model_instances (useful for randomization)
+            for mid in range(0, n_model_instances):
+                parameter, vnf_lst = cls.generate_vnfs(new_conf)
+                sfc_graph = cls.generate_sfc_graph(new_conf, vnf_lst)
+                LOG.info("Generated SFC graph with nodes={} and edges={}"
+                         .format(sfc_graph.nodes(), sfc_graph.edges()))
+                pm_obj = cls(parameter=parameter,
+                             vnfs=vnf_lst,
+                             sfc_graph=sfc_graph,
+                             conf=new_conf,
+                             mid=mid)
+                pm_obj.initialize()
+                model_lst.append(pm_obj)
         return model_lst
-    
+
     @classmethod
-    def generate_vnfs(cls, conf):
+    def generate_vnfs(cls, conf, **kwargs):
         LOG.error("VNF generation not implemented in base class.")
-        
+
     @classmethod
-    def generate_sfc_graph(cls, conf):
+    def generate_sfc_graph(cls, conf, **kwargs):
         LOG.error("Service graph generation not implemented in base class.")
-    
+
     def __init__(self, **kwargs):
         self.parameter = kwargs.get("parameter", {})
         self.vnfs = kwargs.get("vnfs", [])
@@ -150,14 +158,16 @@ class SfcPerformanceModel(object):
 
     @property
     def name(self):
-        return "{}.{}".format(
+        return "{}.{}.{}".format(
             self.__class__.__name__,
+            self.conf["topology"],
             self.mid)
 
     @property
     def short_name(self):
-        return "{}.{}".format(
+        return "{}.{}.{}".format(
             re.sub('[^A-Z]', '', self.name),
+            self.conf["topology"],
             self.mid)
 
     def get_results(self):
@@ -249,7 +259,7 @@ class CrossValidationModel(SfcPerformanceModel):
     """
 
     @classmethod
-    def generate_vnfs(cls, conf):
+    def generate_vnfs(cls, conf, **kwargs):
         # define parameters
         # dict of lists defining possible configuration parameters
         p = {"c0": list(np.linspace(0.01, 1.0, num=20))}
@@ -265,7 +275,7 @@ class CrossValidationModel(SfcPerformanceModel):
         return p, [vnf0, vnf1]
 
     @classmethod
-    def generate_sfc_graph(cls, conf, vnfs):
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
         # create a directed graph
         G = nx.DiGraph()
         # add nodes and assign VNF objects
@@ -288,7 +298,7 @@ class NFVSDN17Model(SfcPerformanceModel):
     """
 
     @classmethod
-    def generate_vnfs(cls, conf):
+    def generate_vnfs(cls, conf, **kwargs):
         # define parameters
         # dict of lists defining possible configuration parameters
         p = {"c1": list(np.linspace(0.01, 1.0, num=20))}
@@ -305,7 +315,7 @@ class NFVSDN17Model(SfcPerformanceModel):
         return p, [vnf0, vnf1, vnf2]
 
     @classmethod
-    def generate_sfc_graph(cls, conf, vnfs):
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
         # create a directed graph
         G = nx.DiGraph()
         # add nodes and assign VNF objects
@@ -327,7 +337,7 @@ class PanicTerrasortModel(SfcPerformanceModel):
     """
 
     @classmethod
-    def generate_vnfs(cls, conf):
+    def generate_vnfs(cls, conf, **kwargs):
         # define parameters
         # dict of lists defining possible configuration parameters
         p = {"cluster_size": list(range(2, 11)),
@@ -344,7 +354,7 @@ class PanicTerrasortModel(SfcPerformanceModel):
         return p, [vnf0]
 
     @classmethod
-    def generate_sfc_graph(cls, conf, vnfs):
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
         # create a directed graph
         G = nx.DiGraph()
         # add nodes and assign VNF objects
@@ -364,7 +374,7 @@ class TCPaperModel4VNF(SfcPerformanceModel):
     """
 
     @classmethod
-    def generate_vnfs(cls, conf):
+    def generate_vnfs(cls, conf, **kwargs):
         # define parameters
         # dict of lists defining possible configuration parameters
         # use normalized inputs for now
@@ -395,7 +405,7 @@ class TCPaperModel4VNF(SfcPerformanceModel):
         return p, [vnf0, vnf1, vnf2, vnf3]
 
     @classmethod
-    def generate_sfc_graph(cls, conf, vnfs):
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
         # create a directed graph
         G = nx.DiGraph()
         # add nodes and assign VNF objects
@@ -423,7 +433,7 @@ class TCPaperModel5VNFSimple(SfcPerformanceModel):
     """
 
     @classmethod
-    def generate_vnfs(cls, conf):
+    def generate_vnfs(cls, conf, **kwargs):
         # define parameters
         # dict of lists defining possible configuration parameters
         # use normalized inputs for now
@@ -447,7 +457,7 @@ class TCPaperModel5VNFSimple(SfcPerformanceModel):
         return p, [vnf0, vnf1, vnf2, vnf3, vnf4]
 
     @classmethod
-    def generate_sfc_graph(cls, conf, vnfs):
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
         # create a directed graph
         G = nx.DiGraph()
         # add nodes and assign VNF objects
@@ -473,7 +483,7 @@ class ExampleModel(SfcPerformanceModel):
     """
 
     @classmethod
-    def generate_vnfs(cls, conf):
+    def generate_vnfs(cls, conf, **kwargs):
         # define parameters
         # dict of lists defining possible configuration parameters
         p = {"c1": list(np.linspace(0.01, 1.0, num=5)),
@@ -493,7 +503,7 @@ class ExampleModel(SfcPerformanceModel):
         return p, [vnf0, vnf1]
 
     @classmethod
-    def generate_sfc_graph(cls, conf, vnfs):
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
         # create a directed graph
         G = nx.DiGraph()
         # add nodes and assign VNF objects
@@ -587,50 +597,93 @@ class RandomSyntheticModel(SfcPerformanceModel):
         return None
 
     @classmethod
-    def generate_vnfs(cls, conf):
+    def parse_topology_name(cls, tn):
+        """
+        return topology_layout (l/d), no.VNFs
+        """
+        assert(len(tn) > 1)
+        return str(tn[0]), int(tn[1])
+
+    @classmethod
+    def generate_vnfs(cls, conf, **kwargs):
+        assert(conf.get("topology") is not None)
         # define parameters
         # dict of lists defining possible configuration parameters
         # use normalized inputs for now
         p = {"p1": list(np.linspace(0.0, 1.0, num=10))}
 
-        # randomly pick synthetic functions
-        fn0 = cls.grf(conf)
-        fn1 = cls.grf(conf)
-        fn2 = cls.grf(conf)
-        fn3 = cls.grf(conf)
-        fn4 = cls.grf(conf)
+        _, n_vnfs = cls.parse_topology_name(conf.get("topology"))
+        LOG.debug("Generating PModel({}) with {} VNFs".format(
+            conf.get("topology"), n_vnfs))
 
-        # create vnfs and assign functions
-        vnf0 = VnfPerformanceModel(0, "vnf0", p,
-                                   lambda c: fn0(c["p1"]))
-        vnf1 = VnfPerformanceModel(0, "vnf1", p,
-                                   lambda c: fn1(c["p1"]))
-        vnf2 = VnfPerformanceModel(0, "vnf2", p,
-                                   lambda c: fn2(c["p1"]))
-        vnf3 = VnfPerformanceModel(0, "vnf3", p,
-                                   lambda c: fn3(c["p1"]))
-        vnf4 = VnfPerformanceModel(0, "vnf4", p,
-                                   lambda c: fn4(c["p1"]))
-
+        vnf_lst = list()
+        for i in range(0, n_vnfs):
+            fn = cls.grf(conf)  # randomly pick a synthetic function
+            vnf = VnfPerformanceModel(i, "vnf{}".format(i), p,
+                                      lambda c: fn(c["p1"]))
+            vnf_lst.append(vnf)
         # return parameters, list of vnfs
-        return p, [vnf0, vnf1, vnf2, vnf3, vnf4]
+        return p, vnf_lst
 
     @classmethod
-    def generate_sfc_graph(cls, conf, vnfs):
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
+        assert(conf.get("topology") is not None)
+        topology, n_vnfs = cls.parse_topology_name(conf.get("topology"))
         # create a directed graph
         G = nx.DiGraph()
         # add nodes and assign VNF objects
-        G.add_node(0, vnf=vnfs[0])
-        G.add_node(1, vnf=vnfs[1])
-        G.add_node(2, vnf=vnfs[2])
-        G.add_node(3, vnf=vnfs[3])
-        G.add_node(4, vnf=vnfs[4])
+        for i in range(0, n_vnfs):
+            G.add_node(i, vnf=vnfs[i])
         G.add_node("s", vnf=None)
         G.add_node("t", vnf=None)
-        # s -> 0 -> 1,2 -> 3 -> 4 -> t
-        G.add_edges_from([("s", 0),
-                          (0, 1), (0, 2),
-                          (1, 3), (2, 3),
-                          (3, 4),
-                          (4, "t")])
+
+        if topology == "l":
+            # linear topologies
+            if n_vnfs == 1:
+                G.add_edges_from([("s", 0),
+                                  (0, "t")])
+            elif n_vnfs == 2:
+                G.add_edges_from([("s", 0),
+                                  (0, 1),
+                                  (1, "t")])
+            elif n_vnfs == 3:
+                G.add_edges_from([("s", 0),
+                                  (0, 1), (1, 2),
+                                  (2, "t")])
+            elif n_vnfs == 4:
+                G.add_edges_from([("s", 0),
+                                  (0, 1), (1, 2), (2, 3),
+                                  (3, "t")])
+            elif n_vnfs == 5:
+                G.add_edges_from([("s", 0),
+                                  (0, 1), (1, 2), (2, 3), (3, 4),
+                                  (4, "t")])
+            else:
+                raise BaseException("No linear topo for {} VNFs".format(
+                    n_vnfs))
+        elif topology == "d":
+            # diamond topologies
+            if n_vnfs == 2:
+                G.add_edges_from([("s", 0), ("s", 1),
+                                  (0, "t"), (1, "t")])
+            elif n_vnfs == 3:
+                G.add_edges_from([("s", 0),
+                                  (0, 1), (0, 2),
+                                  (1, "t"), (2, "t")])
+            elif n_vnfs == 4:
+                G.add_edges_from([("s", 0),
+                                  (0, 1), (0, 2),
+                                  (1, 3), (2, 3),
+                                  (3, "t")])
+            elif n_vnfs == 5:
+                G.add_edges_from([("s", 0),
+                                  (0, 1), (0, 2),
+                                  (1, 3), (2, 3),
+                                  (3, 4),
+                                  (4, "t")])
+            else:
+                raise BaseException("No diamond topo for {} VNFs".format(
+                    n_vnfs))
+        else:
+            raise BaseException("Topology unknown!")
         return G

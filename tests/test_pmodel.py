@@ -32,7 +32,8 @@ class TestRandomSyntheticModel(unittest.TestCase):
     def test_initialize(self):
         conf = {
             "a1_range": [0.1, 2.0],
-            "func_set": [1, 2, 3, 4, 5, 6, 7, 8]
+            "func_set": [1, 2, 3, 4, 5, 6, 7, 8],
+            "topologies": ["d4"]
         }
         m_lst = RandomSyntheticModel.generate(conf)
         self.assertEqual(len(m_lst), 1)
@@ -40,7 +41,8 @@ class TestRandomSyntheticModel(unittest.TestCase):
     def test_vnf_eval(self):
         conf = {
             "a1_range": [0.1, 2.0],
-            "func_set": [1, 2, 3, 4, 5, 6, 7, 8]
+            "func_set": [1, 2, 3, 4, 5, 6, 7, 8],
+            "topologies": ["d4"]
         }
         m_lst = RandomSyntheticModel.generate(conf)
         for m in m_lst:
@@ -50,7 +52,8 @@ class TestRandomSyntheticModel(unittest.TestCase):
     def test_vnf_func_set(self):
         conf = {
             "a1_range": [1.0, 1.0],
-            "func_set": [2]
+            "func_set": [2],
+            "topologies": ["d4"]
         }
         m_lst = RandomSyntheticModel.generate(conf)
         for m in m_lst:
@@ -62,7 +65,36 @@ class TestRandomSyntheticModel(unittest.TestCase):
         conf = {
             "n_model_instances": 10,
             "a1_range": [0.1, 2.0],
-            "func_set": [1, 2, 3, 4, 5, 6, 7, 8]
+            "func_set": [1, 2, 3, 4, 5, 6, 7, 8],
+            "topologies": ["d4"]
         }
         m_lst = RandomSyntheticModel.generate(conf)
         self.assertEqual(len(m_lst), 10)
+
+    def test_multi_modelgeneration_multi_topologies(self):
+        conf = {
+            "n_model_instances": 2,
+            "a1_range": [0.1, 2.0],
+            "func_set": [1, 2, 3, 4, 5, 6, 7, 8],
+            "topologies": ["l1", "l2", "l3", "l4", "l5",
+                           "d2", "d3", "d4", "d5"]
+        }
+        m_lst = RandomSyntheticModel.generate(conf.copy())
+        self.assertEqual(len(m_lst), 18)
+        for m in m_lst:
+            _, n_vnfs = m.parse_topology_name(m.conf.get("topology"))
+            self.assertEqual(n_vnfs, len(m.vnfs), msg=m.sfc_graph.nodes())
+            self.assertEqual(n_vnfs + 2, len(m.sfc_graph), msg="{}/{}".format(
+                m.sfc_graph.nodes(), m.conf.get("topology")))
+
+    def test_parse_topology_name(self):
+        conf = {
+            "a1_range": [1.0, 1.0],
+            "func_set": [2],
+            "topologies": ["d4"]
+        }
+        m_lst = RandomSyntheticModel.generate(conf)
+        self.assertEqual(m_lst[0].parse_topology_name("d1"), ("d", 1))
+        self.assertEqual(m_lst[0].parse_topology_name("l7"), ("l", 7))
+        self.assertEqual(m_lst[0].parse_topology_name("d1a"), ("d", 1))
+        self.assertEqual(m_lst[0].parse_topology_name("d1b"), ("d", 1))
