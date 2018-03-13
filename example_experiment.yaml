@@ -11,8 +11,8 @@ repetitions: 5
 result_path: "out/test.pkl"
 result_path_add_timestamp: False
 
-pmodel:
-    name: ExampleModel
+pmodels:
+    - name: ExampleModel
 
 selector:
     #- name: UniformRandomSelector

@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import statistics
+import time
 from nfvppsim.config import expand_parameters
 from nfvppsim.helper import dict_to_short_str
 
@@ -74,9 +75,17 @@ class Selector(object):
         self.pm_parameter = dict()
         self.params = p
         self.k_samples = 0
+        self.selector_time_next_sum = 0
+        self.selector_time_reinit_sum = 0
         LOG.debug("Initialized selector: {}".format(self))
 
     def reinitialize(self, repetition_id):
+        t_start = time.time()
+        r = self._reinitialize(repetition_id)
+        self.selector_time_reinit_sum += (time.time() - t_start)
+        return r
+        
+    def _reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
@@ -108,6 +117,12 @@ class Selector(object):
             self.short_name, dict_to_short_str(sparams))
 
     def next(self):
+        t_start = time.time()
+        r = self._next()
+        self.selector_time_next_sum += (time.time() - t_start)
+        return r
+
+    def _next(self):
         self.k_samples += 1
         LOG.error("Not implemented.")
 
@@ -129,7 +144,9 @@ class Selector(object):
         """
         r = {"selector": self.short_name,
              "selector_conf": self.short_config,
-             "k_samples": self.k_samples}
+             "k_samples": self.k_samples,
+             "selector_time_next_sum": self.selector_time_next_sum,
+             "selector_time_reinit_sum": self.selector_time_reinit_sum}
         r.update(self.params)
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r
@@ -145,9 +162,11 @@ class UniformRandomSelector(Selector):
         self.pm_inputs = list()
         self.params = p
         self.k_samples = 0
+        self.selector_time_next_sum = 0
+        self.selector_time_reinit_sum = 0
         LOG.debug("Initialized selector: {}".format(self))
 
-    def next(self):
+    def _next(self):
         idx = np.random.randint(0, len(self.pm_inputs))
         self.k_samples += 1
         return self.pm_inputs[idx]
@@ -166,9 +185,11 @@ class UniformGridSelector(Selector):
         self.params = p
         self.k_samples = 0
         self.offset = 0
+        self.selector_time_next_sum = 0
+        self.selector_time_reinit_sum = 0
         LOG.debug("Initialized selector: {}".format(self))
 
-    def reinitialize(self, repetition_id):
+    def _reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
@@ -192,7 +213,7 @@ class UniformGridSelector(Selector):
             LOG.debug("Re-initialized incremental grid offset: {}"
                       .format(self.offset))
 
-    def next(self):
+    def _next(self):
         if self.params.get("max_samples") < 0:
             LOG.error("{} will not work without positive max_samples setting."
                       .format(self))
@@ -264,6 +285,8 @@ class HyperGridSelector(Selector):
         self.pm_inputs = list()
         self.params = p
         self.k_samples = 0
+        self.selector_time_next_sum = 0
+        self.selector_time_reinit_sum = 0
         LOG.debug("Initialized selector: {}".format(self))
 
     def _get_n_samples_from_list(self, lst, n):
@@ -304,10 +327,7 @@ class HyperGridSelector(Selector):
         assert(len(self.pm_inputs) > 0)
         self._calculate_grid()
 
-    def reinitialize(self, repetition_id):
-        pass
-
-    def next(self):
+    def _next(self):
         r = self.csr[self.k_samples % len(self.csr)]
         self.k_samples += 1
         return r
@@ -328,16 +348,11 @@ class PanicGreedyAdaptiveSelector(Selector):
         self.pm_parameter = dict()
         self.params = p
         self.k_samples = 0
+        self.selector_time_next_sum = 0
+        self.selector_time_reinit_sum = 0
         self._border_points = None
         self._previous_samples = list()
         LOG.debug("Initialized selector: {}".format(self))
-
-    def reinitialize(self, repetition_id):
-        """
-        Called once for each experiment repetition.
-        Can be used to re-initialize data structures for each repetition.
-        """
-        pass
 
     def _conf_geq(self, d1, d2):
         """
@@ -486,7 +501,7 @@ class PanicGreedyAdaptiveSelector(Selector):
                 return False
         return True
 
-    def next(self):
+    def _next(self):
         result = None
         # initially select border points if not yet done
         if self._border_points is None:
@@ -554,9 +569,11 @@ class WeightedVnfSelector(Selector):
         self._weights = None
         self._prioritized_vnf_idxs = None
         self._previous_samples = list()
+        self.selector_time_next_sum = 0
+        self.selector_time_reinit_sum = 0
         LOG.debug("Initialized selector: {}".format(self))
 
-    def reinitialize(self, repetition_id):
+    def _reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
         Can be used to re-initialize data structures for each repetition.
@@ -725,7 +742,7 @@ class WeightedVnfSelector(Selector):
             mode=0):
         return list()
 
-    def next(self):
+    def _next(self):
         result = None
         # initially select border points if not yet done
         if self._border_points is None:
