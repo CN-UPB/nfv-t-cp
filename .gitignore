@@ -1,6 +1,7 @@
 # Sim results
 *.pkl
 *.pdf
+*.png
 *.bak
 # Byte-compiled / optimized / DLL files
 __pycache__/
