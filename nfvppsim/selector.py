@@ -528,15 +528,32 @@ class PanicGreedyAdaptiveSelector(Selector):
                         result = a
             LOG.debug("Return mid point: {}"
                       .format(result))
-        # workaround for PANIC BUG (randomly re-return result)
-        # TODO find a better solution for this (e.g. neighbor points of a)
+        # workaround for PANIC BUG:
+        # option A:  randomly re-return result
+        # if result is None:
+        #    idx = np.random.randint(0, len(self._previous_samples))
+        #    result = self._previous_samples[idx][0]
+        #    LOG.warning("PANIC selector got stuck."
+        #                + " Re-using configurations after {} samples".format(
+        #                    len(self._previous_samples)
+        #                ))
+
+        # option B: re-use maxdistance point (don't check for re-use)
         if result is None:
-            idx = np.random.randint(0, len(self._previous_samples))
-            result = self._previous_samples[idx][0]
+            max_distance = -1
+            for t1 in self._previous_samples:
+                for t2 in self._previous_samples:
+                    a = self._find_midpoint(t1, t2)
+                    if (self._distance(t1, t2) > max_distance):
+                        max_distance = self._distance(t1, t2)
+                        result = a
             LOG.warning("PANIC selector got stuck."
                         + " Re-using configurations after {} samples.".format(
                             len(self._previous_samples)
                         ))
+            LOG.debug("Return mid point: {}"
+                      .format(result))
+            
         self.k_samples += 1
         return result
 
