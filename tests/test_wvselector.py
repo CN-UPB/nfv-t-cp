@@ -86,14 +86,17 @@ class TestWeightedVnfSelector(unittest.TestCase):
 
     def _new_WVS(self, max_samples=60,
                  border_point_mode=0,
+                 border_point_mode_panic=False,
                  sampling_mode_maxmin=0,
                  p_samples_per_vnf=-1,
                  conf={}):
-        s = WeightedVnfSelector(max_samples=max_samples,
-                                border_point_mode=border_point_mode,
-                                sampling_mode_maxmin=sampling_mode_maxmin,
-                                p_samples_per_vnf=p_samples_per_vnf,
-                                **conf)
+        s = WeightedVnfSelector(
+            max_samples=max_samples,
+            border_point_mode=border_point_mode,
+            border_point_mode_panic=border_point_mode_panic,
+            sampling_mode_maxmin=sampling_mode_maxmin,
+            p_samples_per_vnf=p_samples_per_vnf,
+            **conf)
         s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
         return s
 
@@ -114,6 +117,26 @@ class TestWeightedVnfSelector(unittest.TestCase):
         self.assertEqual(len(r), 2 * n_vnfs + 2,
                          msg="wrong number of border points returned")
         r = s._calc_border_points(mode=3)
+        self.assertEqual(len(r), 0,  # TODO not implemented yet
+                         msg="wrong number of border points returned")
+
+    def test_wvs_calc_border_points_panic_mode(self):
+        n_vnfs = 4
+        s = self._new_WVS(border_point_mode_panic=True)
+        r = s._calc_border_points(
+            mode=0, border_point_mode_panic=True)
+        self.assertEqual(len(r), n_vnfs + 1,
+                         msg="wrong number of border points returned")
+        r = s._calc_border_points(
+            mode=1, border_point_mode_panic=True)
+        self.assertEqual(len(r), n_vnfs + 1,
+                         msg="wrong number of border points returned")
+        r = s._calc_border_points(
+            mode=2, border_point_mode_panic=True)
+        self.assertEqual(len(r), 2 * n_vnfs + 2,
+                         msg="wrong number of border points returned")
+        r = s._calc_border_points(
+            mode=3, border_point_mode_panic=True)
         self.assertEqual(len(r), 0,  # TODO not implemented yet
                          msg="wrong number of border points returned")
 

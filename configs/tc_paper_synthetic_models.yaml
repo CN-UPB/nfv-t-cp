@@ -17,7 +17,7 @@ pmodels:
       a1_range: [0.1, 2.0]
       func_set: [1, 2, 3, 4, 5, 6, 7, 8]
       #topologies: ["l1", "l2", "l3", "l4", "l5", "d2", "d3", "d4", "d5"]
-      topologies: ["l5", "d5", "l3", "d3"]
+      topologies: ["l5", "d5"]
       #topologies: ["d3"]
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
@@ -44,10 +44,21 @@ selector:
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 2, max: 50, step: 2}
-      max_border_points: 32  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
+      max_border_points: 10  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
+    - name: PanicGreedyAdaptiveSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 50, step: 2}
+      max_border_points: 20  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
     - name: WeightedVnfSelector
       max_samples: {min: 2, max: 50, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
+      border_point_mode_panic: False
+      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
+      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
+    - name: WeightedVnfSelector
+      max_samples: {min: 2, max: 50, step: 2}
+      border_point_mode: 2  # 0 = max, 1 = min, 2 = both
+      border_point_mode_panic: True
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
     #- name: WeightedVnfSelector
@@ -59,7 +70,7 @@ selector:
 predictor:
     - name: PolynomialRegressionPredictor
       # poly. degree (expandable)
-      degree: [2, 3]
+      degree: [1, 2, 3]
     - name: SupportVectorRegressionPredictor
       epsilon: [0.01, 0.1]  # epsilon (expandable)
 

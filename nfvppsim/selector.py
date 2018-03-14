@@ -640,28 +640,48 @@ class WeightedVnfSelector(Selector):
             p_median[k] = statistics.median(v)
         return p_median
 
-    def _calc_border_points(self, mode=0):
+    def _calc_border_points(self, mode=0, border_point_mode_panic=False):
         """
         Border points across VNFs.
         Modes:
         - 0: return n + 1 BPs (fix. to max)
-        - 1: return n - 1 BPs (fix. to min)
+        - 1: return n + 1 BPs (fix. to min)
         - 2: return 2*(n + 1) BPs (combine min/max from 1/0)
         - 3: return 2^n BPs (cross product over min/max points of VNFs)
+
+        border_point_mode_panic:
+        Special case in which the border point calculation of PANIC
+        is used and the corresponding number of points (depending on mode)
+        is selected randomly from the PANIC result.
         """
         LOG.debug("WVS calculating border points with mode={}".format(mode))
-        # preparations
-        p_min, p_max = self._get_min_max_parameter()
-        # calculate result depending on mode
-        if mode == 0:
-            return self._get_vnf_bp_minmax(p_min, p_max)
-        if mode == 1:
-            return self._get_vnf_bp_minmax(p_max, p_min)
-        if mode == 2:
-            return (self._get_vnf_bp_minmax(p_min, p_max)
-                    + self._get_vnf_bp_minmax(p_max, p_min))
-        if mode == 3:
-            pass  # TODO implement mode 3
+        if not border_point_mode_panic:
+            # Default WVS border point calculation.
+            # preparations
+            p_min, p_max = self._get_min_max_parameter()
+            # calculate result depending on mode
+            if mode == 0:
+                return self._get_vnf_bp_minmax(p_min, p_max)
+            if mode == 1:
+                return self._get_vnf_bp_minmax(p_max, p_min)
+            if mode == 2:
+                return (self._get_vnf_bp_minmax(p_min, p_max)
+                        + self._get_vnf_bp_minmax(p_max, p_min))
+            if mode == 3:
+                pass  # TODO implement mode 3
+        else:
+            # Use PANIC's border point mode
+            LOG.debug("WVS Using PANIC's border point calculation!")
+            # re-use PANIC bp calculation
+            panic_bp_lst = PanicGreedyAdaptiveSelector. \
+                _calc_border_points(self.pm_parameter, self.pm_inputs)
+            # randomly pick sample with right size from PANIC points:
+            n_points = [len(self.pm.vnfs) + 1,
+                        len(self.pm.vnfs) + 1,
+                        2 * len(self.pm.vnfs) + 2,
+                        0]  # 2 ** len(self.pm.vnfs)
+            assert(len(panic_bp_lst) >= n_points[mode])
+            return random.sample(panic_bp_lst, n_points[mode])
         return list()
 
     def _distance(self, r1, r2):
