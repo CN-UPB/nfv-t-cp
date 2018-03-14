@@ -363,7 +363,8 @@ class PanicGreedyAdaptiveSelector(Selector):
                 return False
         return True
 
-    def _conf_one_or_more_components_equal(self, d1, d2):
+    @staticmethod
+    def _conf_one_or_more_components_equal(d1, d2):
         """
         Returns true if there is a k with d1[k] == d2[k]
         """
@@ -405,7 +406,8 @@ class PanicGreedyAdaptiveSelector(Selector):
         LOG.debug("Found {} border points.".format(len(r)))
         return r
 
-    def _calc_border_points(self):
+    @staticmethod
+    def _calc_border_points(pm_parameter, pm_inputs):
         """
         Calculate the border points to be used for initial selection.
         Every configuration point in which at least one
@@ -416,7 +418,7 @@ class PanicGreedyAdaptiveSelector(Selector):
         # get min/max for every parameter
         min_parameter = dict()
         max_parameter = dict()
-        for k, v in self.pm_parameter.items():
+        for k, v in pm_parameter.items():
             min_parameter[k] = min(v)
             max_parameter[k] = max(v)
         LOG.debug("min_paramter={}".format(min_parameter))
@@ -424,12 +426,14 @@ class PanicGreedyAdaptiveSelector(Selector):
 
         # find configurations that are border points (single VNF)
         border_points = list()
-        for c in self.pm_inputs:
+        for c in pm_inputs:
             for vnf_c in c:
                 # add point if at least one component is min/max
-                if (self._conf_one_or_more_components_equal(
+                if (PanicGreedyAdaptiveSelector.
+                    _conf_one_or_more_components_equal(
                         vnf_c, min_parameter)
-                        or self._conf_one_or_more_components_equal(
+                        or PanicGreedyAdaptiveSelector.
+                    _conf_one_or_more_components_equal(
                         vnf_c, min_parameter)):
                     # always add complete configuration to result
                     # if it has at least one border point
@@ -439,7 +443,7 @@ class PanicGreedyAdaptiveSelector(Selector):
         # LOG.debug("vnf_c_border_points={}".format(border_points))
         LOG.debug("Identified {}/{} VNF border points".format(
             len(border_points),
-            len(self.pm_inputs)
+            len(pm_inputs)
         ))
         return border_points
 
@@ -505,7 +509,9 @@ class PanicGreedyAdaptiveSelector(Selector):
         result = None
         # initially select border points if not yet done
         if self._border_points is None:
-            self._border_points = self._calc_border_points()
+            self._border_points = PanicGreedyAdaptiveSelector. \
+                                  _calc_border_points(self.pm_parameter,
+                                                      self.pm_inputs)
         # PANIC algorithm (see paper)
         if self.k_samples < self.params.get("max_border_points"):
             # select (randomly) border points until "max_border_points"
