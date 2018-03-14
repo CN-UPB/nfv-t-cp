@@ -46,24 +46,18 @@ selector:
     - name: WeightedVnfSelector
       max_samples: {min: 2, max: 50, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
-      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: -1  # number of samples before switching to VNF with smaller weight (-1 only 1. VNF)
+      sampling_mode_maxmin: 1 # 0 = max, 1 = min, 2 = median
+      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight (-1 only 1. VNF)
+    - name: WeightedVnfSelector
+      max_samples: {min: 2, max: 50, step: 2}
+      border_point_mode: 2  # 0 = max, 1 = min, 2 = both
+      sampling_mode_maxmin: 0 # 0 = max, 1 = min, 2 = median
+      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight (-1 only 1. VNF)
     - name: WeightedVnfSelector
       max_samples: {min: 2, max: 50, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight (-1 only 1. VNF)
-    - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 50, step: 2}
-      border_point_mode: 0  # 0 = max, 1 = min, 2 = both
-      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: -1  # number of samples before switching to VNF with smaller weight (-1 only 1. VNF)
-    - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 50, step: 2}
-      border_point_mode: 1  # 0 = max, 1 = min, 2 = both
-      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight (-1 only 1. VNF)
-    
+      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight (-1 only 1. VNF)  
 
 predictor:
     - name: PolynomialRegressionPredictor
@@ -96,6 +90,7 @@ plot:
         - epsilon
         - error
         - pmodel
+        - topology
     - name: Lineplot
       disabled: False
       path: plots
@@ -113,6 +108,7 @@ plot:
         - degree
         - epsilon
         - error
+        - topology
         #- pmodel
     - name: Lineplot
       disabled: False
@@ -130,4 +126,5 @@ plot:
         # list of columns that distinguish plots
         - selector
         - error
+        - topology
         #- pmodel
