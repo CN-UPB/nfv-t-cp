@@ -1,6 +1,6 @@
 ---
 # This is an example configuration for a single experiment.
-name: "Selection algorithms comp. using RandomSynthetic Performance Model"
+name: "TC Paper Experiment: Synthetic models."
 author: "Manuel Peuster"
 version: 0.1
 
@@ -8,7 +8,7 @@ version: 0.1
 sim_t_max: null
 repetitions: 30
 # path to write results as pickled Pandas DF 
-result_path: "out/tc_paper_random_synthetic_pmodels.pkl"
+result_path: "out/experiment_tc_paper_synthetic_d2.pkl"
 result_path_add_timestamp: False
 
 pmodels:
@@ -17,7 +17,7 @@ pmodels:
       a1_range: [0.1, 2.0]
       func_set: [1, 2, 3, 4, 5, 6, 7, 8]
       #topologies: ["l1", "l2", "l3", "l4", "l5", "d2", "d3", "d4", "d5"]
-      topologies: ["d5"]
+      topologies: ["d2"]
       #topologies: ["d3"]
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
