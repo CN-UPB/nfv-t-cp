@@ -671,7 +671,7 @@ class WeightedVnfSelector(Selector):
                 pass  # TODO implement mode 3
         else:
             # Use PANIC's border point mode
-            LOG.debug("WVS Using PANIC's border point calculation!")
+            LOG.info("WVS Using PANIC's border point calculation!")
             # re-use PANIC bp calculation
             panic_bp_lst = PanicGreedyAdaptiveSelector. \
                 _calc_border_points(self.pm_parameter, self.pm_inputs)
@@ -680,6 +680,13 @@ class WeightedVnfSelector(Selector):
                         len(self.pm.vnfs) + 1,
                         2 * len(self.pm.vnfs) + 2,
                         0]  # 2 ** len(self.pm.vnfs)
+            if len(panic_bp_lst) < n_points[mode]:
+                # duplicate bpoints found by PANIC
+                LOG.warning("Expanding PANIC's border point list from {} to {}"
+                            .format(len(panic_bp_lst), n_points[mode]))
+                panic_bp_lst = panic_bp_lst * (
+                    1 + int(n_points[mode] / len(panic_bp_lst)))
+            # LOG.warning(panic_bp_lst)
             assert(len(panic_bp_lst) >= n_points[mode])
             return random.sample(panic_bp_lst, n_points[mode])
         return list()
@@ -790,7 +797,9 @@ class WeightedVnfSelector(Selector):
         # initially select border points if not yet done
         if self._border_points is None:
             self._border_points = self._calc_border_points(
-                mode=self.params.get("border_point_mode"))
+                mode=self.params.get("border_point_mode"),
+                border_point_mode_panic=self.params.get(
+                    "border_point_mode_panic"))
         # first return all our border points to get some initial results
         if len(self._border_points) > 0:
             result = self._border_points.pop(0)
