@@ -20,6 +20,7 @@ import logging
 import os
 import warnings
 import re
+import collections
 from nfvppsim.config import expand_parameters
 from nfvppsim.helper import dict_to_short_str
 from sklearn.preprocessing import PolynomialFeatures
@@ -68,8 +69,9 @@ class Predictor(object):
 
     @property
     def short_config(self):
+        sparams = collections.OrderedDict(self.params.copy())
         return "{}_{}".format(
-            self.short_name, dict_to_short_str(self.params))
+            self.short_name, dict_to_short_str(sparams))
 
     def reinitialize(self, repetition_id):
         """

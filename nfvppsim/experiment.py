@@ -187,7 +187,7 @@ class Experiment(object):
                 fname)
             path = path.replace(fname, nfname)
         with open(path, "wb") as f:
-            self.result_df.to_pickle(f)
+            self.result_df.to_pickle(f, compression="gzip")
         LOG.info("Wrote result with {} rows to '{}'".format(
             len(self.result_df.index), path))
 

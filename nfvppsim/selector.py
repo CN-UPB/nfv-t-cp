@@ -23,6 +23,7 @@ import os
 import re
 import statistics
 import time
+import collections
 from nfvppsim.config import expand_parameters
 from nfvppsim.helper import dict_to_short_str
 
@@ -111,7 +112,7 @@ class Selector(object):
     @property
     def short_config(self):
         # sort out config parameters that change in each simulation
-        sparams = self.params.copy()
+        sparams = collections.OrderedDict(self.params.copy())
         del sparams["max_samples"]
         return "{}_{}".format(
             self.short_name, dict_to_short_str(sparams))
@@ -363,7 +364,8 @@ class PanicGreedyAdaptiveSelector(Selector):
                 return False
         return True
 
-    def _conf_one_or_more_components_equal(self, d1, d2):
+    @staticmethod
+    def _conf_one_or_more_components_equal(d1, d2):
         """
         Returns true if there is a k with d1[k] == d2[k]
         """
@@ -405,7 +407,8 @@ class PanicGreedyAdaptiveSelector(Selector):
         LOG.debug("Found {} border points.".format(len(r)))
         return r
 
-    def _calc_border_points(self):
+    @staticmethod
+    def _calc_border_points(pm_parameter, pm_inputs):
         """
         Calculate the border points to be used for initial selection.
         Every configuration point in which at least one
@@ -416,7 +419,7 @@ class PanicGreedyAdaptiveSelector(Selector):
         # get min/max for every parameter
         min_parameter = dict()
         max_parameter = dict()
-        for k, v in self.pm_parameter.items():
+        for k, v in pm_parameter.items():
             min_parameter[k] = min(v)
             max_parameter[k] = max(v)
         LOG.debug("min_paramter={}".format(min_parameter))
@@ -424,12 +427,14 @@ class PanicGreedyAdaptiveSelector(Selector):
 
         # find configurations that are border points (single VNF)
         border_points = list()
-        for c in self.pm_inputs:
+        for c in pm_inputs:
             for vnf_c in c:
                 # add point if at least one component is min/max
-                if (self._conf_one_or_more_components_equal(
+                if (PanicGreedyAdaptiveSelector.
+                    _conf_one_or_more_components_equal(
                         vnf_c, min_parameter)
-                        or self._conf_one_or_more_components_equal(
+                        or PanicGreedyAdaptiveSelector.
+                    _conf_one_or_more_components_equal(
                         vnf_c, min_parameter)):
                     # always add complete configuration to result
                     # if it has at least one border point
@@ -439,7 +444,7 @@ class PanicGreedyAdaptiveSelector(Selector):
         # LOG.debug("vnf_c_border_points={}".format(border_points))
         LOG.debug("Identified {}/{} VNF border points".format(
             len(border_points),
-            len(self.pm_inputs)
+            len(pm_inputs)
         ))
         return border_points
 
@@ -505,7 +510,9 @@ class PanicGreedyAdaptiveSelector(Selector):
         result = None
         # initially select border points if not yet done
         if self._border_points is None:
-            self._border_points = self._calc_border_points()
+            self._border_points = PanicGreedyAdaptiveSelector. \
+                                  _calc_border_points(self.pm_parameter,
+                                                      self.pm_inputs)
         # PANIC algorithm (see paper)
         if self.k_samples < self.params.get("max_border_points"):
             # select (randomly) border points until "max_border_points"
@@ -634,28 +641,55 @@ class WeightedVnfSelector(Selector):
             p_median[k] = statistics.median(v)
         return p_median
 
-    def _calc_border_points(self, mode=0):
+    def _calc_border_points(self, mode=0, border_point_mode_panic=False):
         """
         Border points across VNFs.
         Modes:
         - 0: return n + 1 BPs (fix. to max)
-        - 1: return n - 1 BPs (fix. to min)
+        - 1: return n + 1 BPs (fix. to min)
         - 2: return 2*(n + 1) BPs (combine min/max from 1/0)
         - 3: return 2^n BPs (cross product over min/max points of VNFs)
+
+        border_point_mode_panic:
+        Special case in which the border point calculation of PANIC
+        is used and the corresponding number of points (depending on mode)
+        is selected randomly from the PANIC result.
         """
         LOG.debug("WVS calculating border points with mode={}".format(mode))
-        # preparations
-        p_min, p_max = self._get_min_max_parameter()
-        # calculate result depending on mode
-        if mode == 0:
-            return self._get_vnf_bp_minmax(p_min, p_max)
-        if mode == 1:
-            return self._get_vnf_bp_minmax(p_max, p_min)
-        if mode == 2:
-            return (self._get_vnf_bp_minmax(p_min, p_max)
-                    + self._get_vnf_bp_minmax(p_max, p_min))
-        if mode == 3:
-            pass  # TODO implement mode 3
+        if not border_point_mode_panic:
+            # Default WVS border point calculation.
+            # preparations
+            p_min, p_max = self._get_min_max_parameter()
+            # calculate result depending on mode
+            if mode == 0:
+                return self._get_vnf_bp_minmax(p_min, p_max)
+            if mode == 1:
+                return self._get_vnf_bp_minmax(p_max, p_min)
+            if mode == 2:
+                return (self._get_vnf_bp_minmax(p_min, p_max)
+                        + self._get_vnf_bp_minmax(p_max, p_min))
+            if mode == 3:
+                pass  # TODO implement mode 3
+        else:
+            # Use PANIC's border point mode
+            LOG.info("WVS Using PANIC's border point calculation!")
+            # re-use PANIC bp calculation
+            panic_bp_lst = PanicGreedyAdaptiveSelector. \
+                _calc_border_points(self.pm_parameter, self.pm_inputs)
+            # randomly pick sample with right size from PANIC points:
+            n_points = [len(self.pm.vnfs) + 1,
+                        len(self.pm.vnfs) + 1,
+                        2 * len(self.pm.vnfs) + 2,
+                        0]  # 2 ** len(self.pm.vnfs)
+            if len(panic_bp_lst) < n_points[mode]:
+                # duplicate bpoints found by PANIC
+                LOG.warning("Expanding PANIC's border point list from {} to {}"
+                            .format(len(panic_bp_lst), n_points[mode]))
+                panic_bp_lst = panic_bp_lst * (
+                    1 + int(n_points[mode] / len(panic_bp_lst)))
+            # LOG.warning(panic_bp_lst)
+            assert(len(panic_bp_lst) >= n_points[mode])
+            return random.sample(panic_bp_lst, n_points[mode])
         return list()
 
     def _distance(self, r1, r2):
@@ -764,7 +798,9 @@ class WeightedVnfSelector(Selector):
         # initially select border points if not yet done
         if self._border_points is None:
             self._border_points = self._calc_border_points(
-                mode=self.params.get("border_point_mode"))
+                mode=self.params.get("border_point_mode"),
+                border_point_mode_panic=self.params.get(
+                    "border_point_mode_panic"))
         # first return all our border points to get some initial results
         if len(self._border_points) > 0:
             result = self._border_points.pop(0)

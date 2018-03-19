@@ -76,14 +76,14 @@ class TestPanicSelector(unittest.TestCase):
 
     def test_calc_border_points(self):
         s = self._new_PGAS()
-        bp = s._calc_border_points()
+        bp = s._calc_border_points(s.pm_parameter, s.pm_inputs)
         self.assertEqual(len(bp), 52)
 
     def test_next_until_max_border_points(self):
         MS = 48
         MBP = 12
         s = self._new_PGAS(max_samples=MS, max_border_points=MBP)
-        bp = s._calc_border_points()
+        bp = s._calc_border_points(s.pm_parameter, s.pm_inputs)
         # pick MS samples
         for i in range(0, MS):
             # get next point to check

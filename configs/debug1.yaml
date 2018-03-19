@@ -1,6 +1,6 @@
 ---
 # This is an example configuration for a single experiment.
-name: "Selection algorithms comp. using RandomSynthetic Performance Model"
+name: "Dubugging config"
 author: "Manuel Peuster"
 version: 0.1
 
@@ -13,20 +13,20 @@ result_path_add_timestamp: False
 
 pmodels:
     - name: RandomSyntheticModel
-      n_model_instances: 10
+      n_model_instances: 1
       a1_range: [0.1, 2.0]
       func_set: [1, 2, 3, 4, 5, 6, 7, 8]
       #topologies: ["l1", "l2", "l3", "l4", "l5", "d2", "d3", "d4", "d5"]
-      topologies: ["d5"]
+      topologies: ["l2"]
       #topologies: ["d3"]
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
 # max_samples: {min: 5, max: 27, step: 1}
 # 90 = sqrt(8000)
 selector:
-    - name: UniformRandomSelector
+    #- name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 36, step: 2}
+    #  max_samples: {min: 2, max: 36, step: 2}
     #- name: UniformGridSelector
       # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 27, step: 1}
@@ -41,57 +41,23 @@ selector:
     #  max_samples: {min: 2, max: 50, step: 2}
     #- name: HyperGridSelector
     #  max_samples: {min: 2, max: 90, step: 1}
-    - name: PanicGreedyAdaptiveSelector
+    #- name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 36, step: 2}
-      max_border_points: 10  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
-    - name: PanicGreedyAdaptiveSelector
-      # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 36, step: 2}
-      max_border_points: 20  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
-    - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 36, step: 2}
-      border_point_mode: 2  # 0 = max, 1 = min, 2 = both
-      border_point_mode_panic: False
-      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
+    #  max_samples: {min: 2, max: 36, step: 2}
+    #  max_border_points: 10  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
     - name: WeightedVnfSelector
       max_samples: {min: 2, max: 36, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: True
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
-    - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 36, step: 2}
-      border_point_mode: 0  # 0 = max, 1 = min, 2 = both
-      border_point_mode_panic: False
-      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
-    - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 36, step: 2}
-      border_point_mode: 1  # 0 = max, 1 = min, 2 = both
-      border_point_mode_panic: False
-      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
-    - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 36, step: 2}
-      border_point_mode: 2  # 0 = max, 1 = min, 2 = both
-      border_point_mode_panic: False
-      sampling_mode_maxmin: 0 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
-    - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 36, step: 2}
-      border_point_mode: 2  # 0 = max, 1 = min, 2 = both
-      border_point_mode_panic: False
-      sampling_mode_maxmin: 1 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
 
 predictor:
     - name: PolynomialRegressionPredictor
       # poly. degree (expandable)
-      degree: [1, 2, 3]
+      degree: [1]
     - name: SupportVectorRegressionPredictor
-      epsilon: [0.01, 0.1, 0.5]  # epsilon (expandable)
+      epsilon: [0.1]  # epsilon (expandable)
 
 error_metrics:
     - name: MSE

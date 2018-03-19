@@ -30,9 +30,10 @@ from nfvppsim.config import read_config
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
-def logging_setup():
+def logging_setup(level="INFO", stream=None):
     os.environ["COLOREDLOGS_LOG_FORMAT"] \
         = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
+    coloredlogs.install(level=level, stream=stream)
 
 
 def parse_args():
@@ -64,6 +65,13 @@ def parse_args():
         default=False,
         dest="verbose",
         action="store_true")
+
+    parser.add_argument(
+        "--log",
+        help="Redirect log to file.",
+        required=False,
+        default=None,
+        dest="logfile")
 
     parser.add_argument(
         "--no-prepare",
@@ -113,9 +121,9 @@ def show_welcome():
 *****************************************************""")
 
 
-def show_byebye(t_start=None, rc=0):
+def show_byebye(args, t_start=None, rc=0):
     print("*****************************************************")
-    print("Simulation done!")
+    print("Simulation done: {}".format(args.config_path))
     if t_start:
         print("Runtime: {0:.3f}s".format(time.time() - t_start))
     print("")
@@ -127,11 +135,14 @@ def main():
     # CLI interface
     args = parse_args()
     # configure logging
-    logging_setup()
     if args.verbose:
-        coloredlogs.install(level="DEBUG")
+        log_level = "DEBUG"
     else:
-        coloredlogs.install(level="INFO")
+        log_level = "INFO"
+    log_stream = None  # default: stderr
+    if args.logfile:
+        log_stream = open(args.logfile, "w")
+    logging_setup(level=log_level, stream=log_stream)
     # show welcome screen
     show_welcome()
     # read experiment configuration
@@ -147,20 +158,23 @@ def main():
     e = Experiment(conf)
     # prepare experiment
     if args.no_prepare:
-        show_byebye(t_start)
+        show_byebye(args, t_start)
     e.prepare()
     # plot only (just plot existing Pikle file)
     if args.plot is not None:
         e.plot(args.plot)
-        show_byebye(t_start)
+        show_byebye(args, t_start)
     # run experiment
     if args.no_run:
-        show_byebye(t_start)
+        show_byebye(args, t_start)
     e.run()
     # store results
     e.store_result(rpath)
     if args.result_print:
         e.print_results()
     # show bye bye screen
-    show_byebye(t_start)
+    show_byebye(args, t_start)
+    # cleanup
+    if log_stream:
+        log_stream.close()
 
