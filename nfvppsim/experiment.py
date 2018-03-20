@@ -160,10 +160,10 @@ class Experiment(object):
         """
         df = None
         try:
-            df = pd.read_pickle(data_path)
+            df = pd.read_pickle(data_path, compression="gzip")
         except:
-            LOG.error("Could not find '{}'. Abort plotting."
-                      .format(data_path))
+            LOG.exception("Could not find '{}'. Abort plotting."
+                          .format(data_path))
             exit(1)
         assert(df is not None)
         print(df)

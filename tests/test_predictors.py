@@ -19,6 +19,57 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import unittest
 from nfvppsim.predictor import PolynomialRegressionPredictor
 from nfvppsim.predictor import SupportVectorRegressionPredictor
+from nfvppsim.predictor import SVRPredictorRbfKernel
+from nfvppsim.predictor import SVRPredictorLinearKernel
+from nfvppsim.predictor import SVRPredictorPolyKernel
+
+
+class TestGenericPredictor(unittest.TestCase):
+    """
+    Iterate over predictor classes and to generic tests.
+    """
+    def setUp(self):
+        # from http://scikit-learn.org/stable/modules/svm.html#svm-regression
+        self.C_TRAIN = [[0.0, 0.0], [2.0, 2.0]]
+        self.R_TRAIN = [0.5, 2.5]
+        self.C_PREDICT = [[1.0, 1.0]]
+        self.PREDICTORS = [PolynomialRegressionPredictor,
+                           SupportVectorRegressionPredictor,
+                           SVRPredictorRbfKernel,
+                           SVRPredictorLinearKernel,
+                           SVRPredictorPolyKernel]
+
+    def tearDown(self):
+        pass
+
+    def test_initialize(self):
+        for p_cls in self.PREDICTORS:
+            p = p_cls.generate({})[0]
+            del p
+
+    def test_train(self):
+        for p_cls in self.PREDICTORS:
+            p = p_cls.generate({})[0]
+            p.train(self.C_TRAIN, self.R_TRAIN)
+
+    def test_predict(self):
+        for p_cls in self.PREDICTORS:
+            p = p_cls.generate({})[0]
+            p.train(self.C_TRAIN, self.R_TRAIN)
+            r = p.predict(self.C_PREDICT)
+            self.assertEqual(len(r), len(self.C_PREDICT))
+            self.assertNotEqual(sum(r), 0.0)
+
+    def test_reinitialize(self):
+        for p_cls in self.PREDICTORS:
+            p = p_cls.generate({})[0]
+            p.reinitialize(0)
+
+    def test_get_results(self):
+        for p_cls in self.PREDICTORS:
+            p = p_cls.generate({})[0]
+            r = p.get_results()
+            self.assertEqual(r.get("predictor"), p.short_name)
 
 
 class TestPolyRegressionPredictor(unittest.TestCase):
@@ -42,7 +93,10 @@ class TestPolyRegressionPredictor(unittest.TestCase):
         p = PolynomialRegressionPredictor.generate({})[0]
         p.train(self.C_TRAIN, self.R_TRAIN)
         r = p.predict(self.C_PREDICT)
-        self.assertAlmostEqual(r[0], 1.07142857)
+        if p.params.get("scale_x"):
+            self.assertAlmostEqual(r[0], 0.5)
+        else:
+            self.assertAlmostEqual(r[0], 1.07142857)
 
     def test_reinitialize(self):
         p = PolynomialRegressionPredictor.generate({})[0]
@@ -50,15 +104,15 @@ class TestPolyRegressionPredictor(unittest.TestCase):
 
     def test_get_results(self):
         p = PolynomialRegressionPredictor.generate({})[0]
-        r =  p.get_results()
+        r = p.get_results()
         self.assertEqual(r.get("predictor"), "PRP")
         self.assertEqual(r.get("degree"), 2)
         self.assertEqual(r.get("epsilon"), 0.1)
-        
+
 
 class TestSupportVectorRegressionPredictor(unittest.TestCase):
     def setUp(self):
-        # values from http://scikit-learn.org/stable/modules/svm.html#svm-regression
+        # from http://scikit-learn.org/stable/modules/svm.html#svm-regression
         self.C_TRAIN = [[0.0, 0.0], [2.0, 2.0]]
         self.R_TRAIN = [0.5, 2.5]
         self.C_PREDICT = [[1.0, 1.0]]
@@ -78,7 +132,10 @@ class TestSupportVectorRegressionPredictor(unittest.TestCase):
         p = SupportVectorRegressionPredictor.generate({})[0]
         p.train(self.C_TRAIN, self.R_TRAIN)
         r = p.predict(self.C_PREDICT)
-        self.assertAlmostEqual(r[0], 1.5)
+        if p.params.get("scale_x"):
+            self.assertAlmostEqual(r[0], 0.8678794411)
+        else:
+            self.assertAlmostEqual(r[0], 1.5)
 
     def test_reinitialize(self):
         p = SupportVectorRegressionPredictor.generate({})[0]
@@ -86,7 +143,7 @@ class TestSupportVectorRegressionPredictor(unittest.TestCase):
 
     def test_get_results(self):
         p = SupportVectorRegressionPredictor.generate({})[0]
-        r =  p.get_results()
+        r = p.get_results()
         self.assertEqual(r.get("predictor"), "SVRP")
         self.assertEqual(r.get("degree"), 2)
         self.assertEqual(r.get("epsilon"), 0.1)

@@ -1,6 +1,6 @@
 ---
 # This is an example configuration for a single experiment.
-name: "Selection algorithms comp. using RandomSynthetic Performance Model"
+name: "Predictor comparisson"
 author: "Manuel Peuster"
 version: 0.1
 
@@ -8,7 +8,7 @@ version: 0.1
 sim_t_max: null
 repetitions: 30
 # path to write results as pickled Pandas DF 
-result_path: "out/tc_paper_random_synthetic_pmodels.pkl"
+result_path: "out/predictor_comparisson.pkl"
 result_path_add_timestamp: False
 
 pmodels:
@@ -56,16 +56,13 @@ predictor:
     - name: PolynomialRegressionPredictor
       # poly. degree (expandable)
       degree: [2]
-      scale_x: True
     - name: SVRPredictorRbfKernel
       epsilon: [0.1]  # epsilon (expandable)
-      scale_x: True
     - name: SVRPredictorLinearKernel
       epsilon: [0.1]  # epsilon (expandable)
-      scale_x: True
     - name: SVRPredictorPolyKernel
       epsilon: [0.1]  # epsilon (expandable)
-      scale_x: True
+
 
 error_metrics:
     - name: MSE
@@ -118,8 +115,8 @@ plot:
       title: Predictor Error Comparison
       x: k_samples
       y: error_value
-      y_lim_min: -1.0
-      y_lim_max: 1.0
+      y_lim_min: 0.0
+      y_lim_max: .3
       # column that distinguishes lines in plot
       hue: predictor_conf
       error_bars: 95  # ="sd" or =95 (for ci)

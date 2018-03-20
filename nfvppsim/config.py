@@ -42,8 +42,9 @@ def read_config(path):
         LOG.exception("Couldn't parse config '{}' {}".format(path, e))
         LOG.error("Abort.")
         sys.exit(1)
-    except:
-        LOG.error("Couldn't open config '{}'. Abort.".format(path))
+    except Exception as e:
+        LOG.exception("Couldn't parse config '{}' {}".format(path, e))
+        LOG.error("Abort.")
         sys.exit(1)
     LOG.info("Loaded configuration: {}".format(path))
     return conf
