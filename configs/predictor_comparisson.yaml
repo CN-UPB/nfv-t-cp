@@ -53,15 +53,31 @@ selector:
       p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
 
 predictor:
-    - name: PolynomialRegressionPredictor
+    #- name: PolynomialRegressionPredictor
       # poly. degree (expandable)
-      degree: [2]
+    #  degree: [2]
     - name: SVRPredictorRbfKernel
       epsilon: [0.1]  # epsilon (expandable)
-    - name: SVRPredictorLinearKernel
-      epsilon: [0.1]  # epsilon (expandable)
-    - name: SVRPredictorPolyKernel
-      epsilon: [0.1]  # epsilon (expandable)
+    #- name: SVRPredictorLinearKernel
+    #  epsilon: [0.1]  # epsilon (expandable)
+    #- name: SVRPredictorPolyKernel
+    #  epsilon: [0.1]  # epsilon (expandable)
+    #- name: DecisionTreeRegressionPredictor
+    #  max_tree_depth: 2
+    - name: DecisionTreeRegressionPredictor
+      max_tree_depth: 5
+    - name: LassoRegressionPredictor
+      alpha: 1.0
+    - name: LassoRegressionPredictor
+      alpha: 1.0
+    - name: LassoLARSRegressionPredictor
+      alpha: 1.0
+    - name: ElasticNetRegressionPredictor
+      alpha: 1.0
+    - name: RidgeRegressionPredictor
+      alpha: 1.0
+    - name: SGDRegressionPredictor
+      alpha: 0.0001
 
 
 error_metrics:
@@ -86,6 +102,7 @@ plot:
         - predictor
         - degree
         - epsilon
+        - max_tree_depth
         - error
         #- pmodel
         - topology
@@ -105,6 +122,7 @@ plot:
         - predictor
         - degree
         - epsilon
+        - max_tree_depth
         - error
         - topology
         #- pmodel

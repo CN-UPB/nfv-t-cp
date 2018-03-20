@@ -22,6 +22,12 @@ from nfvppsim.predictor import SupportVectorRegressionPredictor
 from nfvppsim.predictor import SVRPredictorRbfKernel
 from nfvppsim.predictor import SVRPredictorLinearKernel
 from nfvppsim.predictor import SVRPredictorPolyKernel
+from nfvppsim.predictor import DecisionTreeRegressionPredictor
+from nfvppsim.predictor import LassoRegressionPredictor
+from nfvppsim.predictor import LassoLARSRegressionPredictor
+from nfvppsim.predictor import ElasticNetRegressionPredictor
+from nfvppsim.predictor import RidgeRegressionPredictor
+from nfvppsim.predictor import SGDRegressionPredictor
 
 
 class TestGenericPredictor(unittest.TestCase):
@@ -37,7 +43,13 @@ class TestGenericPredictor(unittest.TestCase):
                            SupportVectorRegressionPredictor,
                            SVRPredictorRbfKernel,
                            SVRPredictorLinearKernel,
-                           SVRPredictorPolyKernel]
+                           SVRPredictorPolyKernel,
+                           DecisionTreeRegressionPredictor,
+                           LassoRegressionPredictor,
+                           LassoLARSRegressionPredictor,
+                           ElasticNetRegressionPredictor,
+                           RidgeRegressionPredictor,
+                           SGDRegressionPredictor]
 
     def tearDown(self):
         pass

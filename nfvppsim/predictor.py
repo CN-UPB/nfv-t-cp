@@ -25,7 +25,9 @@ from nfvppsim.config import expand_parameters
 from nfvppsim.helper import dict_to_short_str
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
+from sklearn import linear_model
 from sklearn import preprocessing
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -42,6 +44,18 @@ def get_by_name(name):
         return SVRPredictorLinearKernel
     if name == "SVRPredictorPolyKernel":
         return SVRPredictorPolyKernel
+    if name == "DecisionTreeRegressionPredictor":
+        return DecisionTreeRegressionPredictor
+    if name == "LassoRegressionPredictor":
+        return LassoRegressionPredictor
+    if name == "LassoLARSRegressionPredictor":
+        return LassoLARSRegressionPredictor
+    if name == "ElasticNetRegressionPredictor":
+        return ElasticNetRegressionPredictor
+    if name == "RidgeRegressionPredictor":
+        return RidgeRegressionPredictor
+    if name == "SGDRegressionPredictor":
+        return SGDRegressionPredictor
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -73,9 +87,13 @@ class Predictor(object):
         # apply default params
         p = {"degree": 2,
              "epsilon": 0.1,
+             "max_tree_depth": 2,
+             "alpha": 0.1,
              "scale_x": True}  # normalize inputs to [0, 1]
         p.update(kwargs)
         self.params = p
+        self.trained = False
+        LOG.info("Initialized predictor: {}".format(self))
 
     def __repr__(self):
         return "{}({})".format(self.name, self.params)
@@ -118,10 +136,14 @@ class Predictor(object):
         return self._predict(c_hat_scaled)
 
     def _train(self, c_tilde, r_tilde):
-        LOG.error("Not implemented.")
+        self.m.fit(c_tilde, r_tilde)
+        self.trained = True
+        LOG.debug("Trained: {}".format(self.m))
 
     def _predict(self, c_hat):
-        LOG.error("Not implemented.")
+        if self.m is None or not self.trained:
+            LOG.error("Model not trained!")
+        return self.m.predict(c_hat)
 
     def get_results(self):
         """
@@ -143,10 +165,8 @@ class PolynomialRegressionPredictor(Predictor):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # members
         self.m = None
         self.poly = None
-        LOG.debug("Initialized predictor: {}".format(self))
 
     def _train(self, c_tilde, r_tilde):
         self.poly = PolynomialFeatures(degree=self.params.get("degree"))
@@ -168,31 +188,15 @@ class SupportVectorRegressionPredictor(Predictor):
     Support Vector Regression
     http://scikit-learn.org/stable/modules/svm.html#svm-regression
     """
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # members
-        self.m = None
-        LOG.debug("Initialized predictor: {}".format(self))
         self.m = SVR(C=1.0, epsilon=self.params.get("epsilon"))
-        self.trained = False
-
-    def _train(self, c_tilde, r_tilde):
-        self.m.fit(c_tilde, r_tilde)
-        self.trained = True
-        LOG.debug("Trained: {}".format(self.m))
-
-    def _predict(self, c_hat):
-        if self.m is None or not self.trained:
-            LOG.error("Model not trained!")
-        return self.m.predict(c_hat)
 
 
 class SVRPredictorRbfKernel(SupportVectorRegressionPredictor):
     """
     SVR with RBF kernel (default == SupportVectorRegressionPredictor)
     """
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.m = SVR(
@@ -205,7 +209,6 @@ class SVRPredictorLinearKernel(SupportVectorRegressionPredictor):
     """
     SVR with linear kernel
     """
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.m = SVR(
@@ -218,7 +221,6 @@ class SVRPredictorPolyKernel(SupportVectorRegressionPredictor):
     """
     SVR with polynomial kernel
     """
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.m = SVR(
@@ -226,3 +228,62 @@ class SVRPredictorPolyKernel(SupportVectorRegressionPredictor):
             C=1.0,
             epsilon=self.params.get("epsilon"),
             degree=self.params.get("degree"))
+
+
+class DecisionTreeRegressionPredictor(Predictor):
+    """
+    Decision Tree Regressor
+    https://goo.gl/eaUQvd
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.m = DecisionTreeRegressor(
+            max_depth=self.params.get("max_tree_depth", 2))
+
+
+class LassoRegressionPredictor(Predictor):
+    """
+    Lasso
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.m = linear_model.Lasso(alpha=self.params.get("alpha", 0.1))
+
+
+class LassoLARSRegressionPredictor(Predictor):
+    """
+    LassoLARS
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.m = linear_model.LassoLars(alpha=self.params.get("alpha", 1.0))
+
+
+class ElasticNetRegressionPredictor(Predictor):
+    """
+    ElasticNet
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.m = linear_model.ElasticNet(alpha=self.params.get("alpha", 1.0))
+
+
+class RidgeRegressionPredictor(Predictor):
+    """
+    Ridge
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.m = linear_model.Ridge(alpha=self.params.get("alpha", 1.0))
+
+
+class SGDRegressionPredictor(Predictor):
+    """
+    SGD
+    """
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.m = linear_model.SGDRegressor(
+            alpha=self.params.get("alpha", .0001),
+            max_iter=1000,
+            tol=1e-3)
