@@ -155,11 +155,21 @@ class Experiment(object):
         Uses deepcopy do ensure fresh internal states of all
         algorithm objects passed to the simulator module.
         """
+        LOG.warning("TODO calc and run only subset of configs based on -j and -J")
+        exit(1)
+        r = self._run_process(configs, 0, len(configs) - 1)
+        self.result_df = r
+
+    def _run_process(self, configs, start_idx, end_idx):
+        """
+        Simulate only given subset of configurations.
+        """
         # list to hold results before moved to Pandas DF
         tmp_results = list()
         conf_id = 0
         # iterate over all sim. configurations and run simulation
-        for c in configs:
+        for i in range(start_idx, end_idx + 1):
+            c = configs[i]
             if c[5] == 0:  # repetition_id (new configuration)
                 conf_id += 1
                 LOG.info("Simulating configuration {}/{}".format(
@@ -178,13 +188,7 @@ class Experiment(object):
                 row.update({"conf_id": conf_id,
                             "repetition_id": c[5]})
                 tmp_results.append(row)
-        self.result_df = pd.DataFrame(tmp_results)
-
-    def _run_process(self, configs, start_idx, end_idx):
-        """
-        Simulate only given subset of configurations.
-        """
-        pass
+        return pd.DataFrame(tmp_results)
 
     def plot(self, data_path):
         """
@@ -230,9 +234,11 @@ class Experiment(object):
         """
         LOG.info("Printing result DF to 'stdout'")
         print(self.result_df)
+        self.result_df.info()
 
     @property
     def result_number(self):
         if self.result_df is None:
             return 0
         return len(self.result_df.index)
+

@@ -672,7 +672,7 @@ class WeightedVnfSelector(Selector):
                 pass  # TODO implement mode 3
         else:
             # Use PANIC's border point mode
-            LOG.info("WVS Using PANIC's border point calculation!")
+            LOG.debug("WVS Using PANIC's border point calculation!")
             # re-use PANIC bp calculation
             panic_bp_lst = PanicGreedyAdaptiveSelector. \
                 _calc_border_points(self.pm_parameter, self.pm_inputs)

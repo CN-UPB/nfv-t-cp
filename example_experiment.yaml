@@ -15,20 +15,20 @@ pmodels:
     - name: ExampleModel
 
 selector:
-    #- name: UniformRandomSelector
-    #  # max. no. of samples to be selected (expandable)
-    #  max_samples: {min: 2, max: 42, step: 4}
+    - name: UniformRandomSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 2, max: 42, step: 4}
     #- name: UniformGridSelector
     #  # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 42, step: 4}
-    - name: UniformGridSelectorRandomOffset
+    #- name: UniformGridSelectorRandomOffset
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 42, step: 4}
-    - name: UniformGridSelectorIncrementalOffset
+    #  max_samples: {min: 2, max: 42, step: 4}
+    #- name: UniformGridSelectorIncrementalOffset
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 42, step: 4}
-    - name: HyperGridSelector
-      max_samples: {min: 2, max: 42, step: 4}
+    #  max_samples: {min: 2, max: 42, step: 4}
+    #- name: HyperGridSelector
+    #  max_samples: {min: 2, max: 42, step: 4}
     #- name: PanicGreedyAdaptiveSelector
     #  # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 42, step: 4}

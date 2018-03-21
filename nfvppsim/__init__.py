@@ -58,12 +58,20 @@ def parse_args():
         dest="repetitions")
 
     parser.add_argument(
-        "-p",
-        "--processes",
-        help="Number of processes to run simulation).",
+        "-j",
+        "--jobid",
+        help="Job ID for parallel execution.",
         required=False,
         default=None,
-        dest="processes")
+        dest="job_id")
+
+    parser.add_argument(
+        "-J",
+        "--jobmax",
+        help="Total number of parallel jobs. Default: 2",
+        required=False,
+        default=2,
+        dest="job_max")
 
     parser.add_argument(
         "-v",
