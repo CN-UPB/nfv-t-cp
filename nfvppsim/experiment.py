@@ -141,7 +141,8 @@ class Experiment(object):
                                             s_obj,
                                             p_obj,
                                             self._lst_error,
-                                            r_id))
+                                            r_id,
+                                            conf_id))
         LOG.info("*** Generated {}x{}={} configurations to be simulated."
                  .format(self.n_configs,
                          self.conf.get("repetitions", 1),
@@ -176,14 +177,14 @@ class Experiment(object):
         """
         # list to hold results before moved to Pandas DF
         tmp_results = list()
-        conf_id = 0
         # iterate over all sim. configurations and run simulation
         for i in range(start_idx, end_idx):
             c = configs[i]
-            if c[5] == 0:  # repetition_id (new configuration)
-                conf_id += 1
-                LOG.info("Simulating configuration {}/{}".format(
-                    conf_id, self.n_configs))
+            if i % int((end_idx - start_idx) / 100) == 0:  # progress
+                LOG.info("*** Simulating conf. {} from [{}, {}] ({:.1f}%)"
+                         .format(
+                             i, start_idx, end_idx - 1,
+                             ((i - start_idx) / (end_idx - start_idx) * 100)))
             # Attention: We need to copy the models objects
             # to have fresh states for each run!
             # TODO Can we optimize?
@@ -195,7 +196,7 @@ class Experiment(object):
                               c[5])  # r_id
             for row in row_lst:
                 # extend result
-                row.update({"conf_id": conf_id,
+                row.update({"conf_id": c[6],  # TODO from gen!
                             "repetition_id": c[5]})
                 tmp_results.append(row)
         return pd.DataFrame(tmp_results)
