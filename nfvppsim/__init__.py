@@ -58,6 +58,14 @@ def parse_args():
         dest="repetitions")
 
     parser.add_argument(
+        "-p",
+        "--processes",
+        help="Number of processes to run simulation).",
+        required=False,
+        default=None,
+        dest="processes")
+
+    parser.add_argument(
         "-v",
         "--verbose",
         help="Output debug messages.",
@@ -87,6 +95,14 @@ def parse_args():
         required=False,
         default=False,
         dest="no_run",
+        action="store_true")
+
+    parser.add_argument(
+        "--no-generate",
+        help="Stop before generate step.",
+        required=False,
+        default=False,
+        dest="no_generate",
         action="store_true")
 
     parser.add_argument(
@@ -164,10 +180,14 @@ def main():
     if args.plot is not None:
         e.plot(args.plot)
         show_byebye(args, t_start)
+    # generate configurations
+    if args.no_generate:
+        show_byebye(args, t_start)
+    sim_configs = e.generate()
     # run experiment
     if args.no_run:
         show_byebye(args, t_start)
-    e.run()
+    e.run(sim_configs)
     # store results
     e.store_result(rpath)
     if args.result_print:

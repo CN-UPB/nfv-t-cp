@@ -101,7 +101,7 @@ class Experiment(object):
         for pcls, pconf in self._plot_cls_lst:
             self._lst_plot += pcls.generate(pconf)
 
-        LOG.info("Prepared {}x{} configurations to be simulated.".format(
+        LOG.info("*** Prepared {}x{} configurations to be simulated.".format(
             self.n_configs,
             self.conf.get("repetitions", 1)))
 
@@ -116,15 +116,13 @@ class Experiment(object):
                 len(self._lst_selector) *
                 len(self._lst_predictor))
 
-    def run(self):
+    def generate(self):
         """
-        Executes an experiment by iterating over all prepared
-        configurations that should be tested.
-        Uses deepcopy do ensure fresh internal states of all
-        algorithm objects passed to the simulator module.
+        Generate all configurations to be simulated to have
+        a flat list that can be split among several simulation
+        jobs/processes.
         """
-        # list to hold results before moved to Pandas DF
-        tmp_results = list()
+        configs = list()
         conf_id = 0
         # iterate over all sim. configurations and run simulation
         for sim_t_max in self._lst_sim_t_max:
@@ -132,26 +130,61 @@ class Experiment(object):
                 for s_obj in self._lst_selector:
                     for p_obj in self._lst_predictor:
                         conf_id += 1
-                        LOG.info("Simulating configuration {}/{}"
+                        LOG.info("Generating configuration {}/{}"
                                  .format(conf_id,
                                          self.n_configs))
                         for r_id in range(0, self.conf.get(
                                 "repetitions", 1)):
-                            # Attention: We need to copy the models objects
-                            # to have fresh states for each run!
-                            # TODO Can we optimize?
-                            row_lst = sim.run(sim_t_max,
-                                              copy.deepcopy(pm_obj),
-                                              copy.deepcopy(s_obj),
-                                              copy.deepcopy(p_obj),
-                                              copy.deepcopy(self._lst_error),
-                                              r_id)
-                            for row in row_lst:
-                                # extend result
-                                row.update({"conf_id": conf_id,
-                                            "repetition_id": r_id})
-                                tmp_results.append(row)
+                            # add arguments for run call
+                            configs.append((sim_t_max,
+                                            pm_obj,
+                                            s_obj,
+                                            p_obj,
+                                            self._lst_error,
+                                            r_id))
+        LOG.info("*** Generated {}x{}={} configurations to be simulated."
+                 .format(self.n_configs,
+                         self.conf.get("repetitions", 1),
+                         len(configs)))
+        return configs
+
+    def run(self, configs):
+        """
+        Executes an experiment by iterating all configurations
+        that have been generated for simulation.
+        Uses deepcopy do ensure fresh internal states of all
+        algorithm objects passed to the simulator module.
+        """
+        # list to hold results before moved to Pandas DF
+        tmp_results = list()
+        conf_id = 0
+        # iterate over all sim. configurations and run simulation
+        for c in configs:
+            if c[5] == 0:  # repetition_id (new configuration)
+                conf_id += 1
+                LOG.info("Simulating configuration {}/{}".format(
+                    conf_id, self.n_configs))
+            # Attention: We need to copy the models objects
+            # to have fresh states for each run!
+            # TODO Can we optimize?
+            row_lst = sim.run(c[0],  # sim_t_max
+                              copy.deepcopy(c[1]),  # pm_obj
+                              copy.deepcopy(c[2]),  # s_obj
+                              copy.deepcopy(c[3]),  # p_obj
+                              copy.deepcopy(c[4]),  # _lst_error
+                              c[5])  # r_id
+            for row in row_lst:
+                # extend result
+                row.update({"conf_id": conf_id,
+                            "repetition_id": c[5]})
+                tmp_results.append(row)
         self.result_df = pd.DataFrame(tmp_results)
+
+    def _run_process(self, configs, start_idx, end_idx):
+        """
+        Simulate only given subset of configurations.
+        """
+        pass
 
     def plot(self, data_path):
         """
