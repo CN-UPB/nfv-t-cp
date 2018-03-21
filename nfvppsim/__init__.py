@@ -67,11 +67,11 @@ def parse_args():
 
     parser.add_argument(
         "-J",
-        "--jobmax",
+        "--jobno",
         help="Total number of parallel jobs. Default: 2",
         required=False,
         default=2,
-        dest="job_max")
+        dest="job_no")
 
     parser.add_argument(
         "-v",
@@ -178,6 +178,9 @@ def main():
         rpath = args.result_path
     if args.repetitions:
         conf["repetitions"] = int(args.repetitions)
+    if args.job_id:
+        conf["job_id"] = int(args.job_id)
+        conf["job_no"] = int(args.job_no)
     # initialize experiment
     e = Experiment(conf)
     # prepare experiment

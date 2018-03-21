@@ -155,10 +155,20 @@ class Experiment(object):
         Uses deepcopy do ensure fresh internal states of all
         algorithm objects passed to the simulator module.
         """
-        LOG.warning("TODO calc and run only subset of configs based on -j and -J")
-        exit(1)
-        r = self._run_process(configs, 0, len(configs) - 1)
-        self.result_df = r
+        job_id = self.conf.get("job_id", 0)
+        job_no = self.conf.get("job_no", 1)
+        if job_id >= job_no:
+            LOG.error("job_id {} >= job_no {}! Abort run!".format(
+                job_id, job_no))
+            return
+        job_size, job_size_rest = divmod(len(configs), job_no)
+        start_idx = job_id * job_size
+        end_idx = (job_id + 1) * job_size
+        if (job_id + 1) == job_no:
+            end_idx += job_size_rest
+        LOG.info("*** Running job: {} start/end: {}/{} of {} configs".format(
+            job_id, start_idx, end_idx, len(configs)))
+        self.result_df = self._run_process(configs, start_idx, end_idx)
 
     def _run_process(self, configs, start_idx, end_idx):
         """
@@ -168,7 +178,7 @@ class Experiment(object):
         tmp_results = list()
         conf_id = 0
         # iterate over all sim. configurations and run simulation
-        for i in range(start_idx, end_idx + 1):
+        for i in range(start_idx, end_idx):
             c = configs[i]
             if c[5] == 0:  # repetition_id (new configuration)
                 conf_id += 1
@@ -223,6 +233,9 @@ class Experiment(object):
                 datetime.datetime.now().strftime("%Y-%m-%d_%H-%M"),
                 fname)
             path = path.replace(fname, nfname)
+        if self.conf.get("job_id") is not None:
+            path = path.replace(".pkl", ".job{}.pkl".format(
+                self.conf.get("job_id")))
         with open(path, "wb") as f:
             self.result_df.to_pickle(f, compression="gzip")
         LOG.info("Wrote result with {} rows to '{}'".format(
