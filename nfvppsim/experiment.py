@@ -130,9 +130,10 @@ class Experiment(object):
                 for s_obj in self._lst_selector:
                     for p_obj in self._lst_predictor:
                         conf_id += 1
-                        LOG.info("Generating configuration {}/{}"
-                                 .format(conf_id,
-                                         self.n_configs))
+                        if conf_id % int(self.n_configs / 100) == 0:
+                            LOG.info("Generating configuration {}/{}"
+                                     .format(conf_id,
+                                             self.n_configs))
                         for r_id in range(0, self.conf.get(
                                 "repetitions", 1)):
                             # add arguments for run call
