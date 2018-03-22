@@ -112,7 +112,8 @@ class Selector(object):
     @property
     def short_config(self):
         # sort out config parameters that change in each simulation
-        sparams = collections.OrderedDict(self.params.copy())
+        sparams = collections.OrderedDict(
+            sorted(self.params.items(), key=lambda t: t[0]))
         del sparams["max_samples"]
         return "{}_{}".format(
             self.short_name, dict_to_short_str(sparams))

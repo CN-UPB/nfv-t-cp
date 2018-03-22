@@ -108,7 +108,8 @@ class Predictor(object):
 
     @property
     def short_config(self):
-        sparams = collections.OrderedDict(self.params.copy())
+        sparams = collections.OrderedDict(
+            sorted(self.params.items(), key=lambda t: t[0]))
         return "{}_{}".format(
             self.short_name, dict_to_short_str(sparams))
 
