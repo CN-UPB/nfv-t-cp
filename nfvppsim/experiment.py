@@ -210,7 +210,11 @@ class Experiment(object):
         df = None
         try:
             df = pd.read_pickle(data_path, compression="gzip")
-        except:
+            # l = list(set(list(df["selector_conf"])))
+            # for x in l:
+            #    print(x)
+            # exit(1)
+        except BaseException as e:
             LOG.exception("Could not find '{}'. Abort plotting."
                           .format(data_path))
             exit(1)
@@ -218,7 +222,7 @@ class Experiment(object):
         print(df)
         for p in self._lst_plot:
             p.plot(df)
-        
+
     def store_result(self, path):
         """
         Stores result DF in pickle file if path

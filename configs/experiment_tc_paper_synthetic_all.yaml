@@ -150,7 +150,7 @@ plot:
         - degree
         - epsilon
         - error
-        - topology
+        #- topology
         #- pmodel
     - name: Lineplot
       disabled: False
@@ -168,5 +168,5 @@ plot:
         # list of columns that distinguish plots
         - selector
         - error
-        - topology
+        #- topology
         #- pmodel

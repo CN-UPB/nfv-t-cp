@@ -148,6 +148,8 @@ def show_welcome():
 def show_byebye(args, t_start=None, rc=0):
     print("*****************************************************")
     print("Simulation done: {}".format(args.config_path))
+    if args.job_id:
+        print("Job ID: {}".format(args.job_id))
     if t_start:
         print("Runtime: {0:.3f}s".format(time.time() - t_start))
     print("")
