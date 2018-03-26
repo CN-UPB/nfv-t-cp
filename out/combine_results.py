@@ -83,7 +83,7 @@ def main():
     df_lst = list()
     for f in f_lst:
         LOG.info("Loading file: {}". format(f))
-        df = pd.read_pickle(f, compression="gzip")
+        df = pd.read_pickle(f, compression="bz2")
         print(df.info())
         df_lst.append(df)
     df_full = pd.concat(df_lst, ignore_index=True)
@@ -91,7 +91,7 @@ def main():
     LOG.info("Concatenated all data frames.")
     print(df_full.info())
     LOG.info("Writing result to {}".format(args.output))
-    df_full.to_pickle(args.output, compression="gzip")
+    df_full.to_pickle(args.output, compression="bz2")
     LOG.info("DONE!")
 
 

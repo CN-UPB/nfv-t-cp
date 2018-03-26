@@ -209,7 +209,7 @@ class Experiment(object):
         """
         df = None
         try:
-            df = pd.read_pickle(data_path, compression="gzip")
+            df = pd.read_pickle(data_path, compression="bz2")
             # l = list(set(list(df["selector_conf"])))
             # for x in l:
             #    print(x)
@@ -243,7 +243,7 @@ class Experiment(object):
             path = path.replace(".pkl", ".job{}.pkl".format(
                 self.conf.get("job_id")))
         with open(path, "wb") as f:
-            self.result_df.to_pickle(f, compression="gzip")
+            self.result_df.to_pickle(f, compression="bz2")
         LOG.info("Wrote result with {} rows to '{}'".format(
             len(self.result_df.index), path))
 
