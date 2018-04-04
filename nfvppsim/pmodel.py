@@ -177,6 +177,10 @@ class SfcPerformanceModel(object):
         """
         r = {"pmodel": self.short_name}
         r.update(self.conf)
+        # remove unneeded field
+        del r["topologies"]
+        del r["func_set"]
+        del r["a1_range"]
         return r
 
     def get_conf_space_vnf(self, modified_parameter=None):

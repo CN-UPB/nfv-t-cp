@@ -25,7 +25,7 @@ import statistics
 import time
 import collections
 from nfvppsim.config import expand_parameters
-from nfvppsim.helper import dict_to_short_str
+from nfvppsim.helper import dict_to_short_str, compress_keys
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -112,11 +112,12 @@ class Selector(object):
     @property
     def short_config(self):
         # sort out config parameters that change in each simulation
+        cparams = compress_keys(self.params)
         sparams = collections.OrderedDict(
-            sorted(self.params.items(), key=lambda t: t[0]))
+            sorted(cparams.items(), key=lambda t: t[0]))
         del sparams["max_samples"]
         return "{}_{}".format(
-            self.short_name, dict_to_short_str(sparams))
+            self.short_name, dict_to_short_str(sparams)).strip("_- ")
 
     def next(self):
         t_start = time.time()

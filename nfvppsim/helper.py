@@ -56,3 +56,21 @@ def flatten_conf(cl):
 def dict_to_short_str(d):
     return "-".join(
         "{!s}={!r}".format(key, val) for (key, val) in d.items())
+
+
+def compress_keys(d):
+    manual_compressor = {
+        "border_point_mode": "bpm",
+        "border_point_mode_panic": "bpmp",
+        "p_samples_per_vnf": "pspv",
+        "sampling_mode_maxmin": "smmm",
+        "max_border_points": "mbp",
+        "alpha": "a",
+        "degree": "dgr",
+        "epsilon": "e",
+        "max_tree_depth": "mtd"
+    }
+    r = dict()
+    for k, v in d.items():
+        r[manual_compressor.get(k, k)] = v
+    return r

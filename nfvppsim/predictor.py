@@ -22,7 +22,7 @@ import warnings
 import re
 import collections
 from nfvppsim.config import expand_parameters
-from nfvppsim.helper import dict_to_short_str
+from nfvppsim.helper import dict_to_short_str, compress_keys
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
@@ -108,8 +108,11 @@ class Predictor(object):
 
     @property
     def short_config(self):
+        cparams = compress_keys(self.params)
         sparams = collections.OrderedDict(
-            sorted(self.params.items(), key=lambda t: t[0]))
+            sorted(cparams.items(), key=lambda t: t[0]))
+        del sparams["scale_x"]
+        del sparams["name"]
         return "{}_{}".format(
             self.short_name, dict_to_short_str(sparams))
 
@@ -154,6 +157,8 @@ class Predictor(object):
         r = {"predictor": self.short_name,
              "predictor_conf": self.short_config}
         r.update(self.params)
+        # remove unneeded fields
+        del r["scale_x"]
         # LOG.debug("Get results from {}: {}".format(self, r))
         return r
    
