@@ -130,7 +130,8 @@ class Experiment(object):
                 for s_obj in self._lst_selector:
                     for p_obj in self._lst_predictor:
                         conf_id += 1
-                        if conf_id % int(self.n_configs / 100) == 0:
+                        if (int(self.n_configs / 100) == 0
+                                or conf_id % int(self.n_configs / 100) == 0):
                             LOG.info("Generating configuration {}/{}"
                                      .format(conf_id,
                                              self.n_configs))
@@ -163,29 +164,31 @@ class Experiment(object):
             LOG.error("job_id {} >= job_no {}! Abort run!".format(
                 job_id, job_no))
             return
-        job_size, job_size_rest = divmod(len(configs), job_no)
-        start_idx = job_id * job_size
-        end_idx = (job_id + 1) * job_size
-        if (job_id + 1) == job_no:
-            end_idx += job_size_rest
-        LOG.info("*** Running job: {} start/end: {}/{} of {} configs".format(
-            job_id, start_idx, end_idx, len(configs)))
-        self.result_df = self._run_process(configs, start_idx, end_idx)
+        LOG.info("*** Running job: {} simulating {} configs".format(
+            job_id, int(len(configs) / job_no + 1)))
+        self.result_df = self._run_process(configs, job_id, job_no)
 
-    def _run_process(self, configs, start_idx, end_idx):
+    def _run_process(self, configs, job_id, job_no):
         """
-        Simulate only given subset of configurations.
+        Simulate only given subset of configurations:
+         i % job_no == job_id
         """
         # list to hold results before moved to Pandas DF
         tmp_results = list()
         # iterate over all sim. configurations and run simulation
-        for i in range(start_idx, end_idx):
+        sims_done = 0
+        for i in range(0, len(configs)):
+            # skip config if not part of current job
+            if i % job_no != job_id:
+                continue
             c = configs[i]
-            if i % int((end_idx - start_idx) / 100) == 0:  # progress
-                LOG.info("*** Simulating conf. {} from [{}, {}] ({:.1f}%)"
+            if (int(len(configs) / job_no / 100) == 0
+                    or sims_done % int(len(configs) / job_no / 100) == 0):
+                LOG.info("*** Job {} simulating conf. {} ({:.1f}%)"
                          .format(
-                             i, start_idx, end_idx - 1,
-                             ((i - start_idx) / (end_idx - start_idx) * 100)))
+                             job_id,
+                             i,
+                             i / len(configs) * 100))
             # Attention: We need to copy the models objects
             # to have fresh states for each run!
             # TODO Can we optimize?
@@ -200,6 +203,7 @@ class Experiment(object):
                 row.update({"conf_id": c[6],  # TODO from gen!
                             "repetition_id": c[5]})
                 tmp_results.append(row)
+            sims_done += 1
         return pd.DataFrame(tmp_results)
 
     def plot(self, data_path):
@@ -242,8 +246,7 @@ class Experiment(object):
         if self.conf.get("job_id") is not None:
             path = path.replace(".pkl", ".job{}.pkl".format(
                 self.conf.get("job_id")))
-        with open(path, "wb") as f:
-            self.result_df.to_pickle(f, compression="bz2")
+        self.result_df.to_pickle(path, compression="bz2")
         LOG.info("Wrote result with {} rows to '{}'".format(
             len(self.result_df.index), path))
 
