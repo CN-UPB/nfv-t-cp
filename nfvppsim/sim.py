@@ -101,7 +101,7 @@ class Profiler(object):
         last_p = None
         for c in self.pm_conf_space:
             p = int(len(r) / len(self.pm_conf_space) * 100)
-            if last_p != p:
+            if last_p != p and p % 25 == 0:
                 LOG.info("Calculating ... {}.0 %".format(p))
                 last_p = p
             r.append(self.pm.evaluate(c))

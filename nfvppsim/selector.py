@@ -739,7 +739,7 @@ class WeightedVnfSelector(Selector):
                         samples[i][1]))
         # normalize weigths to [0.0, 1.0]
         if sum(dists) == 0:  # should not happen
-            LOG.warning("WVS: All distances have been 0!")
+            LOG.debug("WVS: All distances have been 0!")
             return dists
         norm = [d/sum(dists) for d in dists]
         LOG.debug("WVS: Calculated weights: {}".format(norm))
