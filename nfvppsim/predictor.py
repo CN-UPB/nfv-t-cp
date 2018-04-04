@@ -112,7 +112,8 @@ class Predictor(object):
         sparams = collections.OrderedDict(
             sorted(cparams.items(), key=lambda t: t[0]))
         del sparams["scale_x"]
-        del sparams["name"]
+        if "name" in sparams:
+            del sparams["name"]
         return "{}_{}".format(
             self.short_name, dict_to_short_str(sparams))
 
