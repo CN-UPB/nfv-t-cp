@@ -865,19 +865,24 @@ class WeightedRandomizedVnfSelector(WeightedVnfSelector):
         Return VNF index randomly considering the weights of the VNF.
         Needs to know mode to return right idxs if len(weights) is
         bigger than len(vnf) e.g. in mode == 2.
-        """
+        """            
         # compute CDF
         weight_cdf = self._compute_cdf(weights)
         # randomly pick [0, sum(weights)]
         rnd = random.uniform(0.0, sum(weights))
-        # LOG.debug("WRVS:\n\t Weights {}\n\t CDF: {}\n\t RND: {}"
-        #          .format(weights, weight_cdf, rnd))
+        LOG.debug("WRVS:\n\t Weights {}\n\t CDF: {}\n\t RND: {}"
+                  .format(weights, weight_cdf, rnd))
         # find index
         idx = -1
         for i in range(0, len(weight_cdf)):
             if rnd < weight_cdf[i]:
                 idx = i
                 break
+        # if weights == 0 pick any random vnf
+        if sum(weights) == 0.0:
+            LOG.warning(
+                "WRVS: Weights are 0.0. Picking VNF uniformly at random.")
+            idx = random.randint(0, len(weights) - 1)
         assert(idx >= 0)
         # fit index for special case (mode 2)
         if mode == 2:

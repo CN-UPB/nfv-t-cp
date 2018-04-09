@@ -45,12 +45,22 @@ selector:
       # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 36, step: 2}
     #  max_border_points: 10  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
-    - name: WeightedVnfSelector
+    #- name: WeightedVnfSelector
+    #  max_samples: {min: 2, max: 36, step: 2}
+    #  border_point_mode: 2  # 0 = max, 1 = min, 2 = both
+    #  border_point_mode_panic: True
+    #  sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
+    #  p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
+    - name: WeightedRandomizedVnfSelector
       max_samples: {min: 2, max: 36, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
-      border_point_mode_panic: True
+      border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
-      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
+    - name: WeightedRandomizedVnfSelector
+      max_samples: {min: 2, max: 36, step: 2}
+      border_point_mode: 0  # 0 = max, 1 = min, 2 = both
+      border_point_mode_panic: False
+      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
 
 predictor:
     - name: PolynomialRegressionPredictor
