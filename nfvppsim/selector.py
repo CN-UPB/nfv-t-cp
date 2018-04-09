@@ -47,6 +47,8 @@ def get_by_name(name):
         return PanicGreedyAdaptiveSelector
     if name == "WeightedVnfSelector":
         return WeightedVnfSelector
+    if name == "WeightedRandomizedVnfSelector":
+        return WeightedRandomizedVnfSelector
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -839,3 +841,75 @@ class WeightedVnfSelector(Selector):
         Inform selector about result for single configuration.
         """
         self._previous_samples.append((c, r))
+
+
+class WeightedRandomizedVnfSelector(WeightedVnfSelector):
+    """
+    UPB's weighted randomized VNF selector.
+    Select VNF to be sampled randomly according to its
+    weight.
+    Slightly modifies original WVS
+    Parameter p_samples_per_vnf is obsolete here.
+    """
+
+    def _compute_cdf(self, weights):
+        cdf = list()
+        s = 0.0
+        for w in weights:
+            s += w
+            cdf.append(s)
+        return cdf
+
+    def _random_weighted_vnf_selection(self, weights, mode=0):
+        """
+        Return VNF index randomly considering the weights of the VNF.
+        Needs to know mode to return right idxs if len(weights) is
+        bigger than len(vnf) e.g. in mode == 2.
+        """
+        # compute CDF
+        weight_cdf = self._compute_cdf(weights)
+        # randomly pick [0, sum(weights)]
+        rnd = random.uniform(0.0, sum(weights))
+        # LOG.debug("WRVS:\n\t Weights {}\n\t CDF: {}\n\t RND: {}"
+        #          .format(weights, weight_cdf, rnd))
+        # find index
+        idx = -1
+        for i in range(0, len(weight_cdf)):
+            if rnd < weight_cdf[i]:
+                idx = i
+                break
+        assert(idx >= 0)
+        # fit index for special case (mode 2)
+        if mode == 2:
+            idx = idx % int(len(weights) / 2)
+        # return VNF index
+        return idx
+
+    def _next(self):
+        result = None
+        # initially select border points if not yet done
+        if self._border_points is None:
+            self._border_points = self._calc_border_points(
+                mode=self.params.get("border_point_mode"),
+                border_point_mode_panic=self.params.get(
+                    "border_point_mode_panic"))
+        # first return all our border points to get some initial results
+        if len(self._border_points) > 0:
+            result = self._border_points.pop(0)
+            # print(result)
+        else:  # then return points from random weighted VNF
+            if self._weights is None:
+                # compute weights once we have returned all border points
+                self._weights = self._calc_weights(
+                    mode=self.params.get("border_point_mode"))
+            #  return point form randomly (weighted) VNF
+            vnf_idx = self._random_weighted_vnf_selection(
+                self._weights, mode=self.params.get("border_point_mode"))
+            result = self._sample_points_of_vnf_random(
+                vnf_idx,
+                mode=self.params.get("sampling_mode_maxmin"))
+            LOG.debug("WRVS return point from VNF {} (at k={})".format(
+                vnf_idx, self.k_samples))
+        # return and increase sample count
+        self.k_samples += 1
+        return result
