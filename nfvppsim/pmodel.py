@@ -48,11 +48,13 @@ def get_by_name(name):
         return TCPaperModel5VNFSimple
     if name == "RandomSyntheticModel":
         return RandomSyntheticModel
+    if name == "NFVSDN17ExperimentMeasurements":
+        return NFVSDN17ExperimentMeasurements
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
 class VnfPerformanceModel(object):
-    
+
     def __init__(self, vnf_id, name, parameter, func):
         self.vnf_id = vnf_id  # identification
         self.name = name  # just for humans
@@ -69,7 +71,7 @@ class VnfPerformanceModel(object):
         Can be used to re-initialize data structures for each repetition.
         """
         pass
-        
+
     def evaluate(self, c):
         """
         Calculate the resulting performance of the VNF
@@ -178,9 +180,12 @@ class SfcPerformanceModel(object):
         r = {"pmodel": self.short_name}
         r.update(self.conf)
         # remove unneeded field
-        del r["topologies"]
-        del r["func_set"]
-        del r["a1_range"]
+        if "topologies" in r:
+            del r["topologies"]
+        if "func_set" in r:
+            del r["func_set"]
+        if "a1_range" in r:
+            del r["a1_range"]
         return r
 
     def get_conf_space_vnf(self, modified_parameter=None):
@@ -691,3 +696,84 @@ class RandomSyntheticModel(SfcPerformanceModel):
         else:
             raise BaseException("Topology unknown!")
         return G
+
+
+class NFVSDN17ExperimentMeasurements(SfcPerformanceModel):
+
+    @classmethod
+    def generate_vnfs(cls, conf, **kwargs):
+        assert(conf.get("topology") is not None)
+        # define parameters
+        # dict of lists defining possible configuration parameters
+        p = {"p1": [0.16, 0.32, 0.64]}
+
+        # dummy models (not used, we rely on static SFC measurements from file)
+        vnf_lst = [
+            VnfPerformanceModel(0, "vnf0", p, lambda c: 0.0),
+            VnfPerformanceModel(1, "vnf1", p, lambda c: 0.0),
+            VnfPerformanceModel(2, "vnf2", p, lambda c: 0.0)]
+
+        n_vnfs = 3
+        LOG.debug("Generating PModel({}) with {} VNFs".format(
+            conf.get("topology"), n_vnfs))
+
+        # return parameters, list of vnfs
+        return p, vnf_lst
+
+    @classmethod
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
+        n_vnfs = 3
+        # create a directed graph
+        G = nx.DiGraph()
+        # add nodes and assign VNF objects
+        for i in range(0, n_vnfs):
+            G.add_node(i, vnf=vnfs[i])
+        G.add_node("s", vnf=None)
+        G.add_node("t", vnf=None)
+        G.add_edges_from([("s", 0),
+                          (0, 1), (1, 2),
+                          (2, "t")])
+        return G
+
+    def initialize(self):
+        """
+        Load RAW measurement data to be looked up
+        in the evaluation step.
+        """
+        import pandas as pd
+        path = self.conf.get("raw_data_path")
+        try:
+            self.raw_data = pd.read_pickle(path)
+            LOG.info("Loaded pmodel RAW data: {}".format(path))
+        except BaseException as e:
+            LOG.exception("Could not load pmodel RAW data. Abort simulation.")
+            exit(1)
+
+    def _lookup(self, topology, config):
+        """
+        Lookup the performance result from the loaded RAW data.
+        Lookup is done using topology and configuration. A single
+        result is randomly picked from the available results in the
+        RAW data.
+        Returns a single performance value.
+        """
+        df = self.raw_data
+        # select results that match given topology and config
+        selected = df[(df["topology"] == topology)
+                      & (df["vnf1cpu"] == config[0]["p1"])
+                      & (df["vnf2cpu"] == config[1]["p1"])
+                      & (df["vnf3cpu"] == config[2]["p1"])]
+        candidate_results = list(selected["throughput_kbyte_per_second"])
+        assert(len(candidate_results) > 0)
+        # randomly return one of the candidate results
+        return random.choice(candidate_results)
+
+    def evaluate(self, c):
+        """
+        Evaluation of this model is looking up RAW data.
+        """
+        LOG.debug("Evaluate: Looking up performance for topo: {} config: {}"
+                  .format(self.conf.get("topology"), c))
+        r = self._lookup(self.conf.get("topology"), c)
+        LOG.debug("\t... result: {} kbyte/s".format(r))
+        return r
