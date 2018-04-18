@@ -14,7 +14,7 @@ result_path_add_timestamp: False
 pmodels:
     - name: NFVSDN17ExperimentMeasurements
       n_model_instances: 10
-      topologies: ["nx-sc-sq", "sc-sq-nx", "sq-nx-sc"]
+      topologies: ["nx-sc-sq", "sc-sq-nx", "sq-nx-sc", "nx-sc-sq-phys-isolated", "sc-sq-nx-phys-isolated", "sq-nx-sc-phys-isolated"]
       raw_data_path: "analysis/data/peuster_karl_ieeenfvsdn17_3vnf_sfc_profile.pkl"
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
