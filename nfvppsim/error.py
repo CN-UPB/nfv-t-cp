@@ -19,6 +19,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 import logging
 import os
 import re
+import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.metrics import median_absolute_error
 from sklearn.metrics import r2_score, explained_variance_score
@@ -29,6 +30,12 @@ LOG = logging.getLogger(os.path.basename(__file__))
 def get_by_name(name):
     if name == "MSE":
         return MSE
+    if name == "RMSD":
+        return RMSD
+    if name == "NRMSDMean":
+        return NRMSDMean
+    if name == "NRMSDRange":
+        return NRMSDRange
     if name == "MAE":
         return MAE
     if name == "R2":
@@ -89,8 +96,43 @@ class MSE(BaseError):
     Mean squared error regression loss
     http://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html
     """
-    def calculate(self, r, r_hat):
+    def _mse(self, r, r_hat):
         return mean_squared_error(r, r_hat)
+
+    def calculate(self, r, r_hat):
+        return self._mse(r, r_hat)
+
+
+class RMSD(MSE):
+    """
+    Root-mean-square deviation (RMSD) or root-mean-square error (RMSE)
+    https://en.wikipedia.org/wiki/Root-mean-square_deviation
+    """
+    def _rmsd(self, r, r_hat):
+        return np.sqrt(self._mse(r, r_hat))
+
+    def calculate(self, r, r_hat):
+        return self._rmsd(r, r_hat)
+
+
+class NRMSDMean(RMSD):
+    """
+    Root-mean-square deviation (RMSD) or root-mean-square error (RMSE)
+    https://en.wikipedia.org/wiki/Root-mean-square_deviation
+    """
+
+    def calculate(self, r, r_hat):
+        return self._rmsd(r, r_hat) / np.mean(r)
+
+
+class NRMSDRange(RMSD):
+    """
+    Root-mean-square deviation (RMSD) or root-mean-square error (RMSE)
+    https://en.wikipedia.org/wiki/Root-mean-square_deviation
+    """
+
+    def calculate(self, r, r_hat):
+        return self._rmsd(r, r_hat) / (np.max(r) - np.min(r))
 
 
 class MAE(BaseError):

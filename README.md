@@ -37,6 +37,23 @@ python combine_results.py -i "experiment_*.pkl" -o myframe.pkl
 
 * `python -m cProfile -s cumtime run_profiling.py > profile.out`
 
+## Paper
+
+### Experiments
+
+```bash
+./nfvppsim_parallel.sh -J 16 -c configs/experiment_tc_paper_synthetic_all.yaml -r 100
+./nfvppsim_parallel.sh -J 16 -c configs/experiment_tc_paper_nfvsdn17_measurements.yaml -r 100
+```
+
+### Result Post Processing
+
+```bash
+python combine_results.py -i "experiment_tc_paper_synthetic_all.job*" -o 2018-04-XX-experiment_tc_paper_synthetic_all.compressed.combined.pkl
+
+python combine_results.py -i "experiment_tc_paper_nfvsdn17_measurements.job*" -o 2018-04-XX-experiment_tc_paper_nfvsdn17_measurements.combined.compressed.pkl
+```
+
 
 ## Contributor(s)
 

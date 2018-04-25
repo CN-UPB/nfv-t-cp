@@ -23,81 +23,81 @@ pmodels:
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       max_border_points: 10  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
     - name: PanicGreedyAdaptiveSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       max_border_points: 18  # PANIC: 2^d * 5 (5 ~ sqrt(20) lots of possible values)
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 4  # number of samples before switching to VNF with smaller weight
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 0  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 4  # number of samples before switching to VNF with smaller weight
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 1  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 4  # number of samples before switching to VNF with smaller weight
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 8  # number of samples before switching to VNF with smaller weight
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 0  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 8  # number of samples before switching to VNF with smaller weight
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 1  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 8  # number of samples before switching to VNF with smaller weight
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 16  # number of samples before switching to VNF with smaller weight
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 0  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 16  # number of samples before switching to VNF with smaller weight
     - name: WeightedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 1  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
       p_samples_per_vnf: 16  # number of samples before switching to VNF with smaller weight
     - name: WeightedRandomizedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 2  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
     - name: WeightedRandomizedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 0  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
     - name: WeightedRandomizedVnfSelector
-      max_samples: {min: 2, max: 18, step: 1}
+      max_samples: {min: 2, max: 18, step: 2}
       border_point_mode: 1  # 0 = max, 1 = min, 2 = both
       border_point_mode_panic: False
       sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
@@ -127,8 +127,11 @@ predictor:
 
 error_metrics:
     - name: MSE
-    - name: MAE
-    - name: R2
+    - name: RMSD
+    - name: NRMSDMean
+    - name: NRMSDRange
+    #- name: MAE
+    #- name: R2
     #- name: EVS
     #- name: MEDAE
 
