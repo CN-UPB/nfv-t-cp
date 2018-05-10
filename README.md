@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/CN-UPB/nfv-t-cp.svg?branch=master)](https://travis-ci.org/CN-UPB/nfv-t-cp)
+
 # nfv-t-cp: NFV Time-Constrained Profiler
 
 NFV time-constrained performance profiling (T-CP) framework.
