@@ -7,9 +7,13 @@ This framework can be used to build NFV profiling systems that profile single VN
 ## Contact
 
 Manuel Peuster
+
 Paderborn University
+
 manuel (dot) peuster (at) upb (dot) de
+
 Twitter: @ManuelPeuster
+
 GitHub: @mpeuster
 
 ## Installation
