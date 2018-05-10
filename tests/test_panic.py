@@ -18,8 +18,8 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import unittest
 import networkx as nx
-from nfvppsim.selector import PanicGreedyAdaptiveSelector
-from nfvppsim.pmodel import SfcPerformanceModel, VnfPerformanceModel
+from nfvtcp.selector import PanicGreedyAdaptiveSelector
+from nfvtcp.pmodel import SfcPerformanceModel, VnfPerformanceModel
 
 
 class PerformanceModel_1VNF(SfcPerformanceModel):

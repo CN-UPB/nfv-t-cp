@@ -18,11 +18,11 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 from setuptools import setup, find_packages
 
-setup(name='nfvppsim',
-      version='0.0.1',
+setup(name='nfvtcp',
+      version='0.1',
       license='Apache 2.0',
-      description='NFV performance profiling simulation framework.',
-      url='https://github.com/mpeuster/nfv-pp-sim',
+      description='NFV time constraint performance profiling framework.',
+      url='https://github.com/CN-UPB/nfv-t-cp',
       author_email='manuel@peuster.de',
       package_dir={'': '.'},
       packages=find_packages('.'),
@@ -45,7 +45,7 @@ setup(name='nfvppsim',
       zip_safe=False,
       entry_points={
           'console_scripts': [
-              'nfvppsim=nfvppsim:main',
+              'nfvtcp=nfvtcp:main',
           ],
       },
       setup_requires=[],

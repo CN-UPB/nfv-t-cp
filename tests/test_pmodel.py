@@ -18,7 +18,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import unittest
 import random
-from nfvppsim.pmodel import RandomSyntheticModel
+from nfvtcp.pmodel import RandomSyntheticModel
 
 
 class TestRandomSyntheticModel(unittest.TestCase):

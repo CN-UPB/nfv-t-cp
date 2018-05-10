@@ -1,63 +1,78 @@
-# nfv-pp-sim
+# nfv-t-cp: NFV Time-Constrained Profiler
 
-NFV performance profiling simulator. Used for research work on time-constraint NFV profiling (tc-profiling).
+NFV time-constrained performance profiling (T-CP) framework.
 
-This repo is intended to be open sourced once the paper is submitted.
+This framework can be used to build NFV profiling systems that profile single VNFs or complex SFC under a given time constrained. The framework can be either connected to a real-world profiling platform or it can be fed with existing profiling results to perform trace-based T-CP runs independently of a connected profiling platform.
+
+#### Contact
+
+ Manuel Peuster
+ Paderborn University
+ manuel (dot) peuster (at) upb (dot) de
+ Twitter: @ManuelPeuster
+ GitHub: @mpeuster
 
 ## Installation
 
-* `python3 setup.py develop`
+```bash
+python3 setup.py install
+```
 
-## Run
+## Run (single job)
 
-* `nfvppsim -c example_experiment.yaml`
+```bash
+nfvtcp -c example_experiment.yaml
+```
 
-## Combine Results
+## Run (parallel kobs)
 
-If the data frames of multiple parallel simulations should be combined do:
+```bash
+./nfvtcp_parallel.sh -c example_experiment.yaml -J 16
+```
+The argument `-J` specifies the number of parallel jobs to use.
+
+### Combine results of parallel jobs
+
+If the data frames of multiple parallel jobs should be combined do:
 
 ```bash
 cd out/
-python combine_results.py -i "experiment_*.pkl" -o myframe.pkl
+python combine_results.py -i "experiment_*.pkl" -o combined_result.pkl
 ```
+NOTE: The quotes for the file pattern are important!
 
-* `NOTE`: The quotes for the file pattern are important!
-
-## Plot
-
-* `nfvppsim -c configs/cross_validation_panic.yaml --plot ../nfv-pp-sim-result-archive/results/2018-01-22_08-40_cross-validation-panic.pkl`
-
-## Test
-
-* `pytest`
-* `pytest -v -s --log-level DEBUG`
-* `pytest -v -s -k "midpoint"` (run tests that match keyword)
-
-## Profiling
-
-* `python -m cProfile -s cumtime run_profiling.py > profile.out`
-
-## Paper
-
-### Experiments
+## Build-in plotting
 
 ```bash
-./nfvppsim_parallel.sh -J 16 -c configs/experiment_tc_paper_synthetic_all.yaml -r 100
-./nfvppsim_parallel.sh -J 16 -c configs/experiment_tc_paper_nfvsdn17_measurements.yaml -r 100
+nfvtcp -c example_experiment.yaml --plot out/result.pkl
 ```
 
-### Result Post Processing
+## Tests
+
+To run `nfv-t-cp`'s unit tests do:
 
 ```bash
+pytest
+pytest -v -s --log-level DEBUG # be more verbose
+pytest -v -s -k "midpoint" # run tests that match keyword
+```
+
+### Examples
+
+```bash
+# run
+./nfvtcp_parallel.sh -J 16 -c configs/experiment_tc_paper_synthetic_all.yaml -r 100
+./nfvtcp_parallel.sh -J 16 -c configs/experiment_tc_paper_nfvsdn17_measurements.yaml -r 100
+
+# process results
 python combine_results.py -i "experiment_tc_paper_synthetic_all.job*" -o 2018-04-XX-experiment_tc_paper_synthetic_all.compressed.combined.pkl
 
 python combine_results.py -i "experiment_tc_paper_nfvsdn17_measurements.job*" -o 2018-04-XX-experiment_tc_paper_nfvsdn17_measurements.combined.compressed.pkl
 ```
 
-
 ## Contributor(s)
 
-Manuel Peuster <manuel (at) peuster (dot) de
+* Manuel Peuster (manuel (at) peuster (dot) de)
 
 ## License
 

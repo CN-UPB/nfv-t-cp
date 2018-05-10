@@ -24,8 +24,8 @@ import re
 import statistics
 import time
 import collections
-from nfvppsim.config import expand_parameters
-from nfvppsim.helper import dict_to_short_str, compress_keys
+from nfvtcp.config import expand_parameters
+from nfvtcp.helper import dict_to_short_str, compress_keys
 
 LOG = logging.getLogger(os.path.basename(__file__))
 

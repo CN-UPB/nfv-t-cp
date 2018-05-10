@@ -24,7 +24,7 @@ import random
 import numpy as np
 import networkx as nx
 import itertools as it
-from nfvppsim.helper import cartesian_product
+from nfvtcp.helper import cartesian_product
 
 LOG = logging.getLogger(os.path.basename(__file__))
 

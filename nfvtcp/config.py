@@ -32,7 +32,7 @@ def read_config(path):
             assert("name" in conf)
             assert("author" in conf)
             assert("version" in conf)
-            assert("sim_t_max" in conf)
+            assert("max_time_t" in conf)
             assert("repetitions" in conf)
             assert("pmodels" in conf)
             assert("selector" in conf)

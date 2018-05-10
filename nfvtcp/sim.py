@@ -15,7 +15,7 @@ import numpy as np
 import simpy
 import logging
 import os
-from nfvppsim.helper import flatten_conf
+from nfvtcp.helper import flatten_conf
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -139,7 +139,7 @@ class Profiler(object):
             result.update(e.get_results())
             result.update({"sim_t_total": self._sim_t_total,
                            "sim_t_mean": np.mean(self._sim_t_mean),
-                           # "sim_t_max": until,  # not used w/o timing model
+                           # "max_time_t": until,  # not used w/o timing model
                            "error_value": err_val})
             LOG.debug("Done. Resulting error({0})={1:.4g}, sim_t_total={2}s"
                       .format(e.short_name, err_val, self._sim_t_total))
@@ -147,6 +147,6 @@ class Profiler(object):
         return r_lst
 
         
-def run(sim_t_max, pmodel, selector, predictor, error, repetition_id):
+def run(max_time_t, pmodel, selector, predictor, error, repetition_id):
     p = Profiler(pmodel, selector, predictor, error, repetition_id)
-    return p.run(until=sim_t_max)
+    return p.run(until=max_time_t)

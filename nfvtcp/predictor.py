@@ -21,8 +21,8 @@ import os
 import warnings
 import re
 import collections
-from nfvppsim.config import expand_parameters
-from nfvppsim.helper import dict_to_short_str, compress_keys
+from nfvtcp.config import expand_parameters
+from nfvtcp.helper import dict_to_short_str, compress_keys
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor

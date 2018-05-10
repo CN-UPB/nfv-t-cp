@@ -1,18 +1,18 @@
 ---
 # This is an example configuration for a single experiment.
-name: "Cross validation with PANIC results"
+name: "Experiment configuration for debugging."
 author: "Manuel Peuster"
 version: 0.1
 
 # time limit for measurement (s) (expandable)
-sim_t_max: null
+max_time_t: null
 repetitions: 1
 # path to write results as pickled Pandas DF 
 result_path: "out/debugging.pkl"
 result_path_add_timestamp: False
 
 pmodel:
-    name: PanicTerrasortModel
+    name: ExampleModel
 
 # PANIC Paper: 135 configs * 0.2 (sampling rate) = 27
 # max_samples: {min: 5, max: 27, step: 1}

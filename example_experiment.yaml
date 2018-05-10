@@ -5,7 +5,7 @@ author: "Manuel Peuster"
 version: 0.1
 
 # time limit for measurement (s) (expandable)
-sim_t_max: null
+max_time_t: null
 repetitions: 5
 # path to write results as pickled Pandas DF 
 result_path: "out/test.pkl"

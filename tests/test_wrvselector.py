@@ -20,8 +20,8 @@ import unittest
 import random
 import networkx as nx
 import numpy as np
-from nfvppsim.selector import WeightedRandomizedVnfSelector
-from nfvppsim.pmodel import SfcPerformanceModel, VnfPerformanceModel
+from nfvtcp.selector import WeightedRandomizedVnfSelector
+from nfvtcp.pmodel import SfcPerformanceModel, VnfPerformanceModel
 
 
 class PerformanceModel_4VNF(SfcPerformanceModel):

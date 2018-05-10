@@ -24,7 +24,7 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from nfvppsim.helper import cartesian_product
+from nfvtcp.helper import cartesian_product
 
 
 LOG = logging.getLogger(os.path.basename(__file__))

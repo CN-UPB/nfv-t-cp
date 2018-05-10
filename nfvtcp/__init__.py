@@ -23,8 +23,8 @@ import sys
 import argparse
 import time
 
-from nfvppsim.experiment import Experiment
-from nfvppsim.config import read_config
+from nfvtcp.experiment import Experiment
+from nfvtcp.config import read_config
 
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -39,7 +39,7 @@ def logging_setup(level="INFO", stream=None):
 def parse_args():
     # TODO add a "silent" flag
     parser = argparse.ArgumentParser(
-        description="nfv-pp-sim")
+        description="nfv-t-cp")
 
     parser.add_argument(
         "-c",
@@ -139,7 +139,7 @@ def parse_args():
 
 def show_welcome():
     print("""*****************************************************
-**          Welcome to nfv-pp-sim                  **
+**          Welcome to nfv-t-cp                  **
 **                                                 **
 ** (c) 2017 by Manuel Peuster (manuel@peuster.de)  **
 *****************************************************""")

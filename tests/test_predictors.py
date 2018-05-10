@@ -17,17 +17,17 @@ limitations under the License.
 Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import unittest
-from nfvppsim.predictor import PolynomialRegressionPredictor
-from nfvppsim.predictor import SupportVectorRegressionPredictor
-from nfvppsim.predictor import SVRPredictorRbfKernel
-from nfvppsim.predictor import SVRPredictorLinearKernel
-from nfvppsim.predictor import SVRPredictorPolyKernel
-from nfvppsim.predictor import DecisionTreeRegressionPredictor
-from nfvppsim.predictor import LassoRegressionPredictor
-from nfvppsim.predictor import LassoLARSRegressionPredictor
-from nfvppsim.predictor import ElasticNetRegressionPredictor
-from nfvppsim.predictor import RidgeRegressionPredictor
-from nfvppsim.predictor import SGDRegressionPredictor
+from nfvtcp.predictor import PolynomialRegressionPredictor
+from nfvtcp.predictor import SupportVectorRegressionPredictor
+from nfvtcp.predictor import SVRPredictorRbfKernel
+from nfvtcp.predictor import SVRPredictorLinearKernel
+from nfvtcp.predictor import SVRPredictorPolyKernel
+from nfvtcp.predictor import DecisionTreeRegressionPredictor
+from nfvtcp.predictor import LassoRegressionPredictor
+from nfvtcp.predictor import LassoLARSRegressionPredictor
+from nfvtcp.predictor import ElasticNetRegressionPredictor
+from nfvtcp.predictor import RidgeRegressionPredictor
+from nfvtcp.predictor import SGDRegressionPredictor
 
 
 class TestGenericPredictor(unittest.TestCase):

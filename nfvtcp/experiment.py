@@ -22,13 +22,13 @@ import copy
 import datetime
 import pandas as pd
 
-from nfvppsim import sim
-from nfvppsim.config import expand_parameters
-import nfvppsim.pmodel
-import nfvppsim.selector
-import nfvppsim.predictor
-import nfvppsim.error
-import nfvppsim.plot
+from nfvtcp import sim
+from nfvtcp.config import expand_parameters
+import nfvtcp.pmodel
+import nfvtcp.selector
+import nfvtcp.predictor
+import nfvtcp.error
+import nfvtcp.plot
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -50,36 +50,36 @@ class Experiment(object):
         # pmodel
         self._pmodel_cls_lst = list()
         for p in conf.get("pmodels"):
-            pcls = nfvppsim.pmodel.get_by_name(p.get("name"))
+            pcls = nfvtcp.pmodel.get_by_name(p.get("name"))
             self._pmodel_cls_lst.append((pcls, p))
         # selector(s)
         self._selector_cls_lst = list()
         for s in conf.get("selector"):
-            scls = nfvppsim.selector.get_by_name(s.get("name"))
+            scls = nfvtcp.selector.get_by_name(s.get("name"))
             self._selector_cls_lst.append((scls, s))
         # predictor
         self._predictor_cls_lst = list()
         for p in conf.get("predictor"):
-            pcls = nfvppsim.predictor.get_by_name(p.get("name"))
+            pcls = nfvtcp.predictor.get_by_name(p.get("name"))
             self._predictor_cls_lst.append((pcls, p))
         # error metrics
         self._error_cls_lst = list()
         for em in conf.get("error_metrics"):
-            ecls = nfvppsim.error.get_by_name(em.get("name"))
+            ecls = nfvtcp.error.get_by_name(em.get("name"))
             self._error_cls_lst.append((ecls, em))
         # plots
         self._plot_cls_lst = list()
         if conf.get("plot") is not None:
             for p in conf.get("plot"):
-                pcls = nfvppsim.plot.get_by_name(p.get("name"))
+                pcls = nfvtcp.plot.get_by_name(p.get("name"))
                 self._plot_cls_lst.append((pcls, p))
         
     def prepare(self):
         """
         Prepare experiment: Generate configurations to be simulated.
         """
-        self._lst_sim_t_max = expand_parameters(
-            self.conf.get("sim_t_max"))
+        self._lst_max_time_t = expand_parameters(
+            self.conf.get("max_time_t"))
         # pmodel
         self._lst_pmodel = list()
         for pmcls, pmconf in self._pmodel_cls_lst:
@@ -111,7 +111,7 @@ class Experiment(object):
         Attention: Does not consider number of repetitions.
         Keep in sync with prepare method.
         """
-        return (len(self._lst_sim_t_max) *
+        return (len(self._lst_max_time_t) *
                 len(self._lst_pmodel) *
                 len(self._lst_selector) *
                 len(self._lst_predictor))
@@ -125,7 +125,7 @@ class Experiment(object):
         configs = list()
         conf_id = 0
         # iterate over all sim. configurations and run simulation
-        for sim_t_max in self._lst_sim_t_max:
+        for max_time_t in self._lst_max_time_t:
             for pm_obj in self._lst_pmodel:
                 for s_obj in self._lst_selector:
                     for p_obj in self._lst_predictor:
@@ -138,7 +138,7 @@ class Experiment(object):
                         for r_id in range(0, self.conf.get(
                                 "repetitions", 1)):
                             # add arguments for run call
-                            configs.append((sim_t_max,
+                            configs.append((max_time_t,
                                             pm_obj,
                                             s_obj,
                                             p_obj,
@@ -192,7 +192,7 @@ class Experiment(object):
             # Attention: We need to copy the models objects
             # to have fresh states for each run!
             # TODO Can we optimize?
-            row_lst = sim.run(c[0],  # sim_t_max
+            row_lst = sim.run(c[0],  # max_time_t
                               copy.deepcopy(c[1]),  # pm_obj
                               copy.deepcopy(c[2]),  # s_obj
                               copy.deepcopy(c[3]),  # p_obj
