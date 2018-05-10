@@ -4,13 +4,13 @@ NFV time-constrained performance profiling (T-CP) framework.
 
 This framework can be used to build NFV profiling systems that profile single VNFs or complex SFC under a given time constrained. The framework can be either connected to a real-world profiling platform or it can be fed with existing profiling results to perform trace-based T-CP runs independently of a connected profiling platform.
 
-#### Contact
+## Contact
 
- Manuel Peuster
- Paderborn University
- manuel (dot) peuster (at) upb (dot) de
- Twitter: @ManuelPeuster
- GitHub: @mpeuster
+Manuel Peuster
+Paderborn University
+manuel (dot) peuster (at) upb (dot) de
+Twitter: @ManuelPeuster
+GitHub: @mpeuster
 
 ## Installation
 
@@ -24,7 +24,7 @@ python3 setup.py install
 nfvtcp -c example_experiment.yaml
 ```
 
-## Run (parallel kobs)
+## Run (parallel jobs)
 
 ```bash
 ./nfvtcp_parallel.sh -c example_experiment.yaml -J 16
@@ -66,13 +66,13 @@ pytest -v -s -k "midpoint" # run tests that match keyword
 
 # process results
 python combine_results.py -i "experiment_tc_paper_synthetic_all.job*" -o 2018-04-XX-experiment_tc_paper_synthetic_all.compressed.combined.pkl
-
 python combine_results.py -i "experiment_tc_paper_nfvsdn17_measurements.job*" -o 2018-04-XX-experiment_tc_paper_nfvsdn17_measurements.combined.compressed.pkl
 ```
 
 ## Contributor(s)
 
 * Manuel Peuster (manuel (at) peuster (dot) de)
+* ...
 
 ## License
 
