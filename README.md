@@ -27,7 +27,7 @@ The results are Pandas data frames exported as CSV files and are available in [t
 
 * [peuster_karl_ieeenfvsdn17_3vnf_sfc_profiling_measurements_clean.csv](https://amzn.to/2rI6GXB) (100.2 KB): Cleaned up RAW measurements of a SFC with three layer 4 forwarding VNFs as presented in [Peuster2017].
 * [2018-04-26-experiment_tc_paper_synthetic_all.combined.csv](https://amzn.to/2rI6GXB) (5.81 GB!): T-CP system  evaluation (e.g. different selector and predictor algorithms) using our randomized synthetic SFC-UT performance model.
-* [2018-04-26-experiment_tc_paper_nfvsdn17_measurements.combined.csv](https://amzn.to/2rI6GXB) (SIZE): T-CP system  evaluation (e.g. different selector and predictor algorithms) using real-world SFC performance measurements.
+* [2018-04-26-experiment_tc_paper_nfvsdn17_measurements.combined.csv](https://amzn.to/2rI6GXB) (6.00 GB!): T-CP system  evaluation (e.g. different selector and predictor algorithms) using real-world SFC performance measurements.
 
 
 ## Installation
