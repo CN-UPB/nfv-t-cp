@@ -109,5 +109,9 @@ ENV/
 # mypy
 .mypy_cache/
 
-# Intellij
+# IDE specific
 *.idea
+*.Rhistory
+
+# logs
+*.txt
