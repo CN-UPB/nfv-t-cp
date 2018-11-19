@@ -139,7 +139,7 @@ def parse_args():
 
 def show_welcome():
     print("""*****************************************************
-**          Welcome to nfv-t-cp                  **
+**          Welcome to nfv-t-cp                    **
 **                                                 **
 ** (c) 2017 by Manuel Peuster (manuel@peuster.de)  **
 *****************************************************""")
