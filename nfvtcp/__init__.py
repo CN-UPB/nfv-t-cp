@@ -160,6 +160,7 @@ def main():
     t_start = time.time()
     # CLI interface
     args = parse_args()
+
     # configure logging
     if args.verbose:
         log_level = "DEBUG"
@@ -169,12 +170,16 @@ def main():
     if args.logfile:
         log_stream = open(args.logfile, "w")
     logging_setup(level=log_level, stream=log_stream)
+
     # show welcome screen
     show_welcome()
+
     # read experiment configuration
     conf = read_config(args.config_path)
+
     # get result path
     rpath = conf.get("result_path")
+
     # overwrite config parameters given as arguments
     if args.result_path:
         rpath = args.result_path
@@ -183,30 +188,38 @@ def main():
     if args.job_id:
         conf["job_id"] = int(args.job_id)
         conf["job_no"] = int(args.job_no)
+
     # initialize experiment
     e = Experiment(conf)
+
     # prepare experiment
     if args.no_prepare:
         show_byebye(args, t_start)
     e.prepare()
+
     # plot only (just plot existing Pikle file)
     if args.plot is not None:
         e.plot(args.plot)
         show_byebye(args, t_start)
+
     # generate configurations
     if args.no_generate:
         show_byebye(args, t_start)
     sim_configs = e.generate()
+
     # run experiment
     if args.no_run:
         show_byebye(args, t_start)
     e.run(sim_configs)
+
     # store results
     e.store_result(rpath)
     if args.result_print:
         e.print_results()
+
     # show bye bye screen
     show_byebye(args, t_start)
+
     # cleanup
     if log_stream:
         log_stream.close()
