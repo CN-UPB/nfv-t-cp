@@ -918,3 +918,52 @@ class WeightedRandomizedVnfSelector(WeightedVnfSelector):
         # return and increase sample count
         self.k_samples += 1
         return result
+
+
+class DecisionTreeSelector(Selector):
+    """
+    Adaptive DT-based Selector.
+    """
+
+    def __init__(self, **kwargs):
+        # apply default params
+        p = {"max_samples": -1}
+        p.update(kwargs)
+        # members
+        self.pm_inputs = list()
+        self.pm_parameter = dict()
+        self.params = p
+        self.k_samples = 0
+        self.selector_time_next_sum = 0
+        self.selector_time_reinit_sum = 0
+        self._previous_samples = list()
+        self._tree = None
+        LOG.debug("Initialized selector: {}".format(self))
+
+    def _initialize_tree(self):
+        # TODO
+        pass
+
+    def _next(self):
+        # TODO: go through leaf nodes
+        # TODO: Choose most promising node(s) and select config at random
+        result = None
+        self.k_samples += 1
+        return result
+
+    def _select_random_from_partition(self):
+        # TODO
+        pass
+
+    def _adapt_tree(self):
+        # TODO: work with latest sample, adapt (partition) and update regression values
+        last_sample = self._previous_samples[-1]
+        pass
+
+    def feedback(self, c, r):
+        """
+        Inform selector about result for single configuration.
+        """
+        self._previous_samples.append((c, r))
+
+
