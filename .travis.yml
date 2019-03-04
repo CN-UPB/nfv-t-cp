@@ -11,6 +11,6 @@ script:
 notifications:
   email:
     recipients:
-      - manuel.peuster@upb.de
+      - heidineu@mail.upb.de
     on_success: change # default: change
     on_failure: always # default: always
