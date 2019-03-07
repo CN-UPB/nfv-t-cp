@@ -26,6 +26,7 @@ import time
 import collections
 from nfvtcp.config import expand_parameters
 from nfvtcp.helper import dict_to_short_str, compress_keys
+from nfvtcp.dtree import DTree
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -927,7 +928,8 @@ class DecisionTreeSelector(Selector):
 
     def __init__(self, **kwargs):
         # apply default params
-        p = {"max_samples": -1}
+        # should contain number of initial samples for DT construction
+        p = {"max_samples": -1, "intial_samples": 10}
         p.update(kwargs)
         # members
         self.pm_inputs = list()
@@ -941,29 +943,40 @@ class DecisionTreeSelector(Selector):
         LOG.debug("Initialized selector: {}".format(self))
 
     def _initialize_tree(self):
-        # TODO
-        pass
+        self.tree = DTree(intial_samples=self._previous_samples)
 
     def _next(self):
-        # TODO: go through leaf nodes
-        # TODO: Choose most promising node(s) and select config at random
-        result = None
+        """
+        Called in sim.py simulate measurement (it loops).
+        Base class 'has_next' checks if max_samples were reached.
+
+        Until number of initial samples is reached, configs are sampled at random.
+        Afterwards the DT is constructed and used for selection.
+
+        :return: selected configuration
+        """
+        if self.k_samples == self.params.get("initial_samples"):
+            self._initialize_tree()
+        if self._tree is None:
+            result = self._select_random_config()
+        else:
+            result = DTree.select_next()
         self.k_samples += 1
         return result
 
-    def _select_random_from_partition(self):
-        # TODO
-        pass
-
-    def _adapt_tree(self):
-        # TODO: work with latest sample, adapt (partition) and update regression values
-        last_sample = self._previous_samples[-1]
-        pass
+    def _select_random_config(self):
+        # TODO check pm_inputs = config space?
+        idx = np.random.randint(0, len(self.pm_inputs))
+        self.k_samples += 1
+        return self.pm_inputs[idx]
 
     def feedback(self, c, r):
         """
         Inform selector about result for single configuration.
+        Adapt tree to newest profiling result.
         """
         self._previous_samples.append((c, r))
+        if self._tree is not None:
+            self._tree.adapt_tree(self._previous_samples[-1])
 
 
