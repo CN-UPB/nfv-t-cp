@@ -932,8 +932,8 @@ class DecisionTreeSelector(Selector):
         p = {"max_samples": -1, "intial_samples": 10}
         p.update(kwargs)
         # members
-        self.pm_inputs = list()
-        self.pm_parameter = dict()
+        self.pm_inputs = list() # = config space
+        self.pm_parameter = dict() # = parameter dict werden über Selector set_inputs gesetzt
         self.params = p
         self.k_samples = 0
         self.selector_time_next_sum = 0
@@ -943,6 +943,8 @@ class DecisionTreeSelector(Selector):
         LOG.debug("Initialized selector: {}".format(self))
 
     def _initialize_tree(self):
+        # TODO: get samples in right format
+
         self.tree = DTree(intial_samples=self._previous_samples)
 
     def _next(self):
@@ -965,7 +967,6 @@ class DecisionTreeSelector(Selector):
         return result
 
     def _select_random_config(self):
-        # TODO check pm_inputs = config space?
         idx = np.random.randint(0, len(self.pm_inputs))
         self.k_samples += 1
         return self.pm_inputs[idx]
