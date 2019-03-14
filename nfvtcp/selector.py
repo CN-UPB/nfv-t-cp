@@ -947,7 +947,7 @@ class DecisionTreeSelector(Selector):
     def _initialize_tree(self):
         # TODO: get samples in right format
         # needs (configs(flat), features, target, split_metric='mse', max_depth=10, regression='linear', prune=False)
-        self.tree = DTree(intial_samples=self._previous_samples)
+        self.tree = DTree()
 
     def _next(self):
         """
