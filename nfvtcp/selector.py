@@ -25,7 +25,7 @@ import statistics
 import time
 import collections
 from nfvtcp.config import expand_parameters
-from nfvtcp.helper import dict_to_short_str, compress_keys
+from nfvtcp.helper import dict_to_short_str, compress_keys, flatten_conf
 from nfvtcp.dtree import DTree
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -939,12 +939,14 @@ class DecisionTreeSelector(Selector):
         self.selector_time_next_sum = 0
         self.selector_time_reinit_sum = 0
         self._previous_samples = list()
+        self._sampled_configs_as_feature = None
+        self._sampled_results = None
         self._tree = None
         LOG.debug("Initialized selector: {}".format(self))
 
     def _initialize_tree(self):
         # TODO: get samples in right format
-
+        # needs (configs(flat), features, target, split_metric='mse', max_depth=10, regression='linear', prune=False)
         self.tree = DTree(intial_samples=self._previous_samples)
 
     def _next(self):
@@ -967,6 +969,7 @@ class DecisionTreeSelector(Selector):
         return result
 
     def _select_random_config(self):
+        # Todo: check if config sampled already?
         idx = np.random.randint(0, len(self.pm_inputs))
         self.k_samples += 1
         return self.pm_inputs[idx]
@@ -978,6 +981,7 @@ class DecisionTreeSelector(Selector):
         """
         self._previous_samples.append((c, r))
         if self._tree is not None:
+            feature_row = flatten_conf(c)[0]
             self._tree.adapt_tree(self._previous_samples[-1])
 
 
