@@ -933,7 +933,9 @@ class DecisionTreeSelector(Selector):
         p.update(kwargs)
         # members
         self.pm_inputs = list() # = config space
-        self.pm_parameter = dict() # = parameter dict werden über Selector set_inputs gesetzt
+
+        # parameter dict set through Selector set_inputs, e.g. {'c1': [0.01, 0.2575, 0.505, 0.7525, 1.0], 'c2': ...}
+        self.pm_parameter = dict()
         self.params = p
         self.k_samples = 0
         self.selector_time_next_sum = 0
@@ -946,7 +948,8 @@ class DecisionTreeSelector(Selector):
 
     def _initialize_tree(self):
         # TODO: get samples in right format
-        # needs (configs(flat), features, target, split_metric='mse', max_depth=10, regression='linear', prune=False)
+        # needs (configs (flat), self.pm_parameter, features, target, regression='default', homog_metric='mse',
+        #                  min_homogeneity_gain=0.05, max_depth=10, min_samples_split=2)
         self.tree = DecisionTree()
 
     def _next(self):

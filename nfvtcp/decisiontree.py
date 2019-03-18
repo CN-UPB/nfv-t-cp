@@ -1,6 +1,7 @@
 import logging
 import os
 import numpy as np
+import random
 import heapq
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -12,8 +13,8 @@ class Node:
     """
 
     def __init__(self, params, features, target, depth):
-        # Todo: Delete feature and target values if node is no leaf no save memory? (Can be recalculated for pruning)
-        self.parameters = params  # values a feature can have
+        # Todo: Delete feature/target/params if node is no leaf no save memory? (Can be recalculated for pruning)
+        self.parameters = params  # list of dicts with values a vnf can have
         self.features = features  # configuration values
         self.target = target  # performance values
         self.left = None
@@ -24,6 +25,13 @@ class Node:
         self.split_feature_cut_val = None
         self.split_improvement = 0.0
         self.pred_value = np.mean(target)
+        self.partition_size = None  # number of configs in partition
+
+    def set_partition_size(self, size):
+        self.partition_size = size
+
+    def set_homogeneity(self, h):
+        self.homogeneity = h
 
 
 class DecisionTree:
@@ -37,7 +45,14 @@ class DecisionTree:
         """
         Grow initial DT.
         """
-        self._root = Node(parameters, features, target, depth=1)
+        self.vnf_count = features.shape[1] // len(parameters)
+
+        params = [parameters]
+        if self.vnf_count != len(parameters):
+            for i in range(1, self.vnf_count):
+                params.append(parameters)
+
+        self._root = Node(params, features, target, depth=1)
         self.leaf_nodes = {self._root}  # needed for selection of config to profile
         self.max_depth = ((2 ** 31) - 1 if max_depth is None else max_depth)
         self.regression = regression  # default DT, oblique, svm?
@@ -62,7 +77,10 @@ class DecisionTree:
         if self.regression == 'default':
             self._determine_best_split_of_node(node)
         elif self.regression == 'oblique':
-            pass  # Todo: simulated annealing? (statt x < 2, e.g. 2x + y > 3)
+            # Todo: simulated annealing? (statt x < 2, e.g. 2x + y > 3)
+            LOG.error("DT Regression technique '{}‘ not yet supported.".format(str(self.regression)))
+            LOG.error("Exit!")
+            exit(1)
         else:
             # Todo: support more regression= split ways, e.g. svm?
             LOG.error("DT Regression technique '{}‘ not supported.".format(str(self.regression)))
@@ -83,7 +101,8 @@ class DecisionTree:
         Given a node, determine the best feature and the best feature value to split the node.
         Homogeneity improvement, best feature and split value are set in the node object.
         """
-        node.homogeneity = self._calculate_node_homogeneity(node.target)
+        if node.homogeneity is None:
+            node.set_homogeneity(self._calculate_node_homogeneity(node.target))
         feature_count = node.features.shape[1]
         sample_count = node.features.shape[0]
 
@@ -118,12 +137,12 @@ class DecisionTree:
         # get all rows where the split value is less or equal than threshold and grow left node
         left_features = node.features[node.features[:, node.split_feature_index] <= node.split_feature_cut_val]
         left_target = node.target[node.features[:, node.split_feature_index] <= node.split_feature_cut_val]
-        node.left = Node(left_features, left_target, node.depth + 1)
+        node.left = Node(None, left_features, left_target, node.depth + 1)
 
         # get all rows where the split value is greater than threshold and grow right node
         right_features = node.features[node.features[:, node.split_feature_index] > node.split_feature_cut_val]
         right_target = node.target[node.features[:, node.split_feature_index] > node.split_feature_cut_val]
-        node.right = Node(right_features, right_target, node.depth + 1)
+        node.right = Node(None, right_features, right_target, node.depth + 1) # Todo: recalculate param intervals
 
         self.leaf_nodes.remove(node)
         self.leaf_nodes.add(node.left)
@@ -137,16 +156,36 @@ class DecisionTree:
         if self.homog_metric == 'var-reduction':  # same as mse? Lowest value = best
             return np.mean((target - np.mean(target)) ** 2.0)
 
-    def _determine_node_to_sample(self):  # Es wird immer an dem Node gesplitted, dem das neue Sample zugeordnet wird?
-        # Todo: find node with lowest accuracy/homogeneity!
-        # Todo: factor size of node in! (size = configs nicht samples!) --> can be calculated through parameters!!
-        # Todo: ggf priority queue mit homogeneity werten --> heapq aber *(-1) da min heap
-        pass
+    def _calculate_node_partition_size(self, node):
+        p = node.parameters
+        res = 1
+        for dict in p:
+            for key in dict.keys():
+                res *= len(dict.get(key))
+
+        node.set_partition_size(res)
+
+    def _determine_node_to_sample(self):
+        # Todo: find node with lowest accuracy/homogeneity and biggest partition size
+        # Todo: ggf priority queue mit leaf node homogeneity werten --> heapq aber *(-1) da min heap
+        n = Node()
+        return n
 
     def _get_config_from_partition(self, node):
-        # Todo: traverse back to root and save/calculate feature intervals, and select config by randomly choosing param values in interval
-        c = None
-        return c
+        """
+        Given the node to sample from, randomly select a configuration from the node's partition.
+        Selection done by randomly choosing parameter values within the node's parameter thresholds.
+
+        Config format should be: ({'c1': 1, 'c2': 1, 'c3': 1}, {'c1': 1, 'c2': 1, 'c3': 1})
+        """
+        c = []
+        for dict in node.parameters:
+            vnf = {}
+            for param in dict.keys():
+                vnf[param] = random.choice(dict.get(param))
+            c.append(vnf)
+
+        return tuple(c)
 
     def select_next(self):
         """
@@ -157,9 +196,21 @@ class DecisionTree:
         return config
 
     def adapt_tree(self, sample):
-        pass
+        """
+        Determine leaf node that the sample belongs to and grow at that node.
+        Add Sample config and Performance Value to feature/target of node.
+
+        :param sample: A tuple of a flat config (np.array) and a target value.
+        """
         # Todo: take new sample, run (predict) through tree til leaf node --> grow at that node
-        # Problem: recalculate all impurity values of decision nodes, da sample size größer? sample zu jedem feature/target space hinzufügen?
+        # Es wird immer an dem Node gegrowed, dem das neue Sample zugeordnet wird
+        # Problem: recalculate all impurity values of decision nodes, da sample size größer?
+        # --> Nein, nur für neuen leaf node, decision nodes don't matter
+        curr_node = self._root
+
+        while curr_node.split_feature_index is not None:
+            feature = curr_node.split_feature_index
+
 
     def prune_tree(self):
         # Todo: Prune tree, called afterwards?
