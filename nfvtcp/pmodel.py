@@ -213,7 +213,7 @@ class SfcPerformanceModel(object):
         if no_cache is False:
             CACHE_C_SPACE[self.name] = cs
         # TODO: print entfernen
-        print("Generated Config space: \n %s" % cs)
+        #print("Generated Config space: \n %s" % cs)
         return cs
 
     def _get_vnfs_from_sg(self):
