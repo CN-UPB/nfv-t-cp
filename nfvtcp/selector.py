@@ -985,8 +985,9 @@ class DecisionTreeSelector(Selector):
         Adapt tree to newest profiling result.
         """
         self._previous_samples.append((c, r))
-        if self._tree is not None:
-            feature, target = None  # Todo: flat np values from self._previous_samples[-1]
+        if self._tree:
+            feature, target = None
+            # Todo: flat np values from self._previous_samples[-1]
             self._tree.adapt_tree(feature, target)
 
 

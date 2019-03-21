@@ -14,6 +14,7 @@ class Node:
 
     def __init__(self, params, features, target, depth):
         # Todo: Delete feature/target/params if node is no leaf no save memory? (Can be recalculated for pruning)
+
         self.parameters = params  # list of dicts with values a vnf can have
         self.features = features  # configuration values
         self.target = target  # performance values
@@ -41,8 +42,8 @@ class Node:
         self.error = h
 
     def calculate_score(self, weight_size):
-        if self.partition_size is None:
-            self.calculate_partition_size()
+        # (re)calculate parition size, adjusted after sampling
+        self.calculate_partition_size()
         # Todo: should be relative, i.e. error/max_error, size/max_size or config space size?
         weight_error = 1 - weight_size
         self.score = weight_error * self.error + weight_size * self.partition_size
@@ -60,7 +61,7 @@ class DecisionTree:
         self.feature_idx_to_name = {}
         self._root = None
         self._depth = 1
-        self.leaf_nodes = []  # needed for selection of config, heapq heap #TODO add root
+        self.leaf_nodes = []  # needed for selection of node to sample, heapq heap of node scores
         self.max_depth = ((2 ** 31) - 1 if max_depth is None else max_depth)
         self.regression = regression  # default DT, oblique, svm?
         self.error_metric = error_metric
@@ -71,6 +72,7 @@ class DecisionTree:
         self.min_samples_leaf = 1   # minimum required number of samples within one leaf
         self.max_features_split = max_features_split # consider only 30-40% of features for split search?
         self.weight_size = weight_size
+        self.last_sampled_node = None
 
         self._prepare_tree(parameters, features, target)
 
@@ -177,7 +179,9 @@ class DecisionTree:
         if node.depth + 1 > self._depth:
             self._depth = node.depth + 1
 
-        # Todo: remove node from heap when growing, should be popped the one with lowest score!
+        # unset leaf node flag
+        node.set_decision_node()
+
         # calculate error for child nodes
         node.left.set_error(self._calculate_node_error(node.left.target))
         node.right.set_error(self._calculate_node_error(node.right.target))
@@ -194,9 +198,8 @@ class DecisionTree:
         """
         Return two adjusted parameter arrays that remove parameter values below/above cut_value.
         """
-        # Todo
+        # Todo: check jupyter
         pass
-
 
     def _calculate_node_error(self, target):
         """
@@ -208,10 +211,22 @@ class DecisionTree:
             return np.mean((target - np.mean(target)) ** 2.0)
 
     def _determine_node_to_sample(self):
-        # Todo: find node with lowest accuracy/homogeneity and biggest partition size and not at max-depth!
-        # Todo: ggf priority queue mit leaf node homogeneity werten --> heapq aber *(-1) da min heap
-        n = Node()
-        return n
+        # Todo: find node with lowest accuracy/homogeneity and biggest partition size and not at max-depth! --> heapq aber *(-1) da min heap
+        if not self.leaf_nodes:
+            LOG.error("Decision Tree model has no leaf nodes to sample.")
+            LOG.error("Exit programme!")
+            exit(1)
+
+        # remove node from heap, will be split (push new score necessary?) upon call of "adapt_tree"
+        next_node = heapq.heappop(self.leaf_nodes)[1]
+        while self.leaf_nodes and (next_node.split_feature_index is not None or next_node.depth == self.max_depth):
+            next_node = heapq.heappop(self.leaf_nodes)[1]
+
+        if next_node.split_feature_index is not None or next_node.depth == self.max_depth:
+            LOG.debug("Decision Tree has reached its maximum depth.")
+
+        self.last_sampled_node = next_node
+        return next_node
 
     def _get_config_from_partition(self, node):
         """
@@ -245,27 +260,16 @@ class DecisionTree:
 
     def adapt_tree(self, sample):
         """
-        Determine leaf node that the sample belongs to and grow at that node.
-        Add Sample config and Performance Value to feature/target of node.
+        self.last_sampled_node is set to the node that the sample belongs to.
+        Add new sample values (config and performance) to feature/target of it and grow at that node.
         Re-Calculate nodes error value.
 
         :param sample: A tuple of a flat config (np.array) and a target value.
         """
-        curr_node = self._root
-        f = sample[0]
-        t = sample[1]
+        curr_node = self.last_sampled_node
+        f, t = sample[0], sample[1]
 
-        # while current node is no leaf node
-        while curr_node.split_feature_index is not None:
-            split_feature = curr_node.split_feature_index
-            split_value = curr_node.split_feature_cut_val
-
-            if f[split_feature] <= split_value:
-                curr_node = curr_node.left
-            else:
-                curr_node = curr_node.right
-
-        # Todo: append sample to curr_node
+        # Todo: append sample f and t to curr_node
         curr_node.error = self._calculate_node_error(curr_node.target)
         self._grow_tree_at_node(curr_node)
 
