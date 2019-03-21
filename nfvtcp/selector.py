@@ -969,7 +969,7 @@ class DecisionTreeSelector(Selector):
         if self._tree is None:
             result = self._select_random_config()
         else:
-            result = DecisionTree.select_next()
+            result = self.tree.select_next()
         self.k_samples += 1
         return result
 

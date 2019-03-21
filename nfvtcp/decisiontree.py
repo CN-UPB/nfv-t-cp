@@ -40,10 +40,11 @@ class Node:
     def set_error(self, h):
         self.error = h
 
-    def calculate_score(self, weight_error, weight_size):
+    def calculate_score(self, weight_size):
         if self.partition_size is None:
             self.calculate_partition_size()
         # Todo: should be relative, i.e. error/max_error, size/max_size or config space size?
+        weight_error = 1 - weight_size
         self.score = weight_error * self.error + weight_size * self.partition_size
 
 
@@ -53,18 +54,13 @@ class DecisionTree:
     """
 
     def __init__(self, configs, parameters, features, target, regression='default', error_metric='mse',
-                 min_error_gain=0.05, max_depth=None, weight_size=0.3, min_samples_split=2):
+                 min_error_gain=0.05, max_depth=None, weight_size=0.3, min_samples_split=2, max_features_split=1.0):
 
-        self.vnf_count = features.shape[1] // len(parameters)
-
-        params = [parameters]
-        if self.vnf_count != len(parameters):
-            for i in range(1, self.vnf_count):
-                params.append(parameters)
-
-        self._root = Node(params, features, target, depth=1)
+        self.vnf_count = None
+        self.feature_idx_to_name = {}
+        self._root = None
         self._depth = 1
-        self.leaf_nodes = {self._root}  # needed for selection of config to profile
+        self.leaf_nodes = []  # needed for selection of config, heapq heap #TODO add root
         self.max_depth = ((2 ** 31) - 1 if max_depth is None else max_depth)
         self.regression = regression  # default DT, oblique, svm?
         self.error_metric = error_metric
@@ -73,8 +69,31 @@ class DecisionTree:
         self.min_error_gain = min_error_gain  # minimum improvement to do a split
         self.regression = regression
         self.min_samples_leaf = 1   # minimum required number of samples within one leaf
-        self.max_features_split = np.shape(features)    # consider only 30-40% of features for split search?
+        self.max_features_split = max_features_split # consider only 30-40% of features for split search?
         self.weight_size = weight_size
+
+        self._prepare_tree(parameters, features, target)
+
+    def _prepare_tree(self, parameters, features, target):
+        """
+        Set root node, VNF count and Feature-index-to-name dictionary.
+        """
+        self.vnf_count = features.shape[1] // len(parameters)
+
+        params = [parameters]
+        if self.vnf_count != len(params):
+            # if vnf_count is bigger than 1, append parameter dictionary for each vnf
+            for vnf in range(1, self.vnf_count):
+                params.append(parameters)
+
+        index = 0
+        for vnf in range(len(params)):
+            for key in params[vnf].keys():
+                self.feature_idx_to_name[index] = (vnf, key)
+                index += 1
+
+        self._root = Node(params, features, target, depth=1)
+        LOG.info("Decision Tree Model initialized.")
 
     def _grow_tree_at_node(self, node):
         """
@@ -142,6 +161,7 @@ class DecisionTree:
     def _split_node(self, node):
         """
         Split tree at given (leaf) node according to its defined split-feature und split-threshold value.
+        Create two new leaf nodes with adjusted parameter, feature and target values.
         """
         # get all rows where the split value is less or equal than threshold and grow left node
         left_features = node.features[node.features[:, node.split_feature_index] <= node.split_feature_cut_val]
@@ -157,10 +177,26 @@ class DecisionTree:
         if node.depth + 1 > self._depth:
             self._depth = node.depth + 1
 
-        # Todo: calculate node score, make leaf nodes min heap
-        self.leaf_nodes.remove(node)
-        self.leaf_nodes.add(node.left)
-        self.leaf_nodes.add(node.right)
+        # Todo: remove node from heap when growing, should be popped the one with lowest score!
+        # calculate error for child nodes
+        node.left.set_error(self._calculate_node_error(node.left.target))
+        node.right.set_error(self._calculate_node_error(node.right.target))
+
+        # calculate score for child nodes
+        node.left.calculate_score(self.weight_size)
+        node.right.calculate_score(self.weight_size)
+
+        # add child nodes to leaf-node heap
+        heapq.heappush(self.leaf_nodes, (node.left.score, node.left))
+        heapq.heappush(self.leaf_nodes, (node.right.score, node.right))
+
+    def _adjust_parameters(self, params, param_index, cut_value):
+        """
+        Return two adjusted parameter arrays that remove parameter values below/above cut_value.
+        """
+        # Todo
+        pass
+
 
     def _calculate_node_error(self, target):
         """
