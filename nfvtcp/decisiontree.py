@@ -74,8 +74,6 @@ class DecisionTree:
     def __init__(self, parameters, features, target, regression='default', error_metric='mse',
                  min_error_gain=0.05, max_depth=None, weight_size=0.3, min_samples_split=2, max_features_split=1.0):
 
-        self.vnf_count = None
-        self.feature_idx_to_name = {}
         self._root = None
         self._depth = 1
         self.leaf_nodes = []  # needed for selection of node to sample, heapq heap of node scores
@@ -88,6 +86,8 @@ class DecisionTree:
         self.min_samples_leaf = 1  # minimum required number of samples within one leaf
         self.max_features_split = max_features_split  # consider only 30-40% of features for split search?
         self.weight_size = weight_size
+        self.vnf_count = None
+        self.feature_idx_to_name = {}  # maps indices of features rows to corresponding vnf and parameter
         self.last_sampled_node = None
 
         self._prepare_tree(parameters, features, target)
@@ -113,9 +113,32 @@ class DecisionTree:
         self._root = Node(params, features, target, depth=1)
         LOG.info("Decision Tree Model initialized.")
 
+    def _determine_node_to_sample(self):
+        """
+        Determine which leaf node (and thus config partition) needs to be explored further.
+        Done by returning leaf node with the lowest score value.
+        Assumes that no node is sampled twice, since the node is split after sampling from it.
+        """
+        # Todo: find node with lowest score --> heapq *(-1) da min heap?
+        if not self.leaf_nodes:
+            LOG.error("Decision Tree model has no leaf nodes to sample.")
+            LOG.error("Exit programme!")
+            exit(1)
+
+        # remove node from heap, will be split (push new score necessary?) upon call of "adapt_tree"
+        next_node = heapq.heappop(self.leaf_nodes)[1]
+        while self.leaf_nodes and (next_node.split_feature_index is not None or next_node.depth == self.max_depth):
+            next_node = heapq.heappop(self.leaf_nodes)[1]
+
+        if next_node.split_feature_index is not None or next_node.depth == self.max_depth:
+            LOG.debug("Decision Tree has reached its maximum depth.")
+
+        self.last_sampled_node = next_node
+        return next_node
+
     def _grow_tree_at_node(self, node):
         """
-        Grow (sub)tree until defined termination definition is reached. Initially called for root node
+        Grow (sub)tree until defined termination criterion is reached. Initially called for root node.
         """
         if node.depth == self.max_depth or len(node.target) < self.min_samples_split:
             return  # stop growing
@@ -148,7 +171,7 @@ class DecisionTree:
         Error improvement, best feature and split value are set in the node object.
         """
         if node.error is None:
-            node.set_error(self._calculate_node_error(node.target))
+            node.set_error(self._calculate_partition_error(node.target))
         feature_count = node.features.shape[1]
         sample_count = node.features.shape[0]
 
@@ -163,8 +186,8 @@ class DecisionTree:
                 target_left_partition = node.target[node.features[:, col] <= cut]
                 target_right_partition = node.target[node.features[:, col] > cut]
 
-                error_left_partition = self._calculate_node_error(target_left_partition)
-                error_right_partition = self._calculate_node_error(target_right_partition)
+                error_left_partition = self._calculate_partition_error(target_left_partition)
+                error_right_partition = self._calculate_partition_error(target_right_partition)
 
                 left_percentage = float(target_left_partition.shape[0]) / sample_count
                 right_percentage = 1 - left_percentage
@@ -188,8 +211,8 @@ class DecisionTree:
         right_target = node.target[node.features[:, node.split_feature_index] > node.split_feature_cut_val]
 
         # adjust parameter values for childnodes
-        params_left, params_right = self._adjust_parameters(node.parameters, node.split_feature_index,
-                                                            node.split_feature_cut_val)
+        params_left, params_right = self._calculate_new_parameters(node.parameters, node.split_feature_index,
+                                                                   node.split_feature_cut_val)
         node.left = Node(params_left, left_features, left_target, node.depth + 1)
         node.right = Node(params_right, right_features, right_target, node.depth + 1)
 
@@ -197,8 +220,8 @@ class DecisionTree:
             self._depth = node.depth + 1
 
         # calculate error for child nodes
-        node.left.set_error(self._calculate_node_error(node.left.target))
-        node.right.set_error(self._calculate_node_error(node.right.target))
+        node.left.set_error(self._calculate_partition_error(node.left.target))
+        node.right.set_error(self._calculate_partition_error(node.right.target))
 
         # calculate score for child nodes
         node.left.calculate_score(self.weight_size)
@@ -208,7 +231,7 @@ class DecisionTree:
         heapq.heappush(self.leaf_nodes, (node.left.score, node.left))
         heapq.heappush(self.leaf_nodes, (node.right.score, node.right))
 
-    def _adjust_parameters(self, params, param_index, cut_value):
+    def _calculate_new_parameters(self, params, param_index, cut_value):
         """
         Return two adjusted parameter arrays that remove parameter values below/above cut_value.
         """
@@ -222,7 +245,7 @@ class DecisionTree:
 
         return params_left, params_right
 
-    def _calculate_node_error(self, target):
+    def _calculate_partition_error(self, target):
         """
         Calculate the error value of a given node according to homogeneity metric (self.homog_metric)
         """
@@ -231,28 +254,10 @@ class DecisionTree:
             # for each target in node, calculate error value from predicted node
             return np.mean((target - np.mean(target)) ** 2.0)
 
-    def _determine_node_to_sample(self):
-        # Todo: find node with lowest accuracy/homogeneity and biggest partition size and not at max-depth! --> heapq aber *(-1) da min heap
-        if not self.leaf_nodes:
-            LOG.error("Decision Tree model has no leaf nodes to sample.")
-            LOG.error("Exit programme!")
-            exit(1)
-
-        # remove node from heap, will be split (push new score necessary?) upon call of "adapt_tree"
-        next_node = heapq.heappop(self.leaf_nodes)[1]
-        while self.leaf_nodes and (next_node.split_feature_index is not None or next_node.depth == self.max_depth):
-            next_node = heapq.heappop(self.leaf_nodes)[1]
-
-        if next_node.split_feature_index is not None or next_node.depth == self.max_depth:
-            LOG.debug("Decision Tree has reached its maximum depth.")
-
-        self.last_sampled_node = next_node
-        return next_node
-
     def _get_config_from_partition(self, node):
         """
-        Given the node to sample from, randomly select a configuration from the node's partition.
-        Selection done by randomly choosing parameter values within the node's parameter thresholds.
+        Given the node to sample from, randomly select a configuration from the node's partition space.
+        Done by randomly choosing parameter values within the node's parameter thresholds.
 
         Config format should be: ({'c1': 1, 'c2': 1, 'c3': 1}, {'c1': 1, 'c2': 1, 'c3': 1})
         """
@@ -275,15 +280,14 @@ class DecisionTree:
 
     def build_tree(self):
         """
-        Build tree initially.
+        Build tree initially until termination criterion is reached.
         """
         self._grow_tree_at_node(self._root)
 
     def adapt_tree(self, sample):
         """
-        self.last_sampled_node is set to the node that the sample belongs to.
-        Add new sample values (config and performance) to feature/target of it and grow at that node.
-        Re-Calculate nodes error value.
+        Add new sample values (config and performance) to feature/target of node that has last been sampled and
+        grow at that node. Re-Calculate the nodes' error value.
 
         :param sample: A tuple of a flat config (np.array) and a target value.
         """
@@ -291,18 +295,20 @@ class DecisionTree:
         f, t = sample[0], sample[1]
 
         # Todo: append sample f and t to curr_node
-        curr_node.error = self._calculate_node_error(curr_node.target)
+        curr_node.error = self._calculate_partition_error(curr_node.target)
         self._grow_tree_at_node(curr_node)
 
     def prune_tree(self):
-        # Todo: Prune tree, called afterwards?
+        """
+        Optional. Prune tree after selection process is complete to see if the Decision Tree model yields
+        better selections during tree construction compared to afterwards.
+        """
+        # Todo
         pass
 
     def get_tree(self):
         """
-        If tree is used again after initial selection process.
-
-        :return: Decision Tree Model.
+        Return Decision Tree model.
         """
         return self._root
 
@@ -311,10 +317,10 @@ class DecisionTree:
         Print tree to STDOUT.
         """
         base = "   " * node.depth + condition
-        if node.split_feature_index is not None:
+        if node.split_feature_index:
             print("%s if X[%s] <= %s" % (base, node.split_feature_index, node.split_feature_cut_val))
             self.print_tree(node.left, "then")
             self.print_tree(node.right, "else")
 
         else:
-            print("%s {value: %s, samples: %s}" % (base, node.pred_value, node.partition_size))
+            print("%s <value: %s, samples in partition: %s>" % (base, node.pred_value, node.partition_size))
