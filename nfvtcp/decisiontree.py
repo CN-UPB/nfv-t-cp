@@ -1,3 +1,19 @@
+"""
+Copyright (c) 2019 Heidi Neuhäuser
+ALL RIGHTS RESERVED.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import logging
 import os
 import numpy as np
@@ -45,6 +61,7 @@ class Node:
         # (re)calculate parition size, adjusted after sampling
         self.calculate_partition_size()
         # Todo: should be relative, i.e. error/max_error, size/max_size or config space size?
+        # Todo: Check if score should be *-1 since min-heap
         weight_error = 1 - weight_size
         self.score = weight_error * self.error + weight_size * self.partition_size
 
@@ -54,7 +71,7 @@ class DecisionTree:
     Decision Tree Base Class.
     """
 
-    def __init__(self, configs, parameters, features, target, regression='default', error_metric='mse',
+    def __init__(self, parameters, features, target, regression='default', error_metric='mse',
                  min_error_gain=0.05, max_depth=None, weight_size=0.3, min_samples_split=2, max_features_split=1.0):
 
         self.vnf_count = None
@@ -65,12 +82,11 @@ class DecisionTree:
         self.max_depth = ((2 ** 31) - 1 if max_depth is None else max_depth)
         self.regression = regression  # default DT, oblique, svm?
         self.error_metric = error_metric
-        self.config_space = configs  # should also be flat
         self.min_samples_split = min_samples_split  # minimum number of samples a node needs to have for split
         self.min_error_gain = min_error_gain  # minimum improvement to do a split
         self.regression = regression
-        self.min_samples_leaf = 1   # minimum required number of samples within one leaf
-        self.max_features_split = max_features_split # consider only 30-40% of features for split search?
+        self.min_samples_leaf = 1  # minimum required number of samples within one leaf
+        self.max_features_split = max_features_split  # consider only 30-40% of features for split search?
         self.weight_size = weight_size
         self.last_sampled_node = None
 
@@ -82,11 +98,11 @@ class DecisionTree:
         """
         self.vnf_count = features.shape[1] // len(parameters)
 
-        params = [parameters]
+        params = [dict(parameters)]
         if self.vnf_count != len(params):
             # if vnf_count is bigger than 1, append parameter dictionary for each vnf
             for vnf in range(1, self.vnf_count):
-                params.append(parameters)
+                params.append(dict(parameters))
 
         index = 0
         for vnf in range(len(params)):
@@ -165,22 +181,20 @@ class DecisionTree:
         Split tree at given (leaf) node according to its defined split-feature und split-threshold value.
         Create two new leaf nodes with adjusted parameter, feature and target values.
         """
-        # get all rows where the split value is less or equal than threshold and grow left node
+        # get all rows where the split value is less/equal or greater than cut value
         left_features = node.features[node.features[:, node.split_feature_index] <= node.split_feature_cut_val]
         left_target = node.target[node.features[:, node.split_feature_index] <= node.split_feature_cut_val]
-        node.left = Node(None, left_features, left_target, node.depth + 1)
-
-        # get all rows where the split value is greater than threshold and grow right node
         right_features = node.features[node.features[:, node.split_feature_index] > node.split_feature_cut_val]
         right_target = node.target[node.features[:, node.split_feature_index] > node.split_feature_cut_val]
-        node.right = Node(None, right_features, right_target, node.depth + 1)
-        # Todo: recalculate param intervals, divide by vnf_count
+
+        # adjust parameter values for childnodes
+        params_left, params_right = self._adjust_parameters(node.parameters, node.split_feature_index,
+                                                            node.split_feature_cut_val)
+        node.left = Node(params_left, left_features, left_target, node.depth + 1)
+        node.right = Node(params_right, right_features, right_target, node.depth + 1)
 
         if node.depth + 1 > self._depth:
             self._depth = node.depth + 1
-
-        # unset leaf node flag
-        node.set_decision_node()
 
         # calculate error for child nodes
         node.left.set_error(self._calculate_node_error(node.left.target))
@@ -198,8 +212,15 @@ class DecisionTree:
         """
         Return two adjusted parameter arrays that remove parameter values below/above cut_value.
         """
-        # Todo: check jupyter
-        pass
+        params_left = [dict(d) for d in params]
+        params_right = [dict(d) for d in params]
+
+        vnf_idx, param = self.feature_idx_to_name.get(param_index)
+        values = params[vnf_idx].get(param)
+        params_left[vnf_idx][param] = [val for val in values if val <= cut_value]
+        params_right[vnf_idx][param] = [val for val in values if val > cut_value]
+
+        return params_left, params_right
 
     def _calculate_node_error(self, target):
         """
@@ -297,4 +318,3 @@ class DecisionTree:
 
         else:
             print("%s {value: %s, samples: %s}" % (base, node.pred_value, node.partition_size))
-
