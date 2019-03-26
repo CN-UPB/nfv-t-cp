@@ -945,16 +945,13 @@ class DecisionTreeSelector(Selector):
         self.k_samples = 0
         self.selector_time_next_sum = 0
         self.selector_time_reinit_sum = 0
-        self._previous_samples = list()
-        self._sampled_configs_as_feature = None
-        self._sampled_results = None
+        self._sampled_configs = list()
+        self._sample_results = list()
         self._tree = None
         LOG.debug("Initialized selector: {}".format(self))
 
     def _initialize_tree(self):
-        # TODO: get samples in right format
-        # needs (parameters, features, target)
-        self.tree = DecisionTree(self.pm_parameter, None, None)
+        self.tree = DecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs), self._sample_results)
         self.tree.build_tree()
 
     def _next(self):
@@ -969,7 +966,7 @@ class DecisionTreeSelector(Selector):
         """
         if self.k_samples == self.params.get("initial_samples"):
             self._initialize_tree()
-        if self._tree is None:
+        if not self._tree:
             result = self._select_random_config()
         else:
             result = self.tree.select_next()
@@ -987,8 +984,12 @@ class DecisionTreeSelector(Selector):
         Inform selector about result for single configuration.
         Adapt tree to newest profiling result.
         """
-        self._previous_samples.append((c, r))
+        self._sampled_configs.append(c)
+        self._sample_results.append(r)
         if self._tree:
-            feature, target = None
-            # Todo: flat np values from self._previous_samples[-1]
-            self._tree.adapt_tree(feature, target)
+            # flatten config
+            f = []
+            for d in c:
+                f += d.values()
+
+            self._tree.adapt_tree((f, r))

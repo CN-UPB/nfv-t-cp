@@ -28,6 +28,8 @@ class Node:
     Base Class for Decision Tree Nodes.
     """
 
+    _config_size = 0
+
     def __init__(self, params, features, target, depth):
         # Todo: Delete feature/target/params if node is no leaf no save memory? (Can be recalculated for pruning)
 
@@ -45,6 +47,9 @@ class Node:
         self.partition_size = None  # number of configs in partition
         self.score = None
 
+    def set_config_size(self, s):
+        Node._config_size = s
+
     def calculate_partition_size(self):
         p = self.parameters
         res = 1
@@ -58,12 +63,17 @@ class Node:
         self.error = h
 
     def calculate_score(self, weight_size):
-        # (re)calculate parition size, adjusted after sampling
+        """
+        Calculate the node's score.
+        Partition size needs to be (re)calculated, in case the node was sampled.
+        :param weight_size: determines the weight of the size of each partition compared to the error.
+        """
         self.calculate_partition_size()
-        # Todo: should be relative, i.e. error/max_error, size/max_size or config space size?
-        # Todo: Check if score should be *-1 since min-heap
         weight_error = 1 - weight_size
-        self.score = weight_error * self.error + weight_size * self.partition_size
+        t = weight_error * self.error + weight_size * (self.partition_size / Node._config_size)
+
+        # negate because of min heap and we want biggest score
+        self.score = (-1) * t
 
 
 class DecisionTree:
@@ -71,7 +81,7 @@ class DecisionTree:
     Decision Tree Base Class.
     """
 
-    def __init__(self, parameters, features, target, regression='default', error_metric='mse',
+    def __init__(self, parameters, sampled_configs, sample_results, regression='default', error_metric='mse',
                  min_error_gain=0.05, max_depth=None, weight_size=0.3, min_samples_split=2, max_features_split=1.0):
 
         self._root = None
@@ -90,12 +100,14 @@ class DecisionTree:
         self.feature_idx_to_name = {}  # maps indices of features rows to corresponding vnf and parameter
         self.last_sampled_node = None
 
-        self._prepare_tree(parameters, features, target)
+        self._prepare_tree(parameters, sampled_configs, sample_results)
 
-    def _prepare_tree(self, parameters, features, target):
+    def _prepare_tree(self, parameters, sampled_cfgs, sample_res):
         """
         Set root node, VNF count and Feature-index-to-name dictionary.
         """
+        features = np.array(sampled_cfgs)
+        target = np.array(sample_res)
         self.vnf_count = features.shape[1] // len(parameters)
 
         params = [dict(parameters)]
@@ -111,6 +123,10 @@ class DecisionTree:
                 index += 1
 
         self._root = Node(params, features, target, depth=1)
+
+        # determine overall config space size for calculating score
+        self._root.calculate_partition_size()
+        self._root.set_config_size(self._root.partition_size)
         LOG.info("Decision Tree Model initialized.")
 
     def _determine_node_to_sample(self):
@@ -119,13 +135,12 @@ class DecisionTree:
         Done by returning leaf node with the lowest score value.
         Assumes that no node is sampled twice, since the node is split after sampling from it.
         """
-        # Todo: find node with lowest score --> heapq *(-1) da min heap?
         if not self.leaf_nodes:
             LOG.error("Decision Tree model has no leaf nodes to sample.")
             LOG.error("Exit programme!")
             exit(1)
 
-        # remove node from heap, will be split (push new score necessary?) upon call of "adapt_tree"
+        # remove node with lowest score from heap, will be split upon call of "adapt_tree"
         next_node = heapq.heappop(self.leaf_nodes)[1]
         while self.leaf_nodes and (next_node.split_feature_index is not None or next_node.depth == self.max_depth):
             next_node = heapq.heappop(self.leaf_nodes)[1]
@@ -143,6 +158,7 @@ class DecisionTree:
         if node.depth == self.max_depth or len(node.target) < self.min_samples_split:
             return  # stop growing
 
+        # set node's split improvement, split feature and split value
         if self.regression == 'default':
             self._determine_best_split_of_node(node)
         elif self.regression == 'oblique':
@@ -151,7 +167,7 @@ class DecisionTree:
             LOG.error("Exit!")
             exit(1)
         else:
-            # Todo: support more regression= split ways, e.g. svm?
+            # Todo: support more regression= split ways, e.g. svm
             LOG.error("DT Regression technique '{}‘ not supported.".format(str(self.regression)))
             LOG.error("Exit!")
             exit(1)
@@ -175,7 +191,7 @@ class DecisionTree:
         feature_count = node.features.shape[1]
         sample_count = node.features.shape[0]
 
-        # Todo: only evaluate 40% of features?
+        # Todo: only evaluate 40% (max_features_split) of features?
         for col in range(feature_count):
             # get all unique values for this feature in current node
             feature_vals = np.unique(node.features[:, col])
@@ -292,9 +308,11 @@ class DecisionTree:
         :param sample: A tuple of a flat config (np.array) and a target value.
         """
         curr_node = self.last_sampled_node
-        f, t = sample[0], sample[1]
+        c, t = sample[0], sample[1]
 
-        # Todo: append sample f and t to curr_node
+        curr_node.features = np.append(curr_node.features, [c], axis=0)
+        curr_node.target = np.append(curr_node.target, t)
+
         curr_node.error = self._calculate_partition_error(curr_node.target)
         self._grow_tree_at_node(curr_node)
 
