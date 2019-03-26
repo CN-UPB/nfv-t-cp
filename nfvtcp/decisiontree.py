@@ -31,21 +31,33 @@ class Node:
     _config_size = 0
 
     def __init__(self, params, features, target, depth):
+        """
+        :param params: list of dictionaries with possible parameter values for each vnf
+        :param features: sampled configurations as flat 2D numpy array
+        :param target: 1D numpy array of performance values of sampled configs
+        :param depth: depth of node in whole tree
+        """
         # Todo: Delete feature/target/params if node is no leaf no save memory? (Can be recalculated for pruning)
 
-        self.parameters = params  # list of dicts with values a vnf can have
-        self.features = features  # configuration values
-        self.target = target  # performance values
+        self.parameters = params
+        self.features = features
+        self.target = target
         self.left = None
         self.right = None
         self.depth = depth
         self.split_feature_index = None
         self.split_feature_cut_val = None
-        self.split_improvement = 0.0
-        self.pred_value = np.mean(target)
+        self.split_improvement = None
+        self.pred_value = None
         self.error = None  # deviation from prediction. Smaller = better
         self.partition_size = None  # number of configs in partition
         self.score = None
+
+    def __str__(self):
+        return "params:\t{}\ndepth:\t{}\npartition size:\t{}\nerror:\t{}\nscore:\t{}\n".format(self.parameters,
+                                                                                               self.depth,
+                                                                                               self.partition_size,
+                                                                                               self.error, self.score)
 
     def set_config_size(self, s):
         Node._config_size = s
@@ -59,8 +71,8 @@ class Node:
 
         self.partition_size = res
 
-    def set_error(self, h):
-        self.error = h
+    def calculate_pred_value(self):
+        self.pred_value = np.mean(self.target)
 
     def calculate_score(self, weight_size):
         """
@@ -82,7 +94,7 @@ class DecisionTree:
     """
 
     def __init__(self, parameters, sampled_configs, sample_results, regression='default', error_metric='mse',
-                 min_error_gain=0.05, max_depth=None, weight_size=0.3, min_samples_split=2, max_features_split=1.0):
+                 min_error_gain=0.05, max_depth=None, weight_size=0.2, min_samples_split=2, max_features_split=1.0):
 
         self._root = None
         self._depth = 1
@@ -187,7 +199,7 @@ class DecisionTree:
         Error improvement, best feature and split value are set in the node object.
         """
         if node.error is None:
-            node.set_error(self._calculate_partition_error(node.target))
+            node.error = self._calculate_partition_error(node.target)
         feature_count = node.features.shape[1]
         sample_count = node.features.shape[0]
 
@@ -236,8 +248,8 @@ class DecisionTree:
             self._depth = node.depth + 1
 
         # calculate error for child nodes
-        node.left.set_error(self._calculate_partition_error(node.left.target))
-        node.right.set_error(self._calculate_partition_error(node.right.target))
+        node.left.error = self._calculate_partition_error(node.left.target)
+        node.right.error = self._calculate_partition_error(node.right.target)
 
         # calculate score for child nodes
         node.left.calculate_score(self.weight_size)
@@ -266,9 +278,10 @@ class DecisionTree:
         Calculate the error value of a given node according to homogeneity metric (self.homog_metric)
         """
         # Todo: more? Std deviation?
-        if self.error_metric == 'var-reduction':  # same as mse? Lowest value = best
+        if self.error_metric == 'mse':  # same as mse? Lowest value = best
             # for each target in node, calculate error value from predicted node
             return np.mean((target - np.mean(target)) ** 2.0)
+        LOG.error("Error metric {} not implemented.".format(self.error_metric))
 
     def _get_config_from_partition(self, node):
         """
@@ -341,4 +354,5 @@ class DecisionTree:
             self.print_tree(node.right, "else")
 
         else:
+            node.calculate_pred_value()
             print("%s <value: %s, samples in partition: %s>" % (base, node.pred_value, node.partition_size))
