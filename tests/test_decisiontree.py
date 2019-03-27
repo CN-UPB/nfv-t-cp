@@ -27,7 +27,7 @@ class TestNode(unittest.TestCase):
         target = np.array([0.61, 0.55, 0.32, 0.91])
         d = 4
 
-        node = Node(params, features, target, d)
+        node = Node(params, features, target, d, 0)
 
         self.assertEqual(node.parameters, params)
         self.assertTrue((node.features == features).all())
@@ -43,7 +43,7 @@ class TestNode(unittest.TestCase):
     def test_calc_partition_size(self):
         params = [{"a": [1, 2, 3], "b": [32]}, {"a": [1, 2], "b": [8]}]
 
-        node = Node(params, None, None, 0)
+        node = Node(params, None, None, 0, 0)
         node.calculate_partition_size()
         self.assertEqual(node.partition_size, 6)
 
@@ -55,7 +55,7 @@ class TestNode(unittest.TestCase):
     def test_calc_score(self):
         params = [{"a": [1, 2, 3], "b": [32]}, {"a": [1, 2], "b": [8]}]
 
-        node = Node(params, None, None, 0)
+        node = Node(params, None, None, 0, 0)
         node.set_config_size(1000)
         node.error = 0.25
         node.calculate_score(0.5)
