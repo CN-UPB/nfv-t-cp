@@ -47,7 +47,7 @@ class Node:
         self.depth = depth
         self.split_feature_index = None
         self.split_feature_cut_val = None
-        self.split_improvement = None
+        self.split_improvement = 0
         self.pred_value = None
         self.error = None  # deviation from prediction. Smaller = better
         self.partition_size = None  # number of configs in partition

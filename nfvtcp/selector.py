@@ -959,8 +959,8 @@ class DecisionTreeSelector(Selector):
         LOG.debug("Initialized selector: {}".format(self))
 
     def _initialize_tree(self):
-        self.tree = DecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs), self._sample_results)
-        self.tree.build_tree()
+        self._tree = DecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs), self._sample_results)
+        self._tree.build_tree()
 
     def _next(self):
         """
@@ -977,14 +977,13 @@ class DecisionTreeSelector(Selector):
         if not self._tree:
             result = self._select_random_config()
         else:
-            result = self.tree.select_next()
+            result = self._tree.select_next()
         self.k_samples += 1
         return result
 
     def _select_random_config(self):
         # Todo: check if config sampled already?
         idx = np.random.randint(0, len(self.pm_inputs))
-        self.k_samples += 1
         return self.pm_inputs[idx]
 
     def feedback(self, c, r):
