@@ -51,6 +51,8 @@ def get_by_name(name):
         return WeightedVnfSelector
     if name == "WeightedRandomizedVnfSelector":
         return WeightedRandomizedVnfSelector
+    if name == "DecisionTreeSelector":
+        return DecisionTreeSelector
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
