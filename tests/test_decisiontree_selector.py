@@ -18,6 +18,7 @@ limitations under the License.
 import unittest
 import networkx as nx
 import numpy as np
+import random
 from nfvtcp.selector import DecisionTreeSelector
 from nfvtcp.pmodel import SfcPerformanceModel, VnfPerformanceModel
 
@@ -83,6 +84,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
                  initial_samples=10,
                  max_depth=100,
                  conf={}):
+
         s = DecisionTreeSelector(
             max_samples=max_samples,
             initial_samples=initial_samples,
@@ -93,6 +95,59 @@ class TestDecisionTreeSelector(unittest.TestCase):
 
     def test_initialize(self):
         s = self._new_DTS()
+        del s
+
+    def test_select_random_config(self):
+        s = self._new_DTS()
+        vnf_count = 4
+        k_before = s.k_samples
+        c = s._select_random_config()
+        self.assertTrue(c is not None)
+        self.assertEqual(len(c), vnf_count)
+        self.assertEqual(k_before, s.k_samples - 1)
+        del s
+
+    def test_feedback(self):
+        s = self._new_DTS()
+        c = s._select_random_config()
+        s.feedback(c, random.uniform(1, 10))
+        self.assertEqual(len(s._sampled_configs), 1)
+        self.assertEqual(len(s._sample_results), 1)
+        del s
+
+    def test_initialize_tree(self):
+        s = self._new_DTS()
+        for i in range(10):
+            c = s._select_random_config()
+            s.feedback(c, random.uniform(1, 10))
+
+        s._initialize_tree()
+        self.assertTrue(s._tree is not None)
+        self.assertEqual(len(s._sampled_configs), 10)
+        self.assertEqual(len(s._sample_results), 10)
+        self.assertEqual(s.k_samples, 10)
+
+        del s
+
+    def test_next(self):
+        s = self._new_DTS()
+        c = s._next()
+        self.assertTrue(s._tree is None)
+        self.assertEqual(len(s._sampled_configs), 0)
+        self.assertEqual(len(s._sample_results), 0)
+        self.assertEqual(s.k_samples, 1)
+        s.feedback(c, random.uniform(1, 10))
+        # Todo: fix heappop issue when scores are equal
+        """
+        for i in range(10):
+            c = s._next()
+            s.feedback(c, random.uniform(1, 10))
+
+        self.assertTrue(s._tree is not None)
+        self.assertEqual(len(s._sampled_configs), 11)
+        self.assertEqual(len(s._sample_results), 11)
+        self.assertEqual(s.k_samples, 11)
+        """
         del s
 
 
