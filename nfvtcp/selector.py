@@ -933,7 +933,15 @@ class DecisionTreeSelector(Selector):
     def __init__(self, **kwargs):
         # apply default params
         # should contain number of initial samples for DT construction
-        p = {"max_samples": -1, "intial_samples": 10}
+        p = {"max_samples": -1,
+             "intial_samples": 10,
+             "max_depth": None,
+             "regression": 'default',
+             "error_metric": 'mse',
+             "min_error_gain": 0.001,
+             "weight_size": 0.2,
+             "min_samples_split": 2,
+             "max_features_split": 1.0}
         p.update(kwargs)
 
         # members
