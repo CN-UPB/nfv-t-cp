@@ -38,7 +38,7 @@ class TestNode(unittest.TestCase):
         node.set_config_size(1024)
         self.assertEqual(Node._config_size, 1024)
         node.set_config_size(0)
-        node = None
+        del node
 
     def test_calc_partition_size(self):
         params = [{"a": [1, 2, 3], "b": [32]}, {"a": [1, 2], "b": [8]}]
@@ -50,7 +50,7 @@ class TestNode(unittest.TestCase):
         node.parameters = [{"a": [1, 2], "b": [32]}, {"a": [1, 2], "b": [8]}]
         node.calculate_partition_size()
         self.assertEqual(node.partition_size, 4)
-        node = None
+        del node
 
     def test_calc_score(self):
         params = [{"a": [1, 2, 3], "b": [32]}, {"a": [1, 2], "b": [8]}]
@@ -64,7 +64,7 @@ class TestNode(unittest.TestCase):
 
         self.assertEqual(node.score, score)
         node.set_config_size(0)
-        node = None
+        del node
 
 
 class TestDecisionTree(unittest.TestCase):
@@ -97,7 +97,6 @@ class TestDecisionTree(unittest.TestCase):
         self.assertEqual(len(dtree.feature_idx_to_name), 4)
         # Todo: check new parameters
 
-
     def test_split_node(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
         features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
@@ -123,4 +122,8 @@ class TestDecisionTree(unittest.TestCase):
         print("left child:\n{}".format(str(root.left)))
         print("right child:\n{}".format(str(root.right)))
 
-        dtree = None
+        del dtree
+
+
+if __name__ == '__main__':
+    unittest.main()
