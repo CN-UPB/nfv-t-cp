@@ -94,7 +94,7 @@ class DecisionTree:
     """
 
     def __init__(self, parameters, sampled_configs, sample_results, regression='default', error_metric='mse',
-                 min_error_gain=0.05, max_depth=None, weight_size=0.2, min_samples_split=2, max_features_split=1.0):
+                 min_error_gain=0.001, max_depth=None, weight_size=0.2, min_samples_split=2, max_features_split=1.0):
 
         self._root = None
         self._depth = 1
