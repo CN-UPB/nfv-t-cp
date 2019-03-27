@@ -30,7 +30,7 @@ class Node:
 
     _config_size = 0
 
-    def __init__(self, params, features, target, depth):
+    def __init__(self, params, features, target, depth, idx):
         """
         :param params: list of dictionaries with possible parameter values for each vnf
         :param features: sampled configurations as flat 2D numpy array
@@ -45,6 +45,7 @@ class Node:
         self.left = None
         self.right = None
         self.depth = depth
+        self.idx = idx
         self.split_feature_index = None
         self.split_feature_cut_val = None
         self.split_improvement = 0
@@ -111,6 +112,7 @@ class DecisionTree:
         self.vnf_count = None
         self.feature_idx_to_name = {}  # maps indices of features rows to corresponding vnf and parameter
         self.last_sampled_node = None
+        self.node_count = 1
 
         self._prepare_tree(parameters, sampled_configs, sample_results)
 
@@ -134,7 +136,7 @@ class DecisionTree:
                 self.feature_idx_to_name[index] = (vnf, key)
                 index += 1
 
-        self._root = Node(params, features, target, depth=1)
+        self._root = Node(params, features, target, 1, 0)
 
         # determine overall config space size for calculating score
         self._root.calculate_partition_size()
@@ -153,9 +155,11 @@ class DecisionTree:
             exit(1)
 
         # remove node with lowest score from heap, will be split upon call of "adapt_tree"
-        next_node = heapq.heappop(self.leaf_nodes)[1]
+        next_node = heapq.heappop(self.leaf_nodes)
+        next_node = next_node[2]
         while self.leaf_nodes and (next_node.split_feature_index is not None or next_node.depth == self.max_depth):
-            next_node = heapq.heappop(self.leaf_nodes)[1]
+            next_node = heapq.heappop(self.leaf_nodes)
+            next_node = next_node[2]
 
         if next_node.split_feature_index is not None or next_node.depth == self.max_depth:
             LOG.debug("Decision Tree has reached its maximum depth.")
@@ -241,8 +245,9 @@ class DecisionTree:
         # adjust parameter values for childnodes
         params_left, params_right = self._calculate_new_parameters(node.parameters, node.split_feature_index,
                                                                    node.split_feature_cut_val)
-        node.left = Node(params_left, left_features, left_target, node.depth + 1)
-        node.right = Node(params_right, right_features, right_target, node.depth + 1)
+        node.left = Node(params_left, left_features, left_target, node.depth + 1, self.node_count)
+        node.right = Node(params_right, right_features, right_target, node.depth + 1, self.node_count + 1)
+        self.node_count += 2
 
         if node.depth + 1 > self._depth:
             self._depth = node.depth + 1
@@ -256,8 +261,8 @@ class DecisionTree:
         node.right.calculate_score(self.weight_size)
 
         # add child nodes to leaf-node heap
-        heapq.heappush(self.leaf_nodes, (node.left.score, node.left))
-        heapq.heappush(self.leaf_nodes, (node.right.score, node.right))
+        heapq.heappush(self.leaf_nodes, (node.left.score, node.left.idx, node.left))
+        heapq.heappush(self.leaf_nodes, (node.right.score, node.right.idx, node.right))
 
     def _calculate_new_parameters(self, params, param_index, cut_value):
         """

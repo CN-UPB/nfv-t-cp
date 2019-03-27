@@ -100,11 +100,9 @@ class TestDecisionTreeSelector(unittest.TestCase):
     def test_select_random_config(self):
         s = self._new_DTS()
         vnf_count = 4
-        k_before = s.k_samples
         c = s._select_random_config()
         self.assertTrue(c is not None)
         self.assertEqual(len(c), vnf_count)
-        self.assertEqual(k_before, s.k_samples - 1)
         del s
 
     def test_feedback(self):
@@ -125,7 +123,6 @@ class TestDecisionTreeSelector(unittest.TestCase):
         self.assertTrue(s._tree is not None)
         self.assertEqual(len(s._sampled_configs), 10)
         self.assertEqual(len(s._sample_results), 10)
-        self.assertEqual(s.k_samples, 10)
 
         del s
 
@@ -137,8 +134,6 @@ class TestDecisionTreeSelector(unittest.TestCase):
         self.assertEqual(len(s._sample_results), 0)
         self.assertEqual(s.k_samples, 1)
         s.feedback(c, random.uniform(1, 10))
-        # Todo: fix heappop issue when scores are equal
-        """
         for i in range(10):
             c = s._next()
             s.feedback(c, random.uniform(1, 10))
@@ -147,7 +142,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
         self.assertEqual(len(s._sampled_configs), 11)
         self.assertEqual(len(s._sample_results), 11)
         self.assertEqual(s.k_samples, 11)
-        """
+
         del s
 
 
