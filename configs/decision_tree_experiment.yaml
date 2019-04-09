@@ -1,0 +1,96 @@
+---
+# This is an example configuration for a single experiment.
+name: "Selection algorithms Comparison with DT"
+author: "Heidi Neuhäuser"
+version: 0.1
+
+# time limit for measurement (s) (expandable)
+max_time_t: null
+repetitions: 5
+# path to write results as pickled Pandas DF
+result_path: "out/test.pkl"
+result_path_add_timestamp: False
+
+pmodels:
+    - name: ExampleModel
+
+selector:
+    #- name: UniformRandomSelector
+      # max. no. of samples to be selected (expandable)
+      #max_samples: {min: 2, max: 36, step: 4}
+    #- name: UniformGridSelector
+    #  # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 2, max: 42, step: 4}
+    #- name: UniformGridSelectorRandomOffset
+      # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 2, max: 42, step: 4}
+    #- name: UniformGridSelectorIncrementalOffset
+      # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 2, max: 42, step: 4}
+    #- name: HyperGridSelector
+    #  max_samples: {min: 2, max: 42, step: 4}
+    #- name: PanicGreedyAdaptiveSelector
+    #  # max. no. of samples to be selected (expandable)
+    #  max_samples: {min: 2, max: 42, step: 4}
+    #  max_border_points: 5
+    - name: DecisionTreeSelector
+      # max. no. of samples to be selected (expandable)
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 4
+
+predictor:
+    #- name: PolynomialRegressionPredictor
+    #  degree: [3]  # poly. degree (expandable)
+    - name: SupportVectorRegressionPredictor
+      epsilon: [0.1]  # epsilon (expandable)
+
+error_metrics:
+    - name: MSE
+    - name: RMSD
+    - name: NRMSDMean
+    - name: NRMSDRange
+    #- name: MAE
+    #- name: R2
+    #- name: EVS
+    #- name: MEDAE
+
+plot:
+    - name: Boxplot
+      path: plots
+      title: Error
+      x: k_samples
+      y: error_value
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - predictor
+        - degree
+        - epsilon
+        - error
+    - name: Lineplot
+      path: plots
+      title: Selector Error Comparison
+      x: k_samples
+      y: error_value
+      # column that distinguishes lines in plot
+      hue: selector_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
+      n_plots:
+        # list of columns that distinguish plots
+        - predictor
+        - degree
+        - epsilon
+        - error
+    - name: Lineplot
+      # needs fixed argument values for predictors!
+      path: plots
+      title: Predictor Error Comparison
+      x: k_samples
+      y: error_value
+      # column that distinguishes lines in plot
+      hue: predictor_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - error
