@@ -197,7 +197,7 @@ def main():
         show_byebye(args, t_start)
     e.prepare()
 
-    # plot only (just plot existing Pikle file)
+    # plot only (just plot existing Pickle file)
     if args.plot is not None:
         e.plot(args.plot)
         show_byebye(args, t_start)
