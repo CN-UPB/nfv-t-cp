@@ -125,5 +125,9 @@ class TestDecisionTree(unittest.TestCase):
         del dtree
 
 
+class TestObliqueDecisionTree(unittest.TestCase):
+    pass
+
+
 if __name__ == '__main__':
     unittest.main()
