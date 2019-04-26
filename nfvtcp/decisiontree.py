@@ -17,7 +17,7 @@ limitations under the License.
 import logging
 import os
 import numpy as np
-from random import randint, random
+from random import randint, random, choice
 import heapq
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -224,6 +224,10 @@ class DecisionTree:
         feature_count = node.features.shape[1]
         for col in range(feature_count):
             cut, split_error = self._get_best_split_of_feature(node, col)
+            if cut == split_error == -1:
+                # Todo: better solution if feature not splittable?
+                continue
+
             error_improvement = node.error - split_error
 
             if error_improvement > node.split_improvement:
@@ -236,6 +240,10 @@ class DecisionTree:
         Get a tuple of (cut value, cut error value) where new error value is minimal
         """
         split_vals = self._get_possible_splits(node.features, feature_idx)
+
+        if len(split_vals) == 0:
+            # no split possible
+            return -1, -1
 
         sample_count = node.features.shape[0]
         split_error = {}
@@ -338,7 +346,7 @@ class DecisionTree:
         for dict in node.parameters:
             vnf = {}
             for param in dict.keys():
-                vnf[param] = random.choice(dict.get(param))
+                vnf[param] = choice(dict.get(param))
             c.append(vnf)
 
         return tuple(c)
