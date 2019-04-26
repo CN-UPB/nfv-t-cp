@@ -223,7 +223,7 @@ class DecisionTree:
         # Todo: only evaluate 40% (max_features_split) of features?
         feature_count = node.features.shape[1]
         for col in range(feature_count):
-            cut, split_error = self._get_best_split_of_feature(node, col)
+            cut, split_error = self._get_best_split_of_feature(node.features, node.target, col)
             if cut == split_error == -1:
                 # Todo: better solution if feature not splittable?
                 continue
@@ -235,21 +235,21 @@ class DecisionTree:
                 node.split_feature_index = col
                 node.split_feature_cut_val = cut
 
-    def _get_best_split_of_feature(self, node, feature_idx):
+    def _get_best_split_of_feature(self, features, target, feature_idx):
         """
         Get a tuple of (cut value, cut error value) where new error value is minimal
         """
-        split_vals = self._get_possible_splits(node.features, feature_idx)
+        split_vals = self._get_possible_splits(features, feature_idx)
 
         if len(split_vals) == 0:
             # no split possible
             return -1, -1
 
-        sample_count = node.features.shape[0]
+        sample_count = features.shape[0]
         split_error = {}
         for cut in split_vals:
-            target_left_partition = node.target[node.features[:, feature_idx] <= cut]
-            target_right_partition = node.target[node.features[:, feature_idx] > cut]
+            target_left_partition = target[features[:, feature_idx] <= cut]
+            target_right_partition = target[features[:, feature_idx] > cut]
 
             error_split = self._get_after_split_error(target_left_partition, target_right_partition, sample_count)
 
@@ -309,7 +309,7 @@ class DecisionTree:
         # add child nodes to leaf-node heap
         heapq.heappush(self.leaf_nodes, (node.left.score, node.left.idx, node.left))
         heapq.heappush(self.leaf_nodes, (node.right.score, node.right.idx, node.right))
-        # Todo Does node not need to be removed from heap?
+        # Todo Does node not need to be removed from heap? (e.g. ueber index?)
 
     def _calculate_new_parameters(self, params, param_index, cut_value):
         """
@@ -335,7 +335,7 @@ class DecisionTree:
             return np.mean((target - np.mean(target)) ** 2.0)
         LOG.error("Error metric {} not implemented.".format(self.error_metric))
 
-    def _get_config_from_partition(self, node):
+    def _get_config_from_partition(self, node_parameters):
         """
         Given the node to sample from, randomly select a configuration from the node's partition space.
         Done by randomly choosing parameter values within the node's parameter thresholds.
@@ -343,7 +343,7 @@ class DecisionTree:
         Config format should be: ({'c1': 1, 'c2': 1, 'c3': 1}, {'c1': 1, 'c2': 1, 'c3': 1})
         """
         c = []
-        for dict in node.parameters:
+        for dict in node_parameters:
             vnf = {}
             for param in dict.keys():
                 vnf[param] = choice(dict.get(param))
@@ -356,7 +356,7 @@ class DecisionTree:
         Return next configuration to be profiled.
         """
         next_node = self._determine_node_to_sample()
-        config = self._get_config_from_partition(next_node)
+        config = self._get_config_from_partition(next_node.parameters)
         return config
 
     def build_tree(self):
@@ -459,41 +459,24 @@ class ObliqueDecisionTree(DecisionTree):
         # set last elem in split_vector to negated cut value
         node.split_vector[-1] = -split[0]
         node.split_vector[index] = 1
+        s_vector = node.split_vector
 
-        # TODO really ugly, change! Maybe add last feature col that saves position? Keep features and target in one Array!
-        # get feature partitions
-        features_above = np.zeros((1, node.features.shape[1]))
-        features_below = np.zeros((1, node.features.shape[1]))
-        target_right_partition = np.zeros((1, 1))
-        target_left_partition = np.zeros((1, 1))
-
-        for row in node.features:
-            config_pos = self._check_config_position(row, node.split_vector)
-            if config_pos > 0:
-                features_above = np.vstack((features_above, row))
-                target_right_partition = np.vstack((node.target[row]))
-            else:
-                features_below = np.vstack((features_below, row))
-                target_left_partition = np.vstack((node.target[row]))
-
-        features_above = np.delete(features_above, 0, axis=0)
-        features_below = np.delete(features_below, 0, axis=0)
-        target_right_partition = np.delete(target_right_partition, 0, axis=0)
-        target_left_partition = np.delete(target_left_partition, 0, axis=0)
+        left_f, right_f, left_t, right_t = self._split_samples(node.features, node.target, node.split_vector)
 
         sample_count = node.features.shape[0]
-        error_split = self._get_after_split_error(target_left_partition, target_right_partition, sample_count)
+        error_split = self._get_after_split_error(left_t, right_t, sample_count)
 
         # perturb a random feature in split vector 10 times
         for c in range(10):
             feature_idx = randint(0, feature_count)
-            error_split, split_vector = self._perturb_hyperplane_coefficients(node, feature_idx, error_split)
+            error_split, s_vector = self._perturb_hyperplane_coefficients(node, feature_idx, error_split)
 
-        # Todo: set node values (error, split vector...)
+        node.split_vector = s_vector
+        node.split_improvement = node.error - error_split # Todo check? ggf bereit in perturb setzen und nicht zurueckgeben
 
     def _get_best_splits_for_all_features(self, node):
         feature_count = node.features.shape[1] # -1 one if we add target
-        result = [self._get_best_split_of_feature(node, i) for i in range(feature_count)]
+        result = [self._get_best_split_of_feature(node.features, node.target, i) for i in range(feature_count)]
         return np.array(result)
 
     def _calculate_U_value(self, row, split_vector, feature_idx):
@@ -517,9 +500,9 @@ class ObliqueDecisionTree(DecisionTree):
         for cut in possible_cuts:
             new_split_vector = np.array(node.split_vector)
             new_split_vector[feature_idx] = cut
-            # todo: siehe oben, schreibe function zum splitten von feature/target arrays. Ggf beides in einem?
-            low, high = self._split_samples(node.features, new_split_vector)
-            error_after_split = self._get_after_split_error(low, high, node.features.shape[1])
+
+            low_f, high_f, low_t, high_t = self._split_samples(node.features, node.target, new_split_vector)
+            error_after_split = self._get_after_split_error(low_t, high_t, node.features.shape[1])
             coefficients[cut] = (error_after_split, new_split_vector)
 
         best_error_val, best_split_vector = min(coefficients.values(), key=lambda x: x[0])
@@ -542,10 +525,29 @@ class ObliqueDecisionTree(DecisionTree):
         # add negated cut value to sum
         return np.sum(temp) + split_vector[-1]
 
-    def _split_samples(self, samples, split_vector):
+    def _split_samples(self, features, target, split_vector):
         # Todo: split feature and target according to split vector
-        below = above = None
-        return below, above
+        # TODO really ugly, change! Keep features and target in one Array?
+        # get feature partitions
+        features_above = np.zeros((1, features.shape[1]))
+        features_below = np.zeros((1, features.shape[1]))
+        target_above = np.zeros((1, 1))
+        target_below = np.zeros((1, 1))
+
+        for i in range(features.shape[0]):
+            config_pos = self._check_config_position(features[i], split_vector)
+            if config_pos > 0:
+                features_above = np.vstack((features_above, features[i]))
+                target_above = np.vstack((target[i]))
+            else:
+                features_below = np.vstack((features_below, features[i]))
+                target_below = np.vstack((target[i]))
+
+        features_above = np.delete(features_above, 0, axis=0)
+        features_below = np.delete(features_below, 0, axis=0)
+        target_above = np.delete(target_above, 0, axis=0)
+        target_below = np.delete(target_below, 0, axis=0)
+        return features_below, features_above, target_below, target_above
 
     def _split_node(self, node):
         # Todo split node  by creating corresponding feature and target arrs,
