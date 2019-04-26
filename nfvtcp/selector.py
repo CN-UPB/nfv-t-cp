@@ -961,6 +961,17 @@ class DecisionTreeSelector(Selector):
         LOG.debug("Initialized selector: {}".format(self))
 
     def _initialize_tree(self):
+        """
+        Initialize Decision Tree model.
+        """
+        # Todo: differentiate p.get("regression"): default = DT, oblique = ObliqueDT
+        """
+        if p.get("regression") == 'default'...
+        else:
+            LOG.error("DT Regression technique '{}‘ not supported.".format(p.get("regression"))))
+            LOG.error("Exit!")
+            exit(1)
+        """
         self._tree = DecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs), self._sample_results)
         self._tree.build_tree()
 
