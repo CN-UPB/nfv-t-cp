@@ -23,6 +23,12 @@ import heapq
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
+def log_error(reason):
+    LOG.error(reason)
+    LOG.error("Exit programme!")
+    exit(1)
+
+
 class Node:
     """
     Base Class for Decision Tree Nodes.
@@ -176,9 +182,7 @@ class DecisionTree:
         Assumes that no node is sampled twice, since the node is split after sampling from it.
         """
         if not self.leaf_nodes:
-            LOG.error("Decision Tree model has no leaf nodes to sample.")
-            LOG.error("Exit programme!")
-            exit(1)
+            log_error("Decision Tree model has no leaf nodes to sample.")
 
         # remove node with lowest score from heap, will be split upon call of "adapt_tree"
         next_node = heapq.heappop(self.leaf_nodes)
@@ -285,16 +289,15 @@ class DecisionTree:
         Create two new leaf nodes with adjusted parameter, feature and target values.
         """
         # get all rows where the split value is less/equal or greater than cut value
-        left_features = node.features[node.features[:, node.split_feature_index] <= node.split_feature_cut_val]
-        left_target = node.target[node.features[:, node.split_feature_index] <= node.split_feature_cut_val]
-        right_features = node.features[node.features[:, node.split_feature_index] > node.split_feature_cut_val]
-        right_target = node.target[node.features[:, node.split_feature_index] > node.split_feature_cut_val]
+        left_f, left_t, right_f, right_t = self._split_samples(node.features, node.target,
+                                                               feature_idx=node.split_feature_index,
+                                                               cut_val=node.split_feature_cut_val)
 
         # adjust parameter values for childnodes
         params_left, params_right = self._calculate_new_parameters(node.parameters, node.split_feature_index,
                                                                    node.split_feature_cut_val)
-        node.left = Node(params_left, left_features, left_target, node.depth + 1, self.node_count)
-        node.right = Node(params_right, right_features, right_target, node.depth + 1, self.node_count + 1)
+        node.left = Node(params_left, left_f, left_t, node.depth + 1, self.node_count)
+        node.right = Node(params_right, right_f, right_t, node.depth + 1, self.node_count + 1)
         self.node_count += 2
 
         if node.depth + 1 > self._depth:
@@ -311,6 +314,20 @@ class DecisionTree:
         # add child nodes to leaf-node heap
         heapq.heappush(self.leaf_nodes, (node.left.score, node.left.idx, node.left))
         heapq.heappush(self.leaf_nodes, (node.right.score, node.right.idx, node.right))
+
+    def _split_samples(self, features, target, **kwargs):
+        """
+        Split Features and Targets according to Feature and its Cut Value.
+        """
+        if "feature_idx" not in kwargs or "cut_val" not in kwargs:
+            log_error("Can't split samples without feature and cut value.")
+
+        feature_idx, cut_val = kwargs["feature_idx"], kwargs["cut_val"]
+        left_f = features[features[:, feature_idx] <= cut_val]
+        left_t = target[features[:, feature_idx] <= cut_val]
+        right_f = features[features[:, feature_idx] > cut_val]
+        right_t = target[features[:, feature_idx] > cut_val]
+        return left_f, left_t, right_f, right_t
 
     def _calculate_new_parameters(self, params, param_index, cut_value):
         """
@@ -334,7 +351,7 @@ class DecisionTree:
         if self.error_metric == 'mse':  # same as mse? Lowest value = best
             # for each target in node, calculate error value from predicted node
             return np.mean((target - np.mean(target)) ** 2.0)
-        LOG.error("Error metric {} not implemented.".format(self.error_metric))
+        log_error("Error metric {} not implemented.".format(self.error_metric))
 
     def _get_config_from_partition(self, node_parameters):
         """
@@ -449,25 +466,23 @@ class ObliqueDecisionTree(DecisionTree):
         """
         sample_count, feature_count = node.features.shape
 
-        splits = self._get_best_splits_for_all_features(node)
         # get feature index with lowest error and its corresponding tuple of cut value and its error
-        index, split = min(enumerate(splits), key=lambda x: x[1][1])
+        splits = self._get_best_splits_for_all_features(node)
+        index, split_tuple = min(enumerate(splits), key=lambda x: x[1][1])
 
         # initiate split_vector to enable the linear combination split, last elem is the cut value
-        node.split_vector = np.zeros((node.features.shape[1],))
-        node.split_vector[-1] = split[0]
+        node.split_vector = np.zeros((feature_count,))
+        node.split_vector[-1] = split_tuple[0]
         node.split_vector[index] = 1
 
         # split partition by split vector
-        left_f, right_f, left_t, right_t = self._split_samples(node.features, node.target, node.split_vector)
+        left_f, right_f, left_t, right_t = self._split_samples(node.features, node.target, split_vector=node.split_vector)
 
         if node.error is None:
             node.error = self._calculate_partition_error(node.target)
 
         error_split = self._get_after_split_error(left_t, right_t, sample_count)
-        error_improvement = node.error - error_split
-        if error_improvement > node.split_improvement:
-            node.split_improvement = error_improvement
+        node.split_improvement = max(node.split_improvement, (node.error - error_split))
 
         # perturb a random feature of the split vector 10 times
         for c in range(10):
@@ -507,7 +522,7 @@ class ObliqueDecisionTree(DecisionTree):
             new_split_vector = np.array(node.split_vector)
             new_split_vector[feature_idx] = cut
 
-            low_f, high_f, low_t, high_t = self._split_samples(node.features, node.target, new_split_vector)
+            low_f, high_f, low_t, high_t = self._split_samples(node.features, node.target, split_vector=new_split_vector)
             error_after_split = self._get_after_split_error(low_t, high_t, node.features.shape[1])
             if error_after_split < min_error:
                 min_error = error_after_split
@@ -519,8 +534,7 @@ class ObliqueDecisionTree(DecisionTree):
             node.split_vector = best_split_vector
             node.split_improvement = node.error - min_error
         elif best_improvement == node.split_improvement and random() < 0.3:
-            # 0.3 is the stagnation probability that determines if hyperplane should still be perturbed
-            # Todo: should P_stag be defineable?
+            # Todo: Definable? 0.3 is the stagnation probability that determines if hyperplane should still be perturbed
             node.split_vector = best_split_vector
 
     def _check_config_position(self, row, split_vector):
@@ -533,34 +547,37 @@ class ObliqueDecisionTree(DecisionTree):
         # subtract cut value from sum
         return np.sum(temp) - split_vector[-1]
 
-    def _split_samples(self, features, target, split_vector):
-        # Todo: split feature and target according to split vector
-        # TODO really ugly, change! Keep features and target in one Array?
-        # get feature partitions
-        features_above = np.zeros((1, features.shape[1]))
-        features_below = np.zeros((1, features.shape[1]))
-        target_above = np.zeros((1, 1))
-        target_below = np.zeros((1, 1))
+    def _split_samples(self, features, target, **kwargs):
+        """
+        Split Features and Targets according to split vector.
+        """
+        if "split_vector" not in kwargs:
+            log_error("Can't split samples without split vector.")
 
-        for i in range(features.shape[0]):
-            config_pos = self._check_config_position(features[i], split_vector)
+        split_vector = kwargs["split_vector"]
+        sample_count, feature_count = features.shape
+
+        samples = np.concatenate((features, target.reshape(-1, 1)), axis=1)
+        samples_above = np.zeros((1, feature_count + 1))
+        samples_below = np.zeros((1, feature_count + 1))
+
+        for row in samples:
+            config_pos = self._check_config_position(row[:-1], split_vector)
             if config_pos > 0:
-                features_above = np.vstack((features_above, features[i]))
-                target_above = np.vstack((target[i]))
+                samples_above = np.vstack((samples_above, row))
             else:
-                features_below = np.vstack((features_below, features[i]))
-                target_below = np.vstack((target[i]))
+                samples_below = np.vstack((samples_below, row))
 
-        features_above = np.delete(features_above, 0, axis=0)
-        features_below = np.delete(features_below, 0, axis=0)
-        target_above = np.delete(target_above, 0, axis=0)
-        target_below = np.delete(target_below, 0, axis=0)
-        return features_below, features_above, target_below, target_above
+        samples_above = np.delete(samples_above, 0, axis=0)
+        samples_below = np.delete(samples_below, 0, axis=0)
+        return samples_below[:, :-1], samples_above[:, :-1], samples_below[:, -1], samples_above[:, -1]
 
     def _split_node(self, node):
-        # calculate child nodes errors and scores, push children to heap
-        # creates the lower and upper partitions (two row-partitions)? according to split vector
-        low_f, high_f, low_t, high_t = self._split_samples(node.features, node.target, node.split_vector)
+        """
+        Split tree at given (leaf) node according to its defined split vector.
+        Create two new leaf nodes with adjusted parameter, feature and target values.
+        """
+        low_f, high_f, low_t, high_t = self._split_samples(node.features, node.target, split_vector=node.split_vector)
 
         params_left, params_right = self._calculate_new_parameters(node.parameters, node.split_feature_index,
                                                                    node.split_feature_cut_val, node.split_vector)
@@ -585,11 +602,11 @@ class ObliqueDecisionTree(DecisionTree):
         heapq.heappush(self.leaf_nodes, (node.right.score, node.right.idx, node.right))
 
     def _calculate_new_parameters(self, params, param_index, cut_value, split_vector=None):
-        # Todo determine where split line cuts the feature values? --> split vec has cut value for each attr?
-        # Todo: override method nur bei Erhalt der Signature --> arbeite mit optionalen args oder **kawrgs?
         """
         Return two adjusted parameter arrays that remove parameter values below/above split_vector.
         """
+        # Todo determine where split line cuts the feature values? --> split vec has cut value for each attr?
+
         params_left = [dict(d) for d in params]
         params_right = [dict(d) for d in params]
 
