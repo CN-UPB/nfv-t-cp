@@ -27,7 +27,7 @@ import time
 import collections
 from nfvtcp.config import expand_parameters
 from nfvtcp.helper import dict_to_short_str, compress_keys, flatten_conf
-from nfvtcp.decisiontree import DecisionTree
+from nfvtcp.decisiontree import DecisionTree, ObliqueDecisionTree
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -964,15 +964,17 @@ class DecisionTreeSelector(Selector):
         """
         Initialize Decision Tree model.
         """
-        # Todo: differentiate p.get("regression"): default = DT, oblique = ObliqueDT
-        """
-        if p.get("regression") == 'default'...
+        regr = self.params.get("regression")
+        if regr == 'default':
+            self._tree = DecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs), self._sample_results)
+        elif regr == 'oblique':
+            self._tree = ObliqueDecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs),
+                                             self._sample_results)
         else:
-            LOG.error("DT Regression technique '{}‘ not supported.".format(p.get("regression"))))
+            LOG.error("DT Regression technique '{}‘ not supported.".format(regr))
             LOG.error("Exit!")
             exit(1)
-        """
-        self._tree = DecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs), self._sample_results)
+
         self._tree.build_tree()
 
     def _next(self):
