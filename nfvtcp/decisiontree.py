@@ -183,6 +183,8 @@ class DecisionTree:
         # remove node with lowest score from heap, will be split upon call of "adapt_tree"
         next_node = heapq.heappop(self.leaf_nodes)
         next_node = next_node[2]
+
+        # if node with highest score has already been split or lies at max depth, find the next best node
         while self.leaf_nodes and (next_node.split_feature_index or next_node.depth == self.max_depth):
             next_node = heapq.heappop(self.leaf_nodes)
             next_node = next_node[2]
@@ -254,7 +256,7 @@ class DecisionTree:
             error_split = self._get_after_split_error(target_left_partition, target_right_partition, sample_count)
 
             split_error[cut] = error_split
-        # return cut value that belongs to biggest error improvement
+        # return cut value that belongs to minimum error val
         return min(split_error.items(), key=lambda x: x[1])
 
     def _get_possible_splits(self, features, feature_idx):
@@ -309,7 +311,6 @@ class DecisionTree:
         # add child nodes to leaf-node heap
         heapq.heappush(self.leaf_nodes, (node.left.score, node.left.idx, node.left))
         heapq.heappush(self.leaf_nodes, (node.right.score, node.right.idx, node.right))
-        # Todo Does node not need to be removed from heap? (e.g. ueber index?)
 
     def _calculate_new_parameters(self, params, param_index, cut_value):
         """
@@ -412,8 +413,6 @@ class DecisionTree:
 
 class ObliqueDecisionTree(DecisionTree):
 
-    # Todo: Function split_samples, welche samples nach cut-value splitted (both feature and target!)
-
     def _prepare_tree(self, parameters, sampled_cfgs, sample_res):
         """
         Set root node, VNF count and Feature-index-to-name dictionary.
@@ -448,82 +447,91 @@ class ObliqueDecisionTree(DecisionTree):
 
         :param node: The node to be split.
         """
-        feature_count = node.features.shape[1]
+        sample_count, feature_count = node.features.shape
+
         splits = self._get_best_splits_for_all_features(node)
-        # get feature index and resulting error of split with lowest error
+        # get feature index with lowest error and its corresponding tuple of cut value and its error
         index, split = min(enumerate(splits), key=lambda x: x[1][1])
 
-        # initiate split_vector to enable the linear combination split
+        # initiate split_vector to enable the linear combination split, last elem is the cut value
         node.split_vector = np.zeros((node.features.shape[1],))
-
-        # set last elem in split_vector to negated cut value
-        node.split_vector[-1] = -split[0]
+        node.split_vector[-1] = split[0]
         node.split_vector[index] = 1
-        s_vector = node.split_vector
 
+        # split partition by split vector
         left_f, right_f, left_t, right_t = self._split_samples(node.features, node.target, node.split_vector)
 
-        sample_count = node.features.shape[0]
-        error_split = self._get_after_split_error(left_t, right_t, sample_count)
+        if node.error is None:
+            node.error = self._calculate_partition_error(node.target)
 
-        # perturb a random feature in split vector 10 times
+        error_split = self._get_after_split_error(left_t, right_t, sample_count)
+        error_improvement = node.error - error_split
+        if error_improvement > node.split_improvement:
+            node.split_improvement = error_improvement
+
+        # perturb a random feature of the split vector 10 times
         for c in range(10):
             feature_idx = randint(0, feature_count)
-            error_split, s_vector = self._perturb_hyperplane_coefficients(node, feature_idx, error_split)
+            # updates node's split vector and error improvement to the vector with minimal error
+            self._perturb_hyperplane_coefficients(node, feature_idx)
 
-        node.split_vector = s_vector
-        node.split_improvement = node.error - error_split # Todo check? ggf bereit in perturb setzen und nicht zurueckgeben
-
-    def _get_best_splits_for_all_features(self, node):
-        feature_count = node.features.shape[1] # -1 one if we add target
-        result = [self._get_best_split_of_feature(node.features, node.target, i) for i in range(feature_count)]
+    def _get_best_splits_for_all_features(self, features, target):
+        """
+        Get List of tuples containing the best cut value and resulting (minimal) error value for each feature.
+        """
+        feature_count = features.shape[1]
+        result = []
+        for i in range(feature_count):
+            result.append(self._get_best_split_of_feature(features, target, i))
         return np.array(result)
 
     def _calculate_U_value(self, row, split_vector, feature_idx):
         """
-        Calculate Uj as in p.10 of Murthy.
-        Checks if row is below or above split vector? (returns either pos or neg?)
+        Calculate U_j  values as in p.10 of Murthy.
         """
         top = split_vector[feature_idx] * row[feature_idx] - self._check_config_position(row, split_vector)
         return top / row[feature_idx]
 
-    def _perturb_hyperplane_coefficients(self, node, feature_idx, prev_error_val):
-        # Todo: besser error val in node aendern und nicht in vars hier? also kein return value fuer error? Same for split vect
+    def _perturb_hyperplane_coefficients(self, node, feature_idx):
         # calculate all values of U with the current value for feature_idx in split_vector
-        u_values = np.array(sorted([[self._calculate_U_value(row, node.split_vector, feature_idx)] for row in node.features]))
+        u_values = np.array(
+            sorted([[self._calculate_U_value(row, node.split_vector, feature_idx)] for row in node.features]))
 
         # possible splits are the midpoints between Uj values
         possible_cuts = self._get_possible_splits(u_values, 0)
 
-        # Find best split in possible splits
-        coefficients = {}
+        # Find best split (minimal error) of U_j values in possible splits
+        best_split_vector = np.array(node.split_vector)
+        min_error = node.error
         for cut in possible_cuts:
             new_split_vector = np.array(node.split_vector)
             new_split_vector[feature_idx] = cut
 
             low_f, high_f, low_t, high_t = self._split_samples(node.features, node.target, new_split_vector)
             error_after_split = self._get_after_split_error(low_t, high_t, node.features.shape[1])
-            coefficients[cut] = (error_after_split, new_split_vector)
+            if error_after_split < min_error:
+                min_error = error_after_split
+                best_split_vector = new_split_vector
 
-        best_error_val, best_split_vector = min(coefficients.values(), key=lambda x: x[0])
-        if best_error_val > prev_error_val:
-            return best_error_val, best_split_vector
-        elif best_error_val == prev_error_val:
-            # 0.3 is P_stag, the stagnation probability. Determines if hyperplane should be perturbed
-            # even if the impurity measure of new H is the same as before
-            if random() < 0.3:
-                return best_error_val, best_split_vector
-        return prev_error_val, node.split_vector
+        # set node properties to best split
+        best_improvement = node.error - min_error
+        if best_improvement > node.split_improvement:
+            node.split_vector = best_split_vector
+            node.split_improvement = node.error - min_error
+        elif best_improvement == node.split_improvement and random() < 0.3:
+            # 0.3 is the stagnation probability that determines if hyperplane should still be perturbed
+            # Todo: should P_stag be defineable?
+            node.split_vector = best_split_vector
 
     def _check_config_position(self, row, split_vector):
         """
-        Calculates Vj as in p.10 of Murthy. All configs in the same partition have the same sign?
+        Calculates V_j as in p.10 of Murthy et al.
 
-        Used to check if row is above or below vector in _split_data()
+        Used to check if a configuration is above or below hyperplane.
         """
         temp = np.multiply(row, split_vector[:-1])
-        # add negated cut value to sum
-        return np.sum(temp) + split_vector[-1]
+        # subtract cut value from sum
+        return np.sum(temp) - split_vector[-1]
 
     def _split_samples(self, features, target, split_vector):
         # Todo: split feature and target according to split vector
@@ -550,22 +558,42 @@ class ObliqueDecisionTree(DecisionTree):
         return features_below, features_above, target_below, target_above
 
     def _split_node(self, node):
-        # Todo split node  by creating corresponding feature and target arrs,
         # calculate child nodes errors and scores, push children to heap
         # creates the lower and upper partitions (two row-partitions)? according to split vector
-        pass
+        low_f, high_f, low_t, high_t = self._split_samples(node.features, node.target, node.split_vector)
+
+        params_left, params_right = self._calculate_new_parameters(node.parameters, node.split_feature_index,
+                                                                   node.split_feature_cut_val, node.split_vector)
+
+        node.left = ONode(params_left, low_f, low_t, node.depth + 1, self.node_count)
+        node.right = ONode(params_right, high_f, high_t, node.depth + 1, self.node_count + 1)
+        self.node_count += 2
+
+        if node.depth + 1 > self._depth:
+            self._depth = node.depth + 1
+
+        # calculate error for child nodes
+        node.left.error = self._calculate_partition_error(node.left.target)
+        node.right.error = self._calculate_partition_error(node.right.target)
+
+        # calculate score for child nodes
+        node.left.calculate_score(self.weight_size)
+        node.right.calculate_score(self.weight_size)
+
+        # add child nodes to leaf-node heap
+        heapq.heappush(self.leaf_nodes, (node.left.score, node.left.idx, node.left))
+        heapq.heappush(self.leaf_nodes, (node.right.score, node.right.idx, node.right))
 
     def _calculate_new_parameters(self, params, param_index, cut_value, split_vector=None):
         # Todo determine where split line cuts the feature values? --> split vec has cut value for each attr?
         # Todo: override method nur bei Erhalt der Signature --> arbeite mit optionalen args oder **kawrgs?
-        # Or call for every param? nicht so schoen
         """
         Return two adjusted parameter arrays that remove parameter values below/above split_vector.
         """
         params_left = [dict(d) for d in params]
         params_right = [dict(d) for d in params]
 
-        for i in range(len(split_vector) - 1):
+        for i in range(len(params)):
             vnf_idx, param = self.feature_idx_to_name.get(i)
             values = params[vnf_idx].get(param)
             cut_value = split_vector[i]
