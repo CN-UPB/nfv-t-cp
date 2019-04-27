@@ -23,6 +23,8 @@ from nfvtcp.selector import DecisionTreeSelector
 from nfvtcp.pmodel import SfcPerformanceModel, VnfPerformanceModel
 
 
+# Test Oblique Tree
+
 class PerformanceModel_4VNF(SfcPerformanceModel):
     """
     (s) - (v0) - (v1) - (v2) - (v3) - (t)
@@ -83,18 +85,23 @@ class TestDecisionTreeSelector(unittest.TestCase):
     def _new_DTS(self, max_samples=60,
                  initial_samples=10,
                  max_depth=100,
+                 regression="default",
                  conf={}):
 
         s = DecisionTreeSelector(
             max_samples=max_samples,
             initial_samples=initial_samples,
             max_depth=max_depth,
+            regression=regression,
             **conf)
         s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
         return s
 
     def test_initialize(self):
         s = self._new_DTS()
+        del s
+
+        s = self._new_DTS(regression="oblique")
         del s
 
     def test_select_random_config(self):
@@ -115,6 +122,19 @@ class TestDecisionTreeSelector(unittest.TestCase):
 
     def test_initialize_tree(self):
         s = self._new_DTS()
+        for i in range(10):
+            c = s._select_random_config()
+            s.feedback(c, random.uniform(1, 10))
+
+        s._initialize_tree()
+        self.assertTrue(s._tree is not None)
+        self.assertEqual(len(s._sampled_configs), 10)
+        self.assertEqual(len(s._sample_results), 10)
+
+        del s
+
+    def test_initialize_tree_oblique(self):
+        s = self._new_DTS(regression="oblique")
         for i in range(10):
             c = s._select_random_config()
             s.feedback(c, random.uniform(1, 10))

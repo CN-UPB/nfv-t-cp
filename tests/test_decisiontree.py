@@ -87,12 +87,12 @@ class TestDecisionTree(unittest.TestCase):
 
     def test_calc_new_params(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
-        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
-        target = [0.61, 0.55, 0.32, 0.91]
+        features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
+        target = np.array([0.61, 0.55, 0.32, 0.91])
 
         dtree = DecisionTree(params, features, target)
         root = dtree.get_tree()
-        p_left, p_right = dtree._calculate_new_parameters(root.parameters, 1, 100)
+        p_left, p_right = dtree._calculate_new_parameters(root.parameters, feature_idx=1, cut_val=100)
 
         self.assertEqual(len(dtree.feature_idx_to_name), 4)
         # Todo: check new parameters
@@ -121,6 +121,33 @@ class TestDecisionTree(unittest.TestCase):
         self.assertEqual(len(dtree.leaf_nodes), 2)
         print("left child:\n{}".format(str(root.left)))
         print("right child:\n{}".format(str(root.right)))
+
+        del dtree
+
+    def test_split_samples(self):
+        params = {"a": [1, 2, 3], "b": [8, 16, 32, 64, 256]}
+        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
+        target = [0.61, 0.55, 0.32, 0.91]
+
+        dtree = DecisionTree(params, features, target)
+        root = dtree.get_tree()
+
+        left_f, left_t, right_f, right_t = dtree._split_samples(root.features, root.target, feature_idx=1, cut_val=48)
+
+        left_features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [3, 32, 1, 8]])
+        right_features = np.array([[2, 64, 2, 64]])
+        left_target = np.array([0.61, 0.55, 0.91])
+        right_target = np.array([0.32])
+
+        self.assertTrue((left_f == left_features).all())
+        self.assertTrue((right_f == right_features).all())
+        self.assertTrue((left_t == left_target).all())
+        self.assertTrue((right_t == right_target).all())
+
+        self.assertEqual(len(left_f), 3)
+        self.assertEqual(len(left_t), 3)
+        self.assertEqual(len(right_f), 1)
+        self.assertEqual(len(right_t), 1)
 
         del dtree
 
