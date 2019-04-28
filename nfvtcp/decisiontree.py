@@ -18,6 +18,7 @@ import logging
 import os
 import numpy as np
 from random import randint, random, choice
+from scipy.optimize import linprog
 import heapq
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -28,6 +29,9 @@ def log_error(reason):
     LOG.error("Exit programme!")
     exit(1)
 
+
+# TODO: How to select Config from Node? All we do is partition the target and feature arrays but no way
+# to tell param values??
 
 class Node:
     """
@@ -122,20 +126,41 @@ class ONode(Node):
         self.partition_size = None  # number of configs in partition
         self.score = None
 
+    def __str__(self):
+        return "params:\t{}\ndepth:\t{}\nfeatures:\t{}\ntarget:\t{}\npartition size:\t{}\nerror:\t{}\nscore:\t{}\nvector:\t{}\n".format(
+            self.parameters,
+            self.depth,
+            self.features,
+            self.target,
+            self.partition_size,
+            self.error, self.score, self.split_vector)
+
+    def calculate_score(self, weight_size, sample_count=None):
+        """
+        Calculate the node's score.
+        Partition size is estimated by number of samples within the partition.
+        :param weight_size: determines the weight of the size of each partition compared to the error.
+        """
+        partition_size = (len(self.features) / sample_count)
+        weight_error = 1 - weight_size
+        t = weight_error * self.error + weight_size * partition_size
+
+        # negate because of min heap and we want biggest score
+        self.score = (-1) * t
+
 
 class DecisionTree:
     """
     Decision Tree Base Class.
     """
 
-    def __init__(self, parameters, sampled_configs, sample_results, error_metric='mse',
-                 min_error_gain=0.001, max_depth=None, weight_size=0.2, min_samples_split=2, max_features_split=1.0):
+    def __init__(self, parameters, sampled_configs, sample_results, min_error_gain=0.001, max_depth=None,
+                 weight_size=0.2, min_samples_split=2, max_features_split=1.0):
 
         self._root = None
         self._depth = 1
         self.leaf_nodes = []  # needed for selection of node to sample, heapq heap of node scores
         self.max_depth = ((2 ** 31) - 1 if max_depth is None else max_depth)
-        self.error_metric = error_metric
         self.min_samples_split = min_samples_split  # minimum number of samples a node needs to have for split
         self.min_error_gain = min_error_gain  # minimum improvement to do a split
         self.min_samples_leaf = 1  # minimum required number of samples within one leaf
@@ -145,14 +170,15 @@ class DecisionTree:
         self.feature_idx_to_name = {}  # maps indices of features rows to corresponding vnf and parameter
         self.last_sampled_node = None
         self.node_count = 1
+        self.sample_count = len(sampled_configs)
 
         self._prepare_tree(parameters, sampled_configs, sample_results)
 
-    def _prepare_tree(self, parameters, sampled_cfgs, sample_res):
+    def _prepare_tree(self, parameters, sampled_confs, sample_res):
         """
         Set root node, VNF count and Feature-index-to-name dictionary.
         """
-        features = np.array(sampled_cfgs)
+        features = np.array(sampled_confs)
         target = np.array(sample_res)
         self.vnf_count = features.shape[1] // len(parameters)
 
@@ -188,13 +214,10 @@ class DecisionTree:
         next_node = heapq.heappop(self.leaf_nodes)
         next_node = next_node[2]
 
-        # if node with highest score has already been split or lies at max depth, find the next best node
-        while self.leaf_nodes and (next_node.split_feature_index or next_node.depth == self.max_depth):
+        # if node with highest score has already been split then find the next best node
+        while next_node.split_feature_index and self.leaf_nodes:
             next_node = heapq.heappop(self.leaf_nodes)
             next_node = next_node[2]
-
-        if next_node.split_feature_index or next_node.depth == self.max_depth:
-            LOG.debug("Decision Tree has reached its maximum depth.")
 
         self.last_sampled_node = next_node
         return next_node
@@ -203,15 +226,19 @@ class DecisionTree:
         """
         Grow (sub)tree until defined termination criterion is reached. Initially called for root node.
         """
+        # check termination criterion and if node needs to be pushed to leaf nodes
         if node.depth == self.max_depth or len(node.target) < self.min_samples_split:
+            if node == self.last_sampled_node:
+                heapq.heappush(self.leaf_nodes, (node.score, node.idx, node))
             return  # stop growing
 
-        # set node's split improvement, split feature and split value
+        # set node's split improvement and split values
         self._determine_best_split_of_node(node)
 
-        # Todo: was wenn selected werden soll aber nicht geht? check node=last_sampled?
-        # termination condition ignorieren wenn node fuer selection ausgewaehlt?
+        # check termination criterion and if node needs to be pushed to leaf nodes
         if node.split_improvement < self.min_error_gain:
+            if node == self.last_sampled_node:
+                heapq.heappush(self.leaf_nodes, (node.score, node.idx, node))
             return  # stop growing
 
         self._split_node(node)
@@ -228,12 +255,16 @@ class DecisionTree:
         if node.error is None:
             node.error = self._calculate_partition_error(node.target)
 
-        # Todo: only evaluate 40% (max_features_split) of features?
         feature_count = node.features.shape[1]
-        for col in range(feature_count):
+        feature_cols = list(range(feature_count))
+
+        if self.max_features_split < 1.0:
+            reduced_count = int(feature_count * self.max_features_split)
+            feature_cols = random.sample(range(0, feature_count - 1), reduced_count)
+
+        for col in feature_cols:
             cut, split_error = self._get_best_split_of_feature(node.features, node.target, col)
             if cut == split_error == -1:
-                # Todo: better solution if feature not splittable?
                 continue
 
             error_improvement = node.error - split_error
@@ -351,13 +382,10 @@ class DecisionTree:
 
     def _calculate_partition_error(self, target):
         """
-        Calculate the error value of a given node according to homogeneity metric (self.homog_metric)
+        Calculate the error value of a given node according to homogeneity metric.
         """
-        # Todo: more? Std deviation?
-        if self.error_metric == 'mse':  # same as mse? Lowest value = best
-            # for each target in node, calculate error value from predicted node
-            return np.mean((target - np.mean(target)) ** 2.0)
-        log_error("Error metric {} not implemented.".format(self.error_metric))
+        # for each target in node, calculate error value from predicted node
+        return np.mean((target - np.mean(target)) ** 2.0)
 
     def _get_config_from_partition(self, params):
         """
@@ -381,7 +409,7 @@ class DecisionTree:
         Return next configuration to be profiled.
         """
         next_node = self._determine_node_to_sample()
-        config = self._get_config_from_partition(next_node.parameters)
+        config = self._get_config_from_partition(params=next_node.parameters)
         return config
 
     def build_tree(self):
@@ -402,6 +430,7 @@ class DecisionTree:
 
         curr_node.features = np.append(curr_node.features, [c], axis=0)
         curr_node.target = np.append(curr_node.target, t)
+        self.sample_count += 1
 
         curr_node.error = self._calculate_partition_error(curr_node.target)
         self._grow_tree_at_node(curr_node)
@@ -424,24 +453,22 @@ class DecisionTree:
         """
         Print tree to STDOUT.
         """
-        base = "   " * node.depth + condition
-        if node.split_feature_index:
-            print("%s if X[%s] <= %s" % (base, node.split_feature_index, node.split_feature_cut_val))
-            self.print_tree(node.left, "then")
-            self.print_tree(node.right, "else")
-
-        else:
-            node.calculate_pred_value()
-            print("%s <value: %s, samples in partition: %s>" % (base, node.pred_value, node.partition_size))
+        if node is not None:
+            print(condition)
+            print(str(node))
+            if node.split_feature_index is not None:
+                cond = ("X[%s] <= %s" % (node.split_feature_index, node.split_feature_cut_val))
+                self.print_tree(node.left, ("if " + cond))
+                self.print_tree(node.right, ("if not " + cond))
 
 
 class ObliqueDecisionTree(DecisionTree):
 
-    def _prepare_tree(self, parameters, sampled_cfgs, sample_res):
+    def _prepare_tree(self, parameters, sampled_confs, sample_res):
         """
         Set root node, VNF count and Feature-index-to-name dictionary.
         """
-        features = np.array(sampled_cfgs)
+        features = np.array(sampled_confs)
         target = np.array(sample_res)
         self.vnf_count = features.shape[1] // len(parameters)
 
@@ -460,7 +487,6 @@ class ObliqueDecisionTree(DecisionTree):
         self._root = ONode(params, features, target, 1, 0)
 
         # determine overall config space size for calculating score
-        self._root.calculate_partition_size()
         self._root.set_config_size(self._root.partition_size)
         LOG.info("Decision Tree Model initialized.")
 
@@ -474,14 +500,17 @@ class ObliqueDecisionTree(DecisionTree):
         sample_count, feature_count = node.features.shape
 
         # get feature index with lowest error and its corresponding tuple of cut value and its error
-        splits = self._get_best_splits_for_all_features(node.features, node.target)
-        # Todo: split_tuple[0] teilweise +- Inf! Manche features koennen nicht gesplitted werden und returnen (-1,-1)
-        # Todo: nicht notwendig fuer alle features den split zu berechnen, brauche nur den mit lowest error!
-        index, split_tuple = min(enumerate(splits), key=lambda x: x[1][1])
+        index, cut_val = self._get_feature_with_best_split(node.features, node.target)
+
+        if index == -1 or cut_val == -1:
+            node.split_improvement = 0
+            node.split_vector = None
+            LOG.info("It's not possible to split this node further.")
+            return
 
         # initiate split_vector to enable the linear combination split, last elem is the cut value
         node.split_vector = np.zeros((feature_count + 1,))
-        node.split_vector[-1] = split_tuple[0]
+        node.split_vector[-1] = cut_val
         node.split_vector[index] = 1
 
         # split partition by split vector
@@ -500,30 +529,33 @@ class ObliqueDecisionTree(DecisionTree):
             # updates node's split vector and error improvement to the vector with minimal error
             self._perturb_hyperplane_coefficients(node, feature_idx)
 
-    def _get_best_splits_for_all_features(self, features, target):
+    def _get_feature_with_best_split(self, features, target):
         """
-        Get List of tuples containing the best cut value and resulting (minimal) error value for each feature.
+        Return the feature index with minimal error value and its split value.
         """
-        # Todo: nur split mit minimalem error returnen!
+        index = split = min_error = -1
+
         feature_count = features.shape[1]
-        result = []
-        for i in range(feature_count):
-            result.append(self._get_best_split_of_feature(features, target, i))
-        return np.array(result)
+        for col in range(feature_count):
+            cut, split_error = self._get_best_split_of_feature(features, target, col)
+            # if there is a possible split and if it's the best split so far
+            if split_error != -1 and (min_error == -1 or split_error < min_error):
+                min_error = split_error
+                index, split = col, cut
+
+        return index, split
 
     def _calculate_U_value(self, row, split_vector, feature_idx):
         """
         Calculate U_j  values as in p.10 of Murthy.
         """
         upper = split_vector[feature_idx] * row[feature_idx] - self._check_config_position(row, split_vector)
-        if upper == 0:
-            return 0
         return upper / row[feature_idx]
 
     def _perturb_hyperplane_coefficients(self, node: ONode, feature_idx):
         # calculate all values of U with the current value for feature_idx in split_vector
         u_values = [[self._calculate_U_value(row, node.split_vector, feature_idx)] for row in node.features]
-        u_values= np.array(sorted(u_values))
+        u_values = np.array(sorted(u_values))
 
         # possible splits are the midpoints between Uj values
         possible_cuts = self._get_possible_splits(u_values, 0)
@@ -554,11 +586,10 @@ class ObliqueDecisionTree(DecisionTree):
     def _check_config_position(self, row, split_vector):
         """
         Calculates V_j, the sign of the sample (Murthy et. al).
-
         Used to check if a configuration is above or below hyperplane.
+        (split_vector[-1] is the cut value of the best feature split)
         """
         temp = np.multiply(row, split_vector[:-1])
-        # subtract cut value from sum
         return np.sum(temp) - split_vector[-1]
 
     def _split_samples(self, features, target, **kwargs):
@@ -607,8 +638,8 @@ class ObliqueDecisionTree(DecisionTree):
         node.right.error = self._calculate_partition_error(node.right.target)
 
         # calculate score for child nodes
-        node.left.calculate_score(self.weight_size)
-        node.right.calculate_score(self.weight_size)
+        node.left.calculate_score(self.weight_size, sample_count=self.sample_count)
+        node.right.calculate_score(self.weight_size, sample_count=self.sample_count)
 
         # add child nodes to leaf-node heap
         heapq.heappush(self.leaf_nodes, (node.left.score, node.left.idx, node.left))
@@ -618,7 +649,9 @@ class ObliqueDecisionTree(DecisionTree):
         """
         Return two adjusted parameter arrays that remove parameter values below/above split_vector.
         """
-        # Todo determine where split line cuts the feature values
+        # Todo determine where split line cuts the param values
+        # TODO: APPROXIMATE? Find min/max values in samples and take random number inbetween
+
         if "split_vector" not in kwargs:
             log_error("Can't recalculate parameters without split vector.")
 
@@ -626,11 +659,79 @@ class ObliqueDecisionTree(DecisionTree):
         params_left = [dict(d) for d in params]
         params_right = [dict(d) for d in params]
 
-        for i in range(len(params)):
+        # get minimum and maximum value of each parameter
+        bounds = []
+        for dic in params:
+            for param in dic:
+                l = dic[param]
+                if not l:
+                    bounds.append((-1, -1))
+                    log_error("There need to be available parameter values for each parameter")
+                else:
+                    bounds.append((l[0], l[-1]))
+
+        # calculate new bounds for left partition through linear programming
+        bounds_left = []
+        feature_count = len(split_vector) - 1
+
+        coefficents = np.array([split_vector[:-1]])
+        # subtract 0.000001 from constant system is solved for <= and not <
+        constant = split_vector[-1] - 0.000001
+
+        for i in range(feature_count):
+            f = np.zeros(feature_count)
+            f[i] = 1
+            res = linprog(c=f, A_ub=coefficents, b_ub=constant, bounds=bounds)
+            mini = res.x[i]
+
+            f[i] = -1
+            res = linprog(c=f, A_ub=coefficents, b_ub=constant, bounds=bounds)
+            maxi = res.x[i]
+            bounds_left.append((int(mini), int(maxi)))
+
+        print("Bounds Left: %s" % bounds_left)
+
+        for i in range(len(bounds_left)):
             vnf_idx, param = self.feature_idx_to_name.get(i)
-            values = params[vnf_idx].get(param)
-            cut_value = split_vector[i]
-            params_left[vnf_idx][param] = [val for val in values if val <= cut_value]
-            params_right[vnf_idx][param] = [val for val in values if val > cut_value]
+            values = params[vnf_idx][param]
+            mini, maxi = bounds_left[i]
+            params_left[vnf_idx][param] = []
+            params_right[vnf_idx][param] = []
+            for val in values:
+                if mini <= val <= maxi:
+                    params_left[vnf_idx][param].append(val)
+                else:
+                    params_right[vnf_idx][param].append(val)
 
         return params_left, params_right
+
+    def print_tree(self, node: ONode, condition=""):
+        """
+        Print tree to STDOUT.
+        """
+        if node is not None:
+            print(condition)
+            print(str(node))
+            if node.split_vector is not None:
+                split_cond = ""
+                for i in range(len(node.split_vector) - 1):
+                    if node.split_vector[i] != 0:
+                        split_cond += "f{}*{} + ".format(i, node.split_vector[i])
+                split_cond = split_cond[:-2] + "< {}".format(node.split_vector[-1])
+                self.print_tree(node.left, ("if " + split_cond))
+                self.print_tree(node.right, ("if not " + split_cond))
+
+    def _get_config_from_partition(self, params, split_vector=None):
+        # Todo: Check if selected config has been sampled before?
+        if "split_vectors" is None:
+            log_error("Can't select configuration from partition without split vectors.")
+
+        c = []
+        for dict in params:
+            vnf = {}
+            for param in dict.keys():
+                vnf[param] = choice(dict.get(param))
+            c.append(vnf)
+
+        return tuple(c)
+
