@@ -133,6 +133,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
 
         del s
 
+    """
     def test_initialize_tree_oblique(self):
         s = self._new_DTS(regression="oblique")
         for i in range(10):
@@ -145,6 +146,8 @@ class TestDecisionTreeSelector(unittest.TestCase):
         self.assertEqual(len(s._sample_results), 10)
 
         del s
+        
+    """
 
     def test_next(self):
         s = self._new_DTS()
