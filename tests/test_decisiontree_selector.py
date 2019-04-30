@@ -162,8 +162,8 @@ class TestDecisionTreeSelector(unittest.TestCase):
             s.feedback(c, random.uniform(1, 10))
 
         self.assertTrue(s._tree is not None)
-        self.assertEqual(len(s._sampled_configs), 11)
-        self.assertEqual(len(s._sample_results), 11)
+        self.assertEqual(len(s._sampled_configs), 10)
+        self.assertEqual(len(s._sample_results), 10)
         self.assertEqual(s.k_samples, 11)
 
         del s

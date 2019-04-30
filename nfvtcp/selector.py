@@ -947,9 +947,8 @@ class DecisionTreeSelector(Selector):
         p.update(kwargs)
 
         # members
+        # parameter anc config set through Selector set_inputs, e.g. {'c1': [1,2,4,...], 'c2': ...}
         self.pm_inputs = list()  # = config space
-
-        # parameter dict set through Selector set_inputs, e.g. {'c1': [0.01, 0.2575, 0.505, 0.7525, 1.0], 'c2': ...}
         self.pm_parameter = dict()
         self.params = p
         self.k_samples = 0
@@ -969,7 +968,7 @@ class DecisionTreeSelector(Selector):
             self._tree = DecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs), self._sample_results)
         elif regr == 'oblique':
             self._tree = ObliqueDecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs),
-                                             self._sample_results)
+                                             self._sample_results, config_space=flatten_conf(self.pm_inputs))
         else:
             LOG.error("DT Regression technique '{}‘ not supported.".format(regr))
             LOG.error("Exit!")
@@ -997,7 +996,7 @@ class DecisionTreeSelector(Selector):
         return result
 
     def _select_random_config(self):
-        # Todo: check if config sampled already?
+        # Todo: check if config sampled already
         idx = np.random.randint(0, len(self.pm_inputs))
         return self.pm_inputs[idx]
 
@@ -1006,9 +1005,10 @@ class DecisionTreeSelector(Selector):
         Inform selector about result for single configuration.
         Adapt tree to newest profiling result.
         """
-        self._sampled_configs.append(c)
-        self._sample_results.append(r)
-        if self._tree:
+        if self._tree is None:
+            self._sampled_configs.append(c)
+            self._sample_results.append(r)
+        else:
             # flatten config
             f = []
             for d in c:

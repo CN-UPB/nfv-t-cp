@@ -163,7 +163,8 @@ class TestDecisionTree(unittest.TestCase):
 
 
 class TestObliqueDecisionTree(unittest.TestCase):
-
+    pass
+    """
     def test_grow_tree_at_node(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
         features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
@@ -174,18 +175,6 @@ class TestObliqueDecisionTree(unittest.TestCase):
         dtree._grow_tree_at_node(root)
         #dtree.print_tree(root)
 
-    """
-    def test__calculate_new_parameters(self):
-        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
-        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
-        target = [0.61, 0.55, 0.32, 0.91]
-        split_vector = np.array([1, -0.00390625, 0, -0.01757812, 2.5])
-
-        dtree = ObliqueDecisionTree(params, features, target)
-        root = dtree.get_tree()
-        left, right = dtree._calculate_new_parameters(root.parameters, split_vector=split_vector)
-        print(left)
-        print(right)
     """
 
 if __name__ == '__main__':
