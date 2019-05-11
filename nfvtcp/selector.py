@@ -986,6 +986,7 @@ class DecisionTreeSelector(Selector):
 
         :return: selected configuration
         """
+        # Todo select multiple configs from same partition
         if self.k_samples == self.params.get("initial_samples"):
             self._initialize_tree()
         if not self._tree:

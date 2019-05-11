@@ -211,6 +211,7 @@ class DecisionTree:
         next_node = heapq.heappop(self.leaf_nodes)
         next_node = next_node[2]
 
+        # Todo: adapt so that ONode asks for next_node.split_vector instead
         # if node with highest score has already been split then find the next best node
         while next_node.split_feature_index and self.leaf_nodes:
             next_node = heapq.heappop(self.leaf_nodes)
@@ -486,7 +487,8 @@ class ObliqueDecisionTree(DecisionTree):
                 self.feature_idx_to_name[index] = (vnf, key)
                 index += 1
 
-        self._root = ONode(params, self.p.get("config_space"), features, target, 1, 0)
+        c_space = np.array(self.p.get("config_space"))
+        self._root = ONode(c_space, features, target, 1, 0)
 
         # determine overall config space size for calculating score
         self._root.set_config_size(self._root.partition_size)
@@ -552,6 +554,8 @@ class ObliqueDecisionTree(DecisionTree):
         Calculate U_j  values as in p.10 of Murthy.
         """
         upper = split_vector[feature_idx] * row[feature_idx] - self._check_config_position(row, split_vector)
+        if upper == 0:
+            return 0
         return upper / row[feature_idx]
 
     def _perturb_hyperplane_coefficients(self, node: ONode, feature_idx):
@@ -652,8 +656,8 @@ class ObliqueDecisionTree(DecisionTree):
     def _split_config_space(self, config_space_partition, split_vector):
         config_count, feature_count = config_space_partition.shape
 
-        partition_above = np.zeros((1, feature_count + 1))
-        partition_below = np.zeros((1, feature_count + 1))
+        partition_above = np.zeros((1, feature_count))
+        partition_below = np.zeros((1, feature_count))
 
         for row in config_space_partition:
             config_pos = self._check_config_position(row, split_vector)
@@ -665,22 +669,6 @@ class ObliqueDecisionTree(DecisionTree):
         partition_above = np.delete(partition_above, 0, axis=0)
         partition_below = np.delete(partition_below, 0, axis=0)
         return partition_below, partition_above
-
-    def print_tree(self, node: ONode, condition=""):
-        """
-        Print tree to STDOUT.
-        """
-        if node is not None:
-            print(condition)
-            print(str(node))
-            if node.split_vector is not None:
-                split_cond = ""
-                for i in range(len(node.split_vector) - 1):
-                    if node.split_vector[i] != 0:
-                        split_cond += "f{}*{} + ".format(i, node.split_vector[i])
-                split_cond = split_cond[:-2] + "< {}".format(node.split_vector[-1])
-                self.print_tree(node.left, ("if " + split_cond))
-                self.print_tree(node.right, ("if not " + split_cond))
 
     def _get_config_from_partition(self, config_partition=None):
         # Todo: Check if selected config has been sampled before
@@ -697,3 +685,19 @@ class ObliqueDecisionTree(DecisionTree):
             c.append(vnf)
 
         return tuple(c)
+
+    def print_tree(self, node: ONode, condition=""):
+        """
+        Print tree to STDOUT.
+        """
+        if node is not None:
+            print(condition)
+            print(str(node))
+            if node.split_vector is not None:
+                split_cond = ""
+                for i in range(len(node.split_vector) - 1):
+                    if node.split_vector[i] != 0:
+                        split_cond += "f{}*{} + ".format(i, node.split_vector[i])
+                split_cond = split_cond[:-2] + "< {}".format(node.split_vector[-1])
+                self.print_tree(node.left, ("if " + split_cond))
+                self.print_tree(node.right, ("if not " + split_cond))
