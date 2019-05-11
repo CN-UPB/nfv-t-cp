@@ -20,7 +20,7 @@ import networkx as nx
 import numpy as np
 import random
 from nfvtcp.selector import DecisionTreeSelector
-from nfvtcp.pmodel import SfcPerformanceModel, VnfPerformanceModel
+from nfvtcp.pmodel import SfcPerformanceModel, VnfPerformanceModel, ExampleModel
 
 
 # Test Oblique Tree
@@ -77,15 +77,20 @@ class TestDecisionTreeSelector(unittest.TestCase):
     def setUp(self):
         # instantiate a performance model for the tests
         [pm] = PerformanceModel_4VNF.generate(None)
+        [pm1] = ExampleModel.generate(None)
         # definition of possible PM parameters
         self.DEFAULT_PM = pm
+        self.DEFAULT_PM_EXAMPLE = pm1
         # cross product of possible PM parameters
         self.DEFAULT_PM_INPUTS = pm.get_conf_space()
+        self.DEFAULT_PM_INPUTS_EXAMPLE = pm1.get_conf_space()
 
     def _new_DTS(self, max_samples=60,
                  initial_samples=10,
                  max_depth=100,
                  regression="default",
+                 min_samples_split=2,
+                 example=False,
                  conf={}):
 
         s = DecisionTreeSelector(
@@ -93,8 +98,13 @@ class TestDecisionTreeSelector(unittest.TestCase):
             initial_samples=initial_samples,
             max_depth=max_depth,
             regression=regression,
+            min_samples_split=min_samples_split,
             **conf)
-        s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
+
+        if not example:
+            s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
+        else:
+            s.set_inputs(self.DEFAULT_PM_INPUTS_EXAMPLE, self.DEFAULT_PM_EXAMPLE)
         return s
 
     def test_initialize(self):
@@ -133,9 +143,9 @@ class TestDecisionTreeSelector(unittest.TestCase):
 
         del s
 
-    """
     def test_initialize_tree_oblique(self):
-        s = self._new_DTS(regression="oblique")
+        # test with ExampleModel
+        s = self._new_DTS(regression="oblique", min_samples_split=4, example=True)
         for i in range(10):
             c = s._select_random_config()
             s.feedback(c, random.uniform(1, 10))
@@ -146,8 +156,6 @@ class TestDecisionTreeSelector(unittest.TestCase):
         self.assertEqual(len(s._sample_results), 10)
 
         del s
-        
-    """
 
     def test_next(self):
         s = self._new_DTS()
@@ -167,6 +175,27 @@ class TestDecisionTreeSelector(unittest.TestCase):
         self.assertEqual(s.k_samples, 11)
 
         del s
+
+    """
+    def test_next_oblique(self):
+        s = self._new_DTS(regression="oblique", min_samples_split=4, example=True)
+        c = s._next()
+        self.assertTrue(s._tree is None)
+        self.assertEqual(len(s._sampled_configs), 0)
+        self.assertEqual(len(s._sample_results), 0)
+        self.assertEqual(s.k_samples, 1)
+        s.feedback(c, random.uniform(1, 10))
+        for i in range(10):
+            c = s._next()
+            s.feedback(c, random.uniform(1, 10))
+
+        self.assertTrue(s._tree is not None)
+        self.assertEqual(len(s._sampled_configs), 10)
+        self.assertEqual(len(s._sample_results), 10)
+        self.assertEqual(s.k_samples, 11)
+
+        del s
+    """
 
 
 if __name__ == '__main__':

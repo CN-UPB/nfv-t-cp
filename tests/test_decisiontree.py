@@ -160,22 +160,13 @@ class TestDecisionTree(unittest.TestCase):
         root = dtree.get_tree()
         dtree._grow_tree_at_node(root)
         dtree.print_tree(root)
+        del dtree
 
 
 class TestObliqueDecisionTree(unittest.TestCase):
+
     pass
-    """
-    def test_grow_tree_at_node(self):
-        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
-        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
-        target = [0.61, 0.55, 0.32, 0.91]
 
-        dtree = ObliqueDecisionTree(params, features, target)
-        root = dtree.get_tree()
-        dtree._grow_tree_at_node(root)
-        #dtree.print_tree(root)
-
-    """
 
 if __name__ == '__main__':
     unittest.main()
