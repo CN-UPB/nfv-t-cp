@@ -162,9 +162,21 @@ class TestDecisionTree(unittest.TestCase):
         dtree.print_tree(root)
         del dtree
 
+    def test_get_config_from_partition(self):
+        params = {"a": [1, 2, 3], "b": [8, 16, 32, 64, 256]}
+        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
+        target = [0.61, 0.55, 0.32, 0.91]
+        dtree = DecisionTree(params, features, target)
+        root = dtree.get_tree()
+        c = dtree._get_config_from_partition(root)
+        self.assertEqual(len(c), 2)
+        self.assertEqual(len(c[0]), 2)
+
+        del dtree
+
 
 class TestObliqueDecisionTree(unittest.TestCase):
-
+    # Todo
     pass
 
 

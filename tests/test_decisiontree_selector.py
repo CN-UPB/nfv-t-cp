@@ -89,17 +89,15 @@ class TestDecisionTreeSelector(unittest.TestCase):
                  initial_samples=10,
                  max_depth=100,
                  regression="default",
-                 min_samples_split=2,
-                 example=False,
-                 conf={}):
+                 min_samples_split=4,
+                 example=False):
 
         s = DecisionTreeSelector(
             max_samples=max_samples,
             initial_samples=initial_samples,
             max_depth=max_depth,
             regression=regression,
-            min_samples_split=min_samples_split,
-            **conf)
+            min_samples_split=min_samples_split)
 
         if not example:
             s.set_inputs(self.DEFAULT_PM_INPUTS, self.DEFAULT_PM)
@@ -176,7 +174,6 @@ class TestDecisionTreeSelector(unittest.TestCase):
 
         del s
 
-    """
     def test_next_oblique(self):
         s = self._new_DTS(regression="oblique", min_samples_split=4, example=True)
         c = s._next()
@@ -195,7 +192,15 @@ class TestDecisionTreeSelector(unittest.TestCase):
         self.assertEqual(s.k_samples, 11)
 
         del s
-    """
+
+    def test_print_tree(self):
+        s = self._new_DTS(regression="oblique", example=True)
+        for i in range(11):
+            c = s._next()
+            s.feedback(c, random.uniform(1, 10))
+
+        s._tree.print_tree(s._tree.get_tree())
+        del s
 
 
 if __name__ == '__main__':
