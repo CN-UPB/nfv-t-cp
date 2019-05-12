@@ -937,13 +937,14 @@ class DecisionTreeSelector(Selector):
         # should contain number of initial samples for DT construction
         p = {"max_samples": -1,
              "intial_samples": 10,
-             "max_depth": None,
+             "max_depth": ((2 ** 31) - 1),
              "regression": 'default',
              "error_metric": 'mse',
-             "min_error_gain": 0.001,
-             "weight_size": 0.2,
-             "min_samples_split": 2,
-             "max_features_split": 1.0}
+             "min_error_gain": 0.001,  # minimum improvement to do a split
+             "weight_size": 0.2,  # weight of the partition size
+             "min_samples_split": 4,  # minimum number of samples a node needs to have for split
+             "max_features_split": 1.0}  # consider only 30-40% of features for split search
+
         p.update(kwargs)
 
         # members
@@ -965,10 +966,23 @@ class DecisionTreeSelector(Selector):
         """
         regr = self.params.get("regression")
         if regr == 'default':
-            self._tree = DecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs), self._sample_results)
+            self._tree = DecisionTree(self.pm_parameter,
+                                      flatten_conf(self._sampled_configs),
+                                      self._sample_results,
+                                      max_depth=self.params.get("max_depth"),
+                                      min_error_gain=self.params.get("min_error_gain"),
+                                      min_samples_split=self.params.get("min_samples_split"),
+                                      max_features_split=self.params.get("max_features_split"),
+                                      weight_size=self.params.get("weight_size"))
         elif regr == 'oblique':
-            self._tree = ObliqueDecisionTree(self.pm_parameter, flatten_conf(self._sampled_configs),
-                                             self._sample_results, config_space=flatten_conf(self.pm_inputs))
+            self._tree = ObliqueDecisionTree(self.pm_parameter,
+                                             flatten_conf(self._sampled_configs),
+                                             self._sample_results,
+                                             config_space=flatten_conf(self.pm_inputs),
+                                             max_depth=self.params.get("max_depth"),
+                                             min_error_gain=self.params.get("min_error_gain"),
+                                             min_samples_split=self.params.get("min_samples_split"),
+                                             weight_size=self.params.get("weight_size"))
         else:
             LOG.error("DT Regression technique '{}‘ not supported.".format(regr))
             LOG.error("Exit!")

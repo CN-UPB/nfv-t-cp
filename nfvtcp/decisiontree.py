@@ -56,7 +56,6 @@ class Node:
         self.split_feature_index = None
         self.split_feature_cut_val = None
         self.split_improvement = 0
-        self.pred_value = None
         self.error = None  # deviation from prediction. Smaller = better
         self.partition_size = None  # number of configs in partition
         self.score = None
@@ -79,9 +78,6 @@ class Node:
 
         self.partition_size = res
 
-    def calculate_pred_value(self):
-        self.pred_value = np.mean(self.target)
-
     def calculate_score(self, weight_size):
         """
         Calculate the node's score.
@@ -94,6 +90,9 @@ class Node:
 
         # negate because of min heap and we want biggest score
         self.score = (-1) * t
+
+    def is_leaf_node(self):
+        return self.split_feature_index is None
 
 
 class ONode(Node):
@@ -118,14 +117,12 @@ class ONode(Node):
         self.idx = idx
         self.split_vector = None
         self.split_improvement = 0
-        self.pred_value = None
         self.error = None  # deviation from prediction. Smaller = better
-        self.partition_size = None  # number of configs in partition
+        self.partition_size = len(self.config_partition)  # number of configs in partition
         self.score = None
 
     def __str__(self):
-        return "params:\t{}\ndepth:\t{}\nfeatures:\t{}\ntarget:\t{}\npartition size:\t{}\nerror:\t{}\nscore:\t{}\nvector:\t{}\n".format(
-            self.parameters,
+        return "depth:\t{}\nfeatures:\t{}\ntarget:\t{}\npartition size:\t{}\nerror:\t{}\nscore:\t{}\nvector:\t{}\n".format(
             self.depth,
             self.features,
             self.target,
@@ -145,6 +142,9 @@ class ONode(Node):
         # negate because of min heap and we want biggest score
         self.score = (-1) * t
 
+    def is_leaf_node(self):
+        return self.split_vector is None
+
 
 class DecisionTree:
     """
@@ -153,11 +153,10 @@ class DecisionTree:
 
     def __init__(self, parameters, sampled_configs, sample_results, **kwargs):
         self.p = {"max_depth": ((2 ** 31) - 1),
-                  "min_error_gain": 0.001,  # minimum improvement to do a split
-                  "weight_size": 0.2,  # weight of the partition size
-                  "min_samples_split": 2,  # minimum number of samples a node needs to have for split
-                  "max_features_split": 1.0}  # consider only 30-40% of features for split search
-
+                  "min_error_gain": 0.001,
+                  "weight_size": 0.2,
+                  "min_samples_split": 2,
+                  "max_features_split": 1.0}
         self.p.update(kwargs)
 
         self._root = None
@@ -204,16 +203,15 @@ class DecisionTree:
         Done by returning leaf node with the lowest score value.
         Assumes that no node is sampled twice, since the node is split after sampling from it.
         """
-        if not self.leaf_nodes:
+        if self.leaf_nodes is None:
             log_error("Decision Tree model has no leaf nodes to sample.")
 
         # remove node with lowest score from heap, will be split upon call of "adapt_tree"
         next_node = heapq.heappop(self.leaf_nodes)
         next_node = next_node[2]
 
-        # Todo: adapt so that ONode asks for next_node.split_vector instead
         # if node with highest score has already been split then find the next best node
-        while next_node.split_feature_index and self.leaf_nodes:
+        while next_node.is_leaf_node() is False and self.leaf_nodes is not None:
             next_node = heapq.heappop(self.leaf_nodes)
             next_node = next_node[2]
 
@@ -386,7 +384,7 @@ class DecisionTree:
         # for each target in node, calculate error value from predicted node
         return np.mean((target - np.mean(target)) ** 2.0)
 
-    def _get_config_from_partition(self, params=None):
+    def _get_config_from_partition(self, node):
         """
         Given the node to sample from, randomly select a configuration from the node's partition space.
         Done by randomly choosing parameter values within the node's parameter thresholds.
@@ -395,7 +393,7 @@ class DecisionTree:
         """
         # Todo: Check if selected config has been sampled before?
         c = []
-        for dict in params:
+        for dict in node.parameters:
             vnf = {}
             for param in dict.keys():
                 vnf[param] = choice(dict.get(param))
@@ -408,7 +406,7 @@ class DecisionTree:
         Return next configuration to be profiled.
         """
         next_node = self._determine_node_to_sample()
-        config = self._get_config_from_partition(params=next_node.parameters)
+        config = self._get_config_from_partition(next_node)
         return config
 
     def build_tree(self):
@@ -462,8 +460,6 @@ class DecisionTree:
 
 
 class ObliqueDecisionTree(DecisionTree):
-
-    # TODO: Actually partition the config space
 
     def _prepare_tree(self, parameters, sampled_confs, sample_res):
         """
@@ -670,11 +666,10 @@ class ObliqueDecisionTree(DecisionTree):
         partition_below = np.delete(partition_below, 0, axis=0)
         return partition_below, partition_above
 
-    def _get_config_from_partition(self, config_partition=None):
+    def _get_config_from_partition(self, node):
         # Todo: Check if selected config has been sampled before
-        # Todo: Test method
-        idx = np.random.randint(0, len(config_partition))
-        c_flat = config_partition[idx]
+        idx = np.random.randint(0, len(node.config_partition))
+        c_flat = node.config_partition[idx]
 
         c, i = [], 0
         for dict in self.params:
