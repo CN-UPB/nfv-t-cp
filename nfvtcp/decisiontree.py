@@ -65,7 +65,13 @@ class Node:
         """
         Used to normalize the partition size and error values of each node
         """
-        return (val - min_val) / (max_val - min_val)
+        # TODO: case max_val == min_val? Nur ein leaf node, partition sizes are the same, error vals are the same
+        upper, lower = (val - min_val), (max_val - min_val)
+        if upper == 0:
+            return 0
+        if lower == 0:
+            return upper
+        return upper / lower
 
     def _get_partition_size(self):
         p = self.parameters
@@ -214,7 +220,7 @@ class DecisionTree:
         for id in self.leaf_nodes:
             curr_node = self.leaf_nodes[id]
             curr_node.calculate_score(self.p.get("weight_size"), min_partition, max_partition, min_error, max_error)
-            if curr_node.score > max_score:
+            if curr_node.score > max_score or next_node is None:
                 next_node = curr_node
                 max_score = curr_node.score
 
@@ -390,10 +396,10 @@ class DecisionTree:
         """
         # Todo: Check if selected config has been sampled before?
         c = []
-        for dict in node.parameters:
+        for dic in node.parameters:
             vnf = {}
-            for param in dict.keys():
-                vnf[param] = choice(dict.get(param))
+            for param in dic.keys():
+                vnf[param] = choice(dic.get(param))
             c.append(vnf)
 
         return tuple(c)

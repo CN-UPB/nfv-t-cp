@@ -936,12 +936,12 @@ class DecisionTreeSelector(Selector):
         # apply default params
         # should contain number of initial samples for DT construction
         p = {"max_samples": -1,
-             "intial_samples": 10,
+             "initial_samples": 10,
              "max_depth": ((2 ** 31) - 1),
              "regression": 'default',
              "error_metric": 'mae',
              "min_error_gain": 0.001,
-             "weight_size": 0.2,
+             "weight_size": 0.4,
              "min_samples_split": 4,
              "max_features_split": 1.0}
 
