@@ -22,7 +22,7 @@ pmodels:
 selector:
     - name: UniformRandomSelector
       # max. no. of samples to be selected (expandable)
-      max_samples: {min: 2, max: 36, step: 4}
+      max_samples: {min: 4, max: 36, step: 4}
     #- name: UniformGridSelector
     #  # max. no. of samples to be selected (expandable)
     #  max_samples: {min: 2, max: 42, step: 4}
@@ -42,6 +42,17 @@ selector:
       # max. no. of samples to be selected (expandable)
       max_samples: {min: 4, max: 36, step: 4}
       initial_samples: 4
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.4
+    - name: WeightedVnfSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      border_point_mode: 2  # 0 = max, 1 = min, 2 = both
+      border_point_mode_panic: False
+      sampling_mode_maxmin: 2 # 0 = max, 1 = min, 2 = median
+      p_samples_per_vnf: 10  # number of samples before switching to VNF with smaller weight
+
 
 predictor:
     #- name: PolynomialRegressionPredictor
