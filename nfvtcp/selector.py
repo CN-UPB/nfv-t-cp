@@ -939,11 +939,11 @@ class DecisionTreeSelector(Selector):
              "intial_samples": 10,
              "max_depth": ((2 ** 31) - 1),
              "regression": 'default',
-             "error_metric": 'mse',
-             "min_error_gain": 0.001,  # minimum improvement to do a split
-             "weight_size": 0.2,  # weight of the partition size
-             "min_samples_split": 4,  # minimum number of samples a node needs to have for split
-             "max_features_split": 1.0}  # consider only 30-40% of features for split search
+             "error_metric": 'mae',
+             "min_error_gain": 0.001,
+             "weight_size": 0.2,
+             "min_samples_split": 4,
+             "max_features_split": 1.0}
 
         p.update(kwargs)
 
@@ -1011,7 +1011,6 @@ class DecisionTreeSelector(Selector):
         return result
 
     def _select_random_config(self):
-        # Todo: check if config sampled already
         idx = np.random.randint(0, len(self.pm_inputs))
         return self.pm_inputs[idx]
 

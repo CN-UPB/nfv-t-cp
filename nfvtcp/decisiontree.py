@@ -18,8 +18,6 @@ import logging
 import os
 import numpy as np
 from random import randint, random, choice
-from scipy.optimize import linprog
-import heapq
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -35,16 +33,13 @@ class Node:
     Base Class for Decision Tree Nodes.
     """
 
-    _config_size = 0
-
-    def __init__(self, params, features, target, depth, idx):
+    def __init__(self, params, features, target, depth, idx, error):
         """
         :param params: list of dictionaries with possible parameter values for each vnf
         :param features: sampled configurations as flat 2D numpy array
         :param target: 1D numpy array of performance values of sampled configs
         :param depth: depth of node in whole tree
         """
-        # Todo: Delete feature/target/params if node is no leaf no save memory? (Can be recalculated for pruning)
 
         self.parameters = params
         self.features = features
@@ -56,8 +51,8 @@ class Node:
         self.split_feature_index = None
         self.split_feature_cut_val = None
         self.split_improvement = 0
-        self.error = None  # deviation from prediction. Smaller = better
-        self.partition_size = None  # number of configs in partition
+        self.error = error  # deviation from prediction. Smaller = better
+        self.partition_size = self._get_partition_size()  # number of configs in partition
         self.score = None
 
     def __str__(self):
@@ -66,32 +61,36 @@ class Node:
                                                                                                self.partition_size,
                                                                                                self.error, self.score)
 
-    def set_config_size(self, s):
-        Node._config_size = s
+    def _normalize_val(self, val, min_val, max_val):
+        """
+        Used to normalize the partition size and error values of each node
+        """
+        return (val - min_val) / (max_val - min_val)
 
-    def calculate_partition_size(self):
+    def _get_partition_size(self):
         p = self.parameters
         res = 1
         for dict in p:
             for key in dict.keys():
                 res *= len(dict.get(key))
 
-        self.partition_size = res
+        return res
 
-    def calculate_score(self, weight_size):
+    def calculate_score(self, weight_size, min_p, max_p, min_e, max_e):
         """
         Calculate the node's score.
         Partition size needs to be (re)calculated, in case the node was sampled.
         :param weight_size: determines the weight of the size of each partition compared to the error.
         """
-        self.calculate_partition_size()
         weight_error = 1 - weight_size
-        t = weight_error * self.error + weight_size * (self.partition_size / Node._config_size)
-
-        # negate because of min heap and we want biggest score
-        self.score = (-1) * t
+        normalized_error = self._normalize_val(self.error, min_e, max_e)
+        normalized_size = self._normalize_val(self.partition_size, min_p, max_p)
+        self.score = weight_error * normalized_error + weight_size * normalized_size
 
     def is_leaf_node(self):
+        """
+        Check if node is a leaf node.
+        """
         return self.split_feature_index is None
 
 
@@ -100,7 +99,7 @@ class ONode(Node):
     Node in Oblique Decision Tree.
     """
 
-    def __init__(self, config_part, features, target, depth, idx):
+    def __init__(self, config_part, features, target, depth, idx, error):
         """
         :param params: list of dictionaries with possible parameter values for each vnf
         :param features: sampled configurations as flat 2D numpy array
@@ -117,7 +116,7 @@ class ONode(Node):
         self.idx = idx
         self.split_vector = None
         self.split_improvement = 0
-        self.error = None  # deviation from prediction. Smaller = better
+        self.error = error  # deviation from prediction. Smaller = better
         self.partition_size = len(self.config_partition)  # number of configs in partition
         self.score = None
 
@@ -128,19 +127,6 @@ class ONode(Node):
             self.target,
             self.partition_size,
             self.error, self.score, self.split_vector)
-
-    def calculate_score(self, weight_size, sample_count=None):
-        """
-        Calculate the node's score.
-        Partition size is estimated by number of samples within the partition.
-        :param weight_size: determines the weight of the size of each partition compared to the error.
-        """
-        partition_size = (len(self.features) / sample_count)
-        weight_error = 1 - weight_size
-        t = weight_error * self.error + weight_size * partition_size
-
-        # negate because of min heap and we want biggest score
-        self.score = (-1) * t
 
     def is_leaf_node(self):
         return self.split_vector is None
@@ -153,20 +139,20 @@ class DecisionTree:
 
     def __init__(self, parameters, sampled_configs, sample_results, **kwargs):
         self.p = {"max_depth": ((2 ** 31) - 1),
-                  "min_error_gain": 0.001,
-                  "weight_size": 0.2,
-                  "min_samples_split": 2,
-                  "max_features_split": 1.0}
+                  "min_error_gain": 0.001,  # minimum improvement to do a split
+                  "weight_size": 0.2,  # weight of the partition size
+                  "min_samples_split": 2,  # minimum number of samples a node needs to have for split
+                  "max_features_split": 1.0,  # percentage of features to be considered for split
+                  "error_metric": "mae"}
         self.p.update(kwargs)
 
         self._root = None
         self._depth = 1
-        self.leaf_nodes = []  # needed for selection of node to sample, heapq heap of node scores
+        self.leaf_nodes = dict()  # hashmap of node.idx --> (node)
         self.vnf_count = None
         self.feature_idx_to_name = {}  # maps indices of features rows to corresponding vnf and parameter
         self.last_sampled_node = None
         self.node_count = 1
-        self.sample_count = len(sampled_configs)
 
         self._prepare_tree(parameters, sampled_configs, sample_results)
 
@@ -190,30 +176,47 @@ class DecisionTree:
                 self.feature_idx_to_name[index] = (vnf, key)
                 index += 1
 
-        self._root = Node(params, features, target, 1, 0)
+        err = self._calculate_partition_error(target)
+        self._root = Node(params, features, target, 1, 0, err)
+        self.leaf_nodes[self._root.idx] = self._root
 
-        # determine overall config space size for calculating score
-        self._root.calculate_partition_size()
-        self._root.set_config_size(self._root.partition_size)
         LOG.info("Decision Tree Model initialized.")
+
+    def _get_normalization_boundaries(self):
+        """
+        Get the minimum/maximum parition size and error values.
+        """
+        min_p = max_p = min_e = max_e = -1
+        for id in self.leaf_nodes:
+            curr_node = self.leaf_nodes[id]
+            if min_p == -1:
+                # initialize boundaries
+                min_p = max_p = curr_node.partition_size
+                min_e = max_e = curr_node.error
+            else:
+                # update boundaries
+                min_p = min(min_p, curr_node.partition_size)
+                max_p = max(max_p, curr_node.partition_size)
+                min_e = min(min_e, curr_node.error)
+                max_e = max(max_e, curr_node.error)
+
+        return min_p, max_p, min_e, max_e
 
     def _determine_node_to_sample(self):
         """
         Determine which leaf node (and thus config partition) needs to be explored further.
-        Done by returning leaf node with the lowest score value.
-        Assumes that no node is sampled twice, since the node is split after sampling from it.
+        Done by returning leaf node with the highest score value.
         """
-        if self.leaf_nodes is None:
-            log_error("Decision Tree model has no leaf nodes to sample.")
+        next_node = None
+        max_score = 0
+        min_partition, max_partition, min_error, max_error = self._get_normalization_boundaries()
 
-        # remove node with lowest score from heap, will be split upon call of "adapt_tree"
-        next_node = heapq.heappop(self.leaf_nodes)
-        next_node = next_node[2]
-
-        # if node with highest score has already been split then find the next best node
-        while next_node.is_leaf_node() is False and self.leaf_nodes is not None:
-            next_node = heapq.heappop(self.leaf_nodes)
-            next_node = next_node[2]
+        for id in self.leaf_nodes:
+            curr_node = self.leaf_nodes[id]
+            curr_node.calculate_score(self.p.get("weight_size"), min_partition, max_partition, min_error, max_error)
+            if curr_node.score > max_score:
+                next_node = curr_node
+                max_score = curr_node.score
 
         self.last_sampled_node = next_node
         return next_node
@@ -224,8 +227,6 @@ class DecisionTree:
         """
         # check termination criterion and if node needs to be pushed to leaf nodes
         if node.depth == self.p.get("max_depth") or len(node.target) < self.p.get("min_samples_split"):
-            if node == self.last_sampled_node:
-                heapq.heappush(self.leaf_nodes, (node.score, node.idx, node))
             return  # stop growing
 
         # set node's split improvement and split values
@@ -233,13 +234,11 @@ class DecisionTree:
 
         # check termination criterion and if node needs to be pushed to leaf nodes
         if node.split_improvement < self.p.get("min_error_gain"):
-            if node == self.last_sampled_node:
-                heapq.heappush(self.leaf_nodes, (node.score, node.idx, node))
             return  # stop growing
 
         self._split_node(node)
 
-        # depth first approach, does it matter?
+        # depth first approach
         self._grow_tree_at_node(node.left)
         self._grow_tree_at_node(node.right)
 
@@ -248,9 +247,6 @@ class DecisionTree:
         Given a node, determine the best feature and the best feature value to split the node.
         Error improvement, best feature and split value are set in the node object.
         """
-        if node.error is None:
-            node.error = self._calculate_partition_error(node.target)
-
         feature_count = node.features.shape[1]
         feature_cols = list(range(feature_count))
 
@@ -323,28 +319,27 @@ class DecisionTree:
                                                                cut_val=node.split_feature_cut_val)
 
         # adjust parameter values for childnodes
-        params_left, params_right = self._calculate_new_parameters(node.parameters,
-                                                                   feature_idx=node.split_feature_index,
-                                                                   cut_val=node.split_feature_cut_val)
-        node.left = Node(params_left, left_f, left_t, node.depth + 1, self.node_count)
-        node.right = Node(params_right, right_f, right_t, node.depth + 1, self.node_count + 1)
+        params_left, params_right = self._calculate_new_parameters(node.parameters, node.split_feature_index,
+                                                                   node.split_feature_cut_val)
+
+        # calculate error for child nodes
+        left_error = self._calculate_partition_error(left_t)
+        right_error = self._calculate_partition_error(right_t)
+
+        # create child nodes
+        node.left = Node(params_left, left_f, left_t, node.depth + 1, self.node_count, left_error)
+        node.right = Node(params_right, right_f, right_t, node.depth + 1, self.node_count + 1, right_error)
         self.node_count += 2
-        self.node_count = self.node_count % 10 ** 5
+        self.node_count = self.node_count
 
         if node.depth + 1 > self._depth:
             self._depth = node.depth + 1
 
-        # calculate error for child nodes
-        node.left.error = self._calculate_partition_error(node.left.target)
-        node.right.error = self._calculate_partition_error(node.right.target)
-
-        # calculate score for child nodes
-        node.left.calculate_score(self.p.get("weight_size"))
-        node.right.calculate_score(self.p.get("weight_size"))
-
-        # add child nodes to leaf-node heap
-        heapq.heappush(self.leaf_nodes, (node.left.score, node.left.idx, node.left))
-        heapq.heappush(self.leaf_nodes, (node.right.score, node.right.idx, node.right))
+        # adjust leaf nodes
+        if node.idx in self.leaf_nodes:
+            del self.leaf_nodes[node.idx]
+        self.leaf_nodes[node.left.idx] = node.left
+        self.leaf_nodes[node.right.idx] = node.right
 
     def _split_samples(self, features, target, **kwargs):
         """
@@ -360,13 +355,10 @@ class DecisionTree:
         right_t = target[features[:, feature_idx] > cut_val]
         return left_f, left_t, right_f, right_t
 
-    def _calculate_new_parameters(self, params, **kwargs):
+    def _calculate_new_parameters(self, params, param_index, cut_value):
         """
         Return two adjusted parameter arrays that remove parameter values below/above cut_value.
         """
-        if "feature_idx" not in kwargs or "cut_val" not in kwargs:
-            log_error("Can't recalculate parameters without feature and cut value.")
-        param_index, cut_value = kwargs["feature_idx"], kwargs["cut_val"]
         params_left = [dict(d) for d in params]
         params_right = [dict(d) for d in params]
 
@@ -381,8 +373,13 @@ class DecisionTree:
         """
         Calculate the error value of a given node according to homogeneity metric.
         """
-        # for each target in node, calculate error value from predicted node
-        return np.mean((target - np.mean(target)) ** 2.0)
+        prediction = np.mean(target)
+        if self.p.get("error_metric") == "mse":
+            return np.mean((target - prediction) ** 2.0)
+        elif self.p.get("error_metric") == "mae":
+            return np.mean(np.absolute(target - prediction))
+        else:
+            log_error("Error metric {} not supported for DecisionTree".format(self.p.get("error_metric")))
 
     def _get_config_from_partition(self, node):
         """
@@ -427,9 +424,10 @@ class DecisionTree:
 
         curr_node.features = np.append(curr_node.features, [c], axis=0)
         curr_node.target = np.append(curr_node.target, t)
-        self.sample_count += 1
 
+        # re-calculate error value
         curr_node.error = self._calculate_partition_error(curr_node.target)
+        #self.leaf_nodes[curr_node.idx] = curr_node
         self._grow_tree_at_node(curr_node)
 
     def prune_tree(self):
@@ -484,10 +482,10 @@ class ObliqueDecisionTree(DecisionTree):
                 index += 1
 
         c_space = np.array(self.p.get("config_space"))
-        self._root = ONode(c_space, features, target, 1, 0)
+        err = self._calculate_partition_error(target)
+        self._root = ONode(c_space, features, target, 1, 0, err)
+        self.leaf_nodes[self._root.idx] = self._root
 
-        # determine overall config space size for calculating score
-        self._root.set_config_size(self._root.partition_size)
         LOG.info("Decision Tree Model initialized.")
 
     def _determine_best_split_of_node(self, node: ONode):
@@ -624,32 +622,35 @@ class ObliqueDecisionTree(DecisionTree):
         Split tree at given (leaf) node according to its defined split vector.
         Create two new leaf nodes with adjusted partition, feature and target values.
         """
-        # Todo: Better way to partition config space?
         low_f, high_f, low_t, high_t = self._split_samples(node.features, node.target, split_vector=node.split_vector)
         partition_left, partition_right = self._split_config_space(node.config_partition, node.split_vector)
+
+        # delete partition of parent
         node.config_partition = None
 
-        node.left = ONode(partition_left, low_f, low_t, node.depth + 1, self.node_count)
-        node.right = ONode(partition_right, high_f, high_t, node.depth + 1, self.node_count + 1)
+        # calculate error for child nodes
+        left_error = self._calculate_partition_error(low_t)
+        right_error = self._calculate_partition_error(high_t)
+
+        node.left = ONode(partition_left, low_f, low_t, node.depth + 1, self.node_count, left_error)
+        node.right = ONode(partition_right, high_f, high_t, node.depth + 1, self.node_count + 1, right_error)
         self.node_count += 2
-        self.node_count = self.node_count % 10 ** 5
+        self.node_count = self.node_count
 
         if node.depth + 1 > self._depth:
             self._depth = node.depth + 1
 
-        # calculate error for child nodes
-        node.left.error = self._calculate_partition_error(node.left.target)
-        node.right.error = self._calculate_partition_error(node.right.target)
-
-        # calculate score for child nodes
-        node.left.calculate_score(self.p.get("weight_size"), sample_count=self.sample_count)
-        node.right.calculate_score(self.p.get("weight_size"), sample_count=self.sample_count)
-
-        # add child nodes to leaf-node heap
-        heapq.heappush(self.leaf_nodes, (node.left.score, node.left.idx, node.left))
-        heapq.heappush(self.leaf_nodes, (node.right.score, node.right.idx, node.right))
+        # adjust leaf nodes
+        if node.idx in self.leaf_nodes:
+            del self.leaf_nodes[node.idx]
+        self.leaf_nodes[node.left.idx] = node.left
+        self.leaf_nodes[node.right.idx] = node.right
 
     def _split_config_space(self, config_space_partition, split_vector):
+        """
+        Split the configuration space partition.
+        """
+        # Todo: Nicer way to do this?
         config_count, feature_count = config_space_partition.shape
 
         partition_above = np.zeros((1, feature_count))
@@ -667,7 +668,6 @@ class ObliqueDecisionTree(DecisionTree):
         return partition_below, partition_above
 
     def _get_config_from_partition(self, node):
-        # Todo: Check if selected config has been sampled before
         idx = np.random.randint(0, len(node.config_partition))
         c_flat = node.config_partition[idx]
 

@@ -193,9 +193,18 @@ class TestDecisionTreeSelector(unittest.TestCase):
 
         del s
 
-    def test_print_tree(self):
+    def test_print_tree_oblique(self):
         s = self._new_DTS(regression="oblique", example=True)
         for i in range(11):
+            c = s._next()
+            s.feedback(c, random.uniform(1, 10))
+
+        s._tree.print_tree(s._tree.get_tree())
+        del s
+
+    def test_print_tree(self):
+        s = self._new_DTS()
+        for i in range(30):
             c = s._next()
             s.feedback(c, random.uniform(1, 10))
 

@@ -27,43 +27,36 @@ class TestNode(unittest.TestCase):
         target = np.array([0.61, 0.55, 0.32, 0.91])
         d = 4
 
-        node = Node(params, features, target, d, 0)
+        node = Node(params, features, target, d, 0, 0)
 
         self.assertEqual(node.parameters, params)
         self.assertTrue((node.features == features).all())
         self.assertTrue((node.target == target).all())
         self.assertEqual(node.depth, d)
-        self.assertEqual(Node._config_size, 0)
 
-        node.set_config_size(1024)
-        self.assertEqual(Node._config_size, 1024)
-        node.set_config_size(0)
         del node
 
     def test_calc_partition_size(self):
         params = [{"a": [1, 2, 3], "b": [32]}, {"a": [1, 2], "b": [8]}]
 
-        node = Node(params, None, None, 0, 0)
-        node.calculate_partition_size()
+        node = Node(params, None, None, 0, 0, 0)
         self.assertEqual(node.partition_size, 6)
 
         node.parameters = [{"a": [1, 2], "b": [32]}, {"a": [1, 2], "b": [8]}]
-        node.calculate_partition_size()
+        node.partition_size = node._get_partition_size()
         self.assertEqual(node.partition_size, 4)
         del node
 
     def test_calc_score(self):
         params = [{"a": [1, 2, 3], "b": [32]}, {"a": [1, 2], "b": [8]}]
 
-        node = Node(params, None, None, 0, 0)
-        node.set_config_size(1000)
+        node = Node(params, None, None, 0, 0, 0)
         node.error = 0.25
-        node.calculate_score(0.5)
+        node.calculate_score(0.5, 4, 1234, 0.1, 0.8)
 
-        score = (-1) * (0.5 * 0.25 + 0.5 * (6 / 1000))
+        score = 0.5 * (0.25 - 0.1) / (0.8 - 0.1) + 0.5 * (6 - 4) / (1234 - 4)
 
         self.assertEqual(node.score, score)
-        node.set_config_size(0)
         del node
 
 
@@ -83,7 +76,6 @@ class TestDecisionTree(unittest.TestCase):
         self.assertTrue((root.target == target).all())
         self.assertEqual(dtree.vnf_count, 2)
         self.assertEqual(dtree._depth, 1)
-        self.assertNotEqual(Node._config_size, 0)
 
     def test_calc_new_params(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
@@ -92,7 +84,7 @@ class TestDecisionTree(unittest.TestCase):
 
         dtree = DecisionTree(params, features, target)
         root = dtree.get_tree()
-        p_left, p_right = dtree._calculate_new_parameters(root.parameters, feature_idx=1, cut_val=100)
+        p_left, p_right = dtree._calculate_new_parameters(root.parameters, 1, 100)
 
         self.assertEqual(len(dtree.feature_idx_to_name), 4)
         # Todo: check new parameters
@@ -106,13 +98,9 @@ class TestDecisionTree(unittest.TestCase):
         root = dtree.get_tree()
         root.split_feature_index = 3
         root.split_feature_cut_val = 50
-        root.error = 0.25
-
-        root.calculate_partition_size()
-        root.set_config_size(root.partition_size)
 
         self.assertEqual(dtree._depth, 1)
-        self.assertEqual(len(dtree.leaf_nodes), 0)
+        self.assertEqual(len(dtree.leaf_nodes), 1)
         print("root:\n{}".format(str(root)))
 
         dtree._split_node(root)
