@@ -15,7 +15,7 @@ pmodels:
     #- name: ExampleModel
     - name: NFVSDN17ExperimentMeasurements
       n_model_instances: 10
-      topologies: ["nx-sc-sq", "sc-sq-nx", "sq-nx-sc", "nx-sc-sq-phys-isolated", "sc-sq-nx-phys-isolated", "sq-nx-sc-phys-isolated"]
+      topologies: ["nx-sc-sq", "sc-sq-nx", "sq-nx-sc"]
       raw_data_path: "analysis/data/peuster_karl_ieeenfvsdn17_3vnf_sfc_profile.pkl"
     #- name: RandomSyntheticModel
     #  n_model_instances: 10
@@ -76,8 +76,8 @@ error_metrics:
     - name: RMSD
     - name: NRMSDMean
     - name: NRMSDRange
-    - name: MAE
-    - name: R2
+    #- name: MAE
+    #- name: R2
     - name: EVS
     - name: MEDAE
 
