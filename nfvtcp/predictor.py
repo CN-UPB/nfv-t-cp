@@ -197,7 +197,7 @@ class SupportVectorRegressionPredictor(Predictor):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.m = SVR(C=1.0, epsilon=self.params.get("epsilon"))
+        self.m = SVR(C=1.0, epsilon=self.params.get("epsilon"), gamma='auto')
 
 
 class SVRPredictorRbfKernel(SupportVectorRegressionPredictor):
@@ -209,7 +209,8 @@ class SVRPredictorRbfKernel(SupportVectorRegressionPredictor):
         self.m = SVR(
             kernel="rbf",
             C=1.0,
-            epsilon=self.params.get("epsilon"))
+            epsilon=self.params.get("epsilon"),
+            gamma='auto')
 
 
 class SVRPredictorLinearKernel(SupportVectorRegressionPredictor):
@@ -221,7 +222,8 @@ class SVRPredictorLinearKernel(SupportVectorRegressionPredictor):
         self.m = SVR(
             kernel="linear",
             C=1.0,
-            epsilon=self.params.get("epsilon"))
+            epsilon=self.params.get("epsilon"),
+            gamma='auto')
 
 
 class SVRPredictorPolyKernel(SupportVectorRegressionPredictor):
@@ -234,7 +236,8 @@ class SVRPredictorPolyKernel(SupportVectorRegressionPredictor):
             kernel="poly",
             C=1.0,
             epsilon=self.params.get("epsilon"),
-            degree=self.params.get("degree"))
+            degree=self.params.get("degree"),
+            gamma='auto')
 
 
 class DecisionTreeRegressionPredictor(Predictor):
