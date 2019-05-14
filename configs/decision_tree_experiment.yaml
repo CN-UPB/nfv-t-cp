@@ -13,11 +13,15 @@ result_path_add_timestamp: False
 
 pmodels:
     #- name: ExampleModel
-    - name: RandomSyntheticModel
+    - name: NFVSDN17ExperimentMeasurements
       n_model_instances: 10
-      a1_range: [0.1, 2.0]
-      func_set: [1, 2, 3, 4, 5, 6, 7, 8]
-      topologies: ["l3"]
+      topologies: ["nx-sc-sq", "sc-sq-nx", "sq-nx-sc", "nx-sc-sq-phys-isolated", "sc-sq-nx-phys-isolated", "sq-nx-sc-phys-isolated"]
+      raw_data_path: "analysis/data/peuster_karl_ieeenfvsdn17_3vnf_sfc_profile.pkl"
+    #- name: RandomSyntheticModel
+    #  n_model_instances: 10
+    #  a1_range: [0.1, 2.0]
+    #  func_set: [1, 2, 3, 4, 5, 6, 7, 8]
+    #  topologies: ["l3"]
 
 selector:
     - name: UniformRandomSelector
@@ -55,20 +59,27 @@ selector:
 
 
 predictor:
-    #- name: PolynomialRegressionPredictor
-    #  degree: [3]  # poly. degree (expandable)
-    - name: SupportVectorRegressionPredictor
+    - name: PolynomialRegressionPredictor
+      degree: [3]  # poly. degree (expandable)
+    - name: SVRPredictorRbfKernel
       epsilon: [0.1]  # epsilon (expandable)
+      scale_x: True
+    - name: SVRPredictorLinearKernel
+      epsilon: [0.1]  # epsilon (expandable)
+      scale_x: True
+    - name: SVRPredictorPolyKernel
+      epsilon: [0.1]  # epsilon (expandable)
+      scale_x: True
 
 error_metrics:
     - name: MSE
     - name: RMSD
     - name: NRMSDMean
     - name: NRMSDRange
-    #- name: MAE
-    #- name: R2
-    #- name: EVS
-    #- name: MEDAE
+    - name: MAE
+    - name: R2
+    - name: EVS
+    - name: MEDAE
 
 plot:
     - name: Boxplot
