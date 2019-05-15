@@ -1,0 +1,162 @@
+---
+name: "Analysis of Different DT Parameters"
+author: "Heidi Neuhäuser"
+version: 0.1
+
+max_time_t: null
+repetitions: 5
+result_path: "out/DT_parameter_analysis_nfvsdn.pkl"
+result_path_add_timestamp: False
+
+pmodels:
+    - name: RandomSyntheticModel
+      n_model_instances: 10
+      a1_range: [0.1, 2.0]
+      func_set: [1, 2, 3, 4, 5, 6, 7, 8]
+      topologies: ["l2", "l3", "l4", "l5", "d2", "d3", "d4", "d5"]
+      #topologies: ["d3"]
+      #topologies: ["l3"]
+
+selector:
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 8
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.4
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 12
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.4
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 8
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.5
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 12
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.5
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 8
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.6
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 12
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.6
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 8
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.7
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 12
+      max_depth: 100
+      regression: default
+      min_samples_split: 4
+      weight_size: 0.7
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 4
+      max_depth: 100
+      regression: default
+      min_samples_split: 2
+      weight_size: 0.5
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 8
+      max_depth: 100
+      regression: default
+      min_samples_split: 2
+      weight_size: 0.5
+    - name: DecisionTreeSelector
+      max_samples: {min: 4, max: 36, step: 4}
+      initial_samples: 12
+      max_depth: 100
+      regression: default
+      min_samples_split: 2
+      weight_size: 0.5
+
+predictor:
+    #- name: PolynomialRegressionPredictor
+    #  degree: [2, 3]  # (expandable)
+    - name: SVRPredictorRbfKernel
+      epsilon: [0.1]  # (expandable)
+    - name: SVRPredictorLinearKernel
+      epsilon: [0.1]  # (expandable)
+    #- name: SVRPredictorPolyKernel
+    #  epsilon: [0.1]  # (expandable)
+    - name: DecisionTreeRegressionPredictor
+      max_tree_depth: 5
+    - name: LassoRegressionPredictor
+      alpha: .1
+    - name: RidgeRegressionPredictor
+      alpha: .1
+    - name: SGDRegressionPredictor
+      alpha: .1
+
+error_metrics:
+    - name: MSE
+    - name: RMSD
+    - name: NRMSDMean
+    - name: NRMSDRange
+
+plot:
+    - name: Boxplot
+      path: plots
+      title: Error
+      x: k_samples
+      y: error_value
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - predictor
+        - degree
+        - epsilon
+        - error
+    - name: Lineplot
+      path: plots
+      title: Selector Error Comparison
+      x: k_samples
+      y: error_value
+      # column that distinguishes lines in plot
+      hue: selector_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
+      n_plots:
+        # list of columns that distinguish plots
+        - predictor
+        - degree
+        - epsilon
+        - error
+    - name: Lineplot
+      # needs fixed argument values for predictors!
+      path: plots
+      title: Predictor Error Comparison
+      x: k_samples
+      y: error_value
+      # column that distinguishes lines in plot
+      hue: predictor_conf
+      error_bars: 95  # ="sd" or =95 (for ci)
+      n_plots:
+        # list of columns that distinguish plots
+        - selector
+        - error
