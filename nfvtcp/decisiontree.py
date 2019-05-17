@@ -17,7 +17,7 @@ limitations under the License.
 import logging
 import os
 import numpy as np
-from random import randint, random, choice
+from random import randint, random, choice, sample
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -182,7 +182,7 @@ class DecisionTree:
                 self.feature_idx_to_name[index] = (vnf, key)
                 index += 1
 
-        err = self._calculate_partition_error(target)
+        err = self._calculate_prediction_error(target)
         self._root = Node(params, features, target, 1, 0, err)
         self.leaf_nodes[self._root.idx] = self._root
 
@@ -258,7 +258,7 @@ class DecisionTree:
 
         if self.p.get("max_features_split") < 1.0:
             reduced_count = int(feature_count * self.p.get("max_features_split"))
-            feature_cols = random.sample(range(0, feature_count - 1), reduced_count)
+            feature_cols = sample(range(0, feature_count - 1), reduced_count)
 
         for col in feature_cols:
             cut, split_error = self._get_best_split_of_feature(node.features, node.target, col)
@@ -305,8 +305,8 @@ class DecisionTree:
         """
         Get the error value of the partitions that would be created by a split.
         """
-        error_left_partition = self._calculate_partition_error(left_target)
-        error_right_partition = self._calculate_partition_error(right_target)
+        error_left_partition = self._calculate_prediction_error(left_target)
+        error_right_partition = self._calculate_prediction_error(right_target)
 
         left_percentage = float(left_target.shape[0]) / sample_count
         right_percentage = 1 - left_percentage
@@ -329,8 +329,8 @@ class DecisionTree:
                                                                    node.split_feature_cut_val)
 
         # calculate error for child nodes
-        left_error = self._calculate_partition_error(left_t)
-        right_error = self._calculate_partition_error(right_t)
+        left_error = self._calculate_prediction_error(left_t)
+        right_error = self._calculate_prediction_error(right_t)
 
         # create child nodes
         node.left = Node(params_left, left_f, left_t, node.depth + 1, self.node_count, left_error)
@@ -375,7 +375,7 @@ class DecisionTree:
 
         return params_left, params_right
 
-    def _calculate_partition_error(self, target):
+    def _calculate_prediction_error(self, target):
         """
         Calculate the error value of a given node according to homogeneity metric.
         """
@@ -432,8 +432,7 @@ class DecisionTree:
         curr_node.target = np.append(curr_node.target, t)
 
         # re-calculate error value
-        curr_node.error = self._calculate_partition_error(curr_node.target)
-        #self.leaf_nodes[curr_node.idx] = curr_node
+        curr_node.error = self._calculate_prediction_error(curr_node.target)
         self._grow_tree_at_node(curr_node)
 
     def prune_tree(self):
@@ -488,7 +487,7 @@ class ObliqueDecisionTree(DecisionTree):
                 index += 1
 
         c_space = np.array(self.p.get("config_space"))
-        err = self._calculate_partition_error(target)
+        err = self._calculate_prediction_error(target)
         self._root = ONode(c_space, features, target, 1, 0, err)
         self.leaf_nodes[self._root.idx] = self._root
 
@@ -522,7 +521,7 @@ class ObliqueDecisionTree(DecisionTree):
                                                                split_vector=node.split_vector)
 
         if node.error is None:
-            node.error = self._calculate_partition_error(node.target)
+            node.error = self._calculate_prediction_error(node.target)
 
         error_split = self._get_after_split_error(left_t, right_t, sample_count)
         node.split_improvement = max(node.split_improvement, (node.error - error_split))
@@ -635,8 +634,8 @@ class ObliqueDecisionTree(DecisionTree):
         node.config_partition = None
 
         # calculate error for child nodes
-        left_error = self._calculate_partition_error(low_t)
-        right_error = self._calculate_partition_error(high_t)
+        left_error = self._calculate_prediction_error(low_t)
+        right_error = self._calculate_prediction_error(high_t)
 
         node.left = ONode(partition_left, low_f, low_t, node.depth + 1, self.node_count, left_error)
         node.right = ONode(partition_right, high_f, high_t, node.depth + 1, self.node_count + 1, right_error)
