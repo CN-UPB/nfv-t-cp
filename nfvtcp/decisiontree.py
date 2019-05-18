@@ -127,12 +127,15 @@ class ONode(Node):
         self.score = None
 
     def __str__(self):
-        return "depth:\t{}\nfeatures:\t{}\ntarget:\t{}\npartition size:\t{}\nerror:\t{}\nscore:\t{}\nvector:\t{}\n".format(
+        return "depth:\t{}\nfeatures:\t{}\ntarget:\t{}\npartition size:\t{}\nerror:\t{}\nscore:\t{}\nvector:\t{}\npartitionNone:\t{}\n".format(
             self.depth,
             self.features,
             self.target,
             self.partition_size,
-            self.error, self.score, self.split_vector)
+            self.error,
+            self.score,
+            self.split_vector,
+            self.config_partition is None)
 
     def is_leaf_node(self):
         return self.split_vector is None
@@ -472,17 +475,16 @@ class ObliqueDecisionTree(DecisionTree):
         target = np.array(sample_res)
         self.vnf_count = features.shape[1] // len(parameters)
         self.p_stag = 0.3 if self.p.get("p_stag") is None else self.p.get("p_stag")
-        self.params = parameters
 
-        params = [dict(parameters)]
-        if self.vnf_count != len(params):
+        self.params = [dict(parameters)]
+        if self.vnf_count != len(self.params):
             # if vnf_count is bigger than 1, append parameter dictionary for each vnf
             for vnf in range(1, self.vnf_count):
-                params.append(dict(parameters))
+                self.params.append(dict(parameters))
 
         index = 0
-        for vnf in range(len(params)):
-            for key in params[vnf].keys():
+        for vnf in range(len(self.params)):
+            for key in self.params[vnf].keys():
                 self.feature_idx_to_name[index] = (vnf, key)
                 index += 1
 
@@ -557,6 +559,8 @@ class ObliqueDecisionTree(DecisionTree):
         upper = split_vector[feature_idx] * row[feature_idx] - self._check_config_position(row, split_vector)
         if upper == 0:
             return 0
+        if row[feature_idx] == 0:
+            return upper
         return upper / row[feature_idx]
 
     def _perturb_hyperplane_coefficients(self, node: ONode, feature_idx):
