@@ -143,7 +143,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
 
     def test_initialize_tree_oblique(self):
         # test with ExampleModel
-        s = self._new_DTS(regression="oblique", min_samples_split=4, example=True)
+        s = self._new_DTS(regression="oblique", min_samples_split=6, example=True)
         for i in range(10):
             c = s._select_random_config()
             s.feedback(c, random.uniform(1, 10))
@@ -165,6 +165,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
         s.feedback(c, random.uniform(1, 10))
         for i in range(10):
             c = s._next()
+            print(c, type(c))
             s.feedback(c, random.uniform(1, 10))
 
         self.assertTrue(s._tree is not None)
@@ -175,7 +176,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
         del s
 
     def test_next_oblique(self):
-        s = self._new_DTS(regression="oblique", min_samples_split=4, example=True)
+        s = self._new_DTS(regression="oblique", min_samples_split=6, example=True)
         c = s._next()
         self.assertTrue(s._tree is None)
         self.assertEqual(len(s._sampled_configs), 0)
@@ -184,6 +185,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
         s.feedback(c, random.uniform(1, 10))
         for i in range(10):
             c = s._next()
+            #print("config {}: {}\n".format(i + 1, c))
             s.feedback(c, random.uniform(1, 10))
 
         self.assertTrue(s._tree is not None)

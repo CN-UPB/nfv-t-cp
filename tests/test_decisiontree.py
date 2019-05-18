@@ -17,6 +17,7 @@ limitations under the License.
 import unittest
 import numpy as np
 from nfvtcp.decisiontree import *
+from nfvtcp.helper import *
 
 
 class TestNode(unittest.TestCase):
@@ -157,6 +158,7 @@ class TestDecisionTree(unittest.TestCase):
         dtree = DecisionTree(params, features, target)
         root = dtree.get_tree()
         c = dtree._get_config_from_partition(root)
+        print(c)
         self.assertEqual(len(c), 2)
         self.assertEqual(len(c[0]), 2)
 
