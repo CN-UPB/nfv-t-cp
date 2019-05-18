@@ -394,15 +394,15 @@ class DecisionTree:
 
         Config format should be: ({'c1': 1, 'c2': 1, 'c3': 1}, {'c1': 1, 'c2': 1, 'c3': 1})
         """
-        # Todo: Check if selected config has been sampled before?
         c = []
         for dic in node.parameters:
             vnf = {}
             for param in dic.keys():
                 vnf[param] = choice(dic.get(param))
             c.append(vnf)
-
-        return tuple(c)
+        res = tuple(c)
+        LOG.debug("Selected config: ()".format(res))
+        return res
 
     def select_next(self):
         """
@@ -486,6 +486,8 @@ class ObliqueDecisionTree(DecisionTree):
                 self.feature_idx_to_name[index] = (vnf, key)
                 index += 1
 
+        if self.p.get("config_space") is None:
+            log_error("Configuration Space needs to be specified for oblique tree.")
         c_space = np.array(self.p.get("config_space"))
         err = self._calculate_prediction_error(target)
         self._root = ONode(c_space, features, target, 1, 0, err)
@@ -677,14 +679,15 @@ class ObliqueDecisionTree(DecisionTree):
         c_flat = node.config_partition[idx]
 
         c, i = [], 0
-        for dict in self.params:
+        for dic in self.params:
             vnf = {}
-            for param in dict:
+            for param in dic:
                 vnf[param] = c_flat[i]
                 i += 1
             c.append(vnf)
-
-        return tuple(c)
+        res = tuple(c)
+        LOG.debug("Selected config: ()".format(res))
+        return res
 
     def print_tree(self, node: ONode, condition=""):
         """
