@@ -179,6 +179,7 @@ class DecisionTree:
 
         err = self._calculate_prediction_error(target)
         self._root = Node(self.params_per_vnf, features, target, 1, self.node_count, err)
+        self.last_sampled_node = self._root
         self.node_count += 1
         self.leaf_nodes[self._root.idx] = self._root
 
@@ -433,16 +434,12 @@ class DecisionTree:
 
         :param sample: A tuple of a flat config and a target value.
         """
-        curr_node = self.last_sampled_node
         c, t = sample[0], sample[1]
 
-        if self.last_sampled_node is None:
-            self._prepare_tree([c], t)
-            self.last_sampled_node = self._root
-        else:
-            curr_node.features = np.append(curr_node.features, [c], axis=0)
-            curr_node.target = np.append(curr_node.target, t)
-            curr_node.error = self._calculate_prediction_error(curr_node.target)
+        curr_node = self.last_sampled_node
+        curr_node.features = np.append(curr_node.features, [c], axis=0)
+        curr_node.target = np.append(curr_node.target, t)
+        curr_node.error = self._calculate_prediction_error(curr_node.target)
 
         self._grow_tree_at_node(curr_node)
 
@@ -492,6 +489,7 @@ class ObliqueDecisionTree(DecisionTree):
         err = self._calculate_prediction_error(target)
         self._root = ONode(c_space, features, target, 1, self.node_count, err)
         self.node_count += 1
+        self.last_sampled_node = self._root
         self.leaf_nodes[self._root.idx] = self._root
 
     def _determine_best_split_of_node(self, node: ONode):

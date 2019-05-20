@@ -990,7 +990,6 @@ class DecisionTreeSelector(Selector):
         else:
             result = self._tree.select_next()
         self.k_samples += 1
-
         return result
 
     def _select_random_config(self):
