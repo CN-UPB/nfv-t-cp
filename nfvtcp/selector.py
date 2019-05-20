@@ -936,11 +936,9 @@ class DecisionTreeSelector(Selector):
         # apply default params
         # should contain number of initial samples for DT construction
         p = {"max_samples": -1,
-             "initial_samples": 10,
              "max_depth": ((2 ** 31) - 1),
              "regression": 'default',
-             "error_metric": 'mae',
-             "min_error_gain": 0.001,
+             "error_metric": 'mse',
              "weight_size": 0.4,
              "min_samples_split": 4,
              "max_features_split": 1.0}
@@ -955,32 +953,24 @@ class DecisionTreeSelector(Selector):
         self.k_samples = 0
         self.selector_time_next_sum = 0
         self.selector_time_reinit_sum = 0
-        self._sampled_configs = list()
-        self._sample_results = list()
         self._tree = None
         LOG.debug("Initialized selector: {}".format(self))
 
-    def _initialize_tree(self):
+    def _initialize_tree(self, feature, target):
         """
         Initialize Decision Tree model.
         """
         regr = self.params.get("regression")
         if regr == 'default':
-            self._tree = DecisionTree(self.pm_parameter,
-                                      flatten_conf(self._sampled_configs),
-                                      self._sample_results,
+            self._tree = DecisionTree(self.pm_parameter, feature, target,
                                       max_depth=self.params.get("max_depth"),
-                                      min_error_gain=self.params.get("min_error_gain"),
                                       min_samples_split=self.params.get("min_samples_split"),
                                       max_features_split=self.params.get("max_features_split"),
                                       weight_size=self.params.get("weight_size"))
         elif regr == 'oblique':
-            self._tree = ObliqueDecisionTree(self.pm_parameter,
-                                             flatten_conf(self._sampled_configs),
-                                             self._sample_results,
+            self._tree = ObliqueDecisionTree(self.pm_parameter, feature, target,
                                              config_space=flatten_conf(self.pm_inputs),
                                              max_depth=self.params.get("max_depth"),
-                                             min_error_gain=self.params.get("min_error_gain"),
                                              min_samples_split=self.params.get("min_samples_split"),
                                              weight_size=self.params.get("weight_size"))
         else:
@@ -988,44 +978,44 @@ class DecisionTreeSelector(Selector):
             LOG.error("Exit!")
             exit(1)
 
-        self._tree.build_tree()
-
     def _next(self):
         """
-        Called in sim.py simulate measurement (it loops).
+        Called in sim.py to simulate measurement.
         Base class 'has_next' checks if max_samples were reached.
-
-        Until number of initial samples is reached, configs are sampled at random.
-        Afterwards the DT is constructed and used for selection.
 
         :return: selected configuration
         """
-        # Todo select multiple configs from same partition
-        if self.k_samples == self.params.get("initial_samples"):
-            self._initialize_tree()
         if not self._tree:
             result = self._select_random_config()
         else:
             result = self._tree.select_next()
         self.k_samples += 1
+
         return result
 
     def _select_random_config(self):
+        """
+        Select initial config uniformly at random.
+        """
         idx = np.random.randint(0, len(self.pm_inputs))
         return self.pm_inputs[idx]
+
+    def _flatten_single_config(self, c):
+        """
+        Flatten single configuration for DT.
+        """
+        res = []
+        for d in c:
+            res += d.values()
+        return res
 
     def feedback(self, c, r):
         """
         Inform selector about result for single configuration.
-        Adapt tree to newest profiling result.
+        Flatten config and adapt tree to newest profiling result.
         """
-        if self._tree is None:
-            self._sampled_configs.append(c)
-            self._sample_results.append(r)
+        f = self._flatten_single_config(c)
+        if not self._tree:
+            self._initialize_tree(f, r)
         else:
-            # flatten config
-            f = []
-            for d in c:
-                f += d.values()
-
             self._tree.adapt_tree((f, r))

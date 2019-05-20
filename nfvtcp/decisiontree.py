@@ -146,50 +146,56 @@ class DecisionTree:
     Decision Tree Base Class.
     """
 
-    def __init__(self, parameters, sampled_configs, sample_results, **kwargs):
+    def __init__(self, parameters, feature, target, **kwargs):
         self.p = {"max_depth": ((2 ** 31) - 1),
-                  "min_error_gain": 0.001,  # minimum improvement to do a split
-                  "weight_size": 0.2,  # weight of the partition size
+                  "weight_size": 0.6,  # weight of the partition size
                   "min_samples_split": 2,  # minimum number of samples a node needs to have for split
                   "max_features_split": 1.0,  # percentage of features to be considered for split
-                  "error_metric": "mae"}
+                  "error_metric": "mse"}
         self.p.update(kwargs)
 
+        self.parameters_unique = parameters
+        self.vnf_count = len(feature) // len(self.parameters_unique)
         self._root = None
         self._depth = 1
         self.leaf_nodes = dict()  # hashmap of node.idx --> (node)
-        self.vnf_count = None
-        self.feature_idx_to_name = {}  # maps indices of features rows to corresponding vnf and parameter
+        self.feature_idx_to_name = {}  # maps indices of features to corresponding vnf and parameter
+        self.params_per_vnf = self._duplicate_parameters_for_vnfs()
         self.last_sampled_node = None
-        self.node_count = 1
+        self.node_count = 0
 
-        self._prepare_tree(parameters, sampled_configs, sample_results)
+        self._prepare_tree(feature, target)
 
-    def _prepare_tree(self, parameters, sampled_confs, sample_res):
+        LOG.info("Decision Tree Model initialized.")
+
+    def _prepare_tree(self, feature, target):
         """
         Set root node, VNF count and Feature-index-to-name dictionary.
         """
-        features = np.array(sampled_confs)
-        target = np.array(sample_res)
-        self.vnf_count = features.shape[1] // len(parameters)
+        features = np.array([feature])
+        target = np.array([target])
 
-        params = [dict(parameters)]
+        self._prepare_index_to_vnf_mapping(self.params_per_vnf)
+
+        err = self._calculate_prediction_error(target)
+        self._root = Node(self.params_per_vnf, features, target, 1, self.node_count, err)
+        self.node_count += 1
+        self.leaf_nodes[self._root.idx] = self._root
+
+    def _duplicate_parameters_for_vnfs(self):
+        params = [dict(self.parameters_unique)]
         if self.vnf_count != len(params):
             # if vnf_count is bigger than 1, append parameter dictionary for each vnf
             for vnf in range(1, self.vnf_count):
-                params.append(dict(parameters))
+                params.append(dict(self.parameters_unique))
+        return params
 
+    def _prepare_index_to_vnf_mapping(self, params):
         index = 0
         for vnf in range(len(params)):
             for key in params[vnf].keys():
                 self.feature_idx_to_name[index] = (vnf, key)
                 index += 1
-
-        err = self._calculate_prediction_error(target)
-        self._root = Node(params, features, target, 1, 0, err)
-        self.leaf_nodes[self._root.idx] = self._root
-
-        LOG.info("Decision Tree Model initialized.")
 
     def _get_normalization_boundaries(self):
         """
@@ -241,9 +247,8 @@ class DecisionTree:
         # set node's split improvement and split values
         self._determine_best_split_of_node(node)
 
-        # check termination criterion and if node needs to be pushed to leaf nodes
-        if node.split_improvement < self.p.get("min_error_gain"):
-            return  # stop growing
+        if node.is_leaf_node() is True:
+            return  # node not splittable
 
         self._split_node(node)
 
@@ -265,15 +270,13 @@ class DecisionTree:
 
         for col in feature_cols:
             cut, split_error = self._get_best_split_of_feature(node.features, node.target, col)
-            if cut == split_error == -1:
-                continue
+            if cut != -1 and split_error != -1:
+                error_improvement = node.error - split_error
 
-            error_improvement = node.error - split_error
-
-            if error_improvement > node.split_improvement:
-                node.split_improvement = error_improvement
-                node.split_feature_index = col
-                node.split_feature_cut_val = cut
+                if error_improvement > node.split_improvement:
+                    node.split_improvement = error_improvement
+                    node.split_feature_index = col
+                    node.split_feature_cut_val = cut
 
     def _get_best_split_of_feature(self, features, target, feature_idx):
         """
@@ -281,20 +284,20 @@ class DecisionTree:
         """
         split_vals = self._get_possible_splits(features, feature_idx)
 
-        if len(split_vals) == 0:
-            # no split possible
-            return -1, -1
-
         sample_count = features.shape[0]
         split_error = {}
         for cut in split_vals:
             target_left_partition = target[features[:, feature_idx] <= cut]
             target_right_partition = target[features[:, feature_idx] > cut]
 
-            error_split = self._get_after_split_error(target_left_partition, target_right_partition, sample_count)
+            if len(target_left_partition) != 0 and len(target_left_partition) != len(target):
+                error_split = self._get_after_split_error(target_left_partition, target_right_partition, sample_count)
+                split_error[cut] = error_split
 
-            split_error[cut] = error_split
-        # return cut value that belongs to minimum error val
+        if len(split_error) == 0:
+            # no split possible
+            return -1, -1
+
         return min(split_error.items(), key=lambda x: x[1])
 
     def _get_possible_splits(self, features, feature_idx):
@@ -393,49 +396,54 @@ class DecisionTree:
     def _get_config_from_partition(self, node):
         """
         Given the node to sample from, randomly select a configuration from the node's partition space.
-        Done by randomly choosing parameter values within the node's parameter thresholds.
 
         Config format should be: ({'c1': 1, 'c2': 1, 'c3': 1}, {'c1': 1, 'c2': 1, 'c3': 1})
         """
+        res = self._reconstruct_random_config(node.parameters)
+        LOG.debug("Selected config: ()".format(res))
+        return res
+
+    def _reconstruct_random_config(self, parameters):
+        """
+        Randomly choose parameter values within the specified parameter thresholds.
+        """
         c = []
-        for dic in node.parameters:
+        for dic in parameters:
             vnf = {}
             for param in dic.keys():
                 vnf[param] = choice(dic.get(param))
             c.append(vnf)
-        res = tuple(c)
-        LOG.debug("Selected config: ()".format(res))
-        return res
+        return tuple(c)
 
     def select_next(self):
         """
         Return next configuration to be profiled.
         """
-        next_node = self._determine_node_to_sample()
-        config = self._get_config_from_partition(next_node)
+        if self._root is None:
+            config = self._reconstruct_random_config(self.params_per_vnf)
+        else:
+            next_node = self._determine_node_to_sample()
+            config = self._get_config_from_partition(next_node)
         return config
-
-    def build_tree(self):
-        """
-        Build tree initially until termination criterion is reached.
-        """
-        self._grow_tree_at_node(self._root)
 
     def adapt_tree(self, sample):
         """
         Add new sample values (config and performance) to feature/target of node that has last been sampled and
-        grow at that node. Re-Calculate the nodes' error value.
+        grow at that node. If no node has been sampled before, initialize tree.
 
-        :param sample: A tuple of a flat config (np.array) and a target value.
+        :param sample: A tuple of a flat config and a target value.
         """
         curr_node = self.last_sampled_node
         c, t = sample[0], sample[1]
 
-        curr_node.features = np.append(curr_node.features, [c], axis=0)
-        curr_node.target = np.append(curr_node.target, t)
+        if self.last_sampled_node is None:
+            self._prepare_tree([c], t)
+            self.last_sampled_node = self._root
+        else:
+            curr_node.features = np.append(curr_node.features, [c], axis=0)
+            curr_node.target = np.append(curr_node.target, t)
+            curr_node.error = self._calculate_prediction_error(curr_node.target)
 
-        # re-calculate error value
-        curr_node.error = self._calculate_prediction_error(curr_node.target)
         self._grow_tree_at_node(curr_node)
 
     def prune_tree(self):
@@ -467,35 +475,24 @@ class DecisionTree:
 
 class ObliqueDecisionTree(DecisionTree):
 
-    def _prepare_tree(self, parameters, sampled_confs, sample_res):
+    def _prepare_tree(self, feature, target):
         """
         Set root node, VNF count and Feature-index-to-name dictionary.
         """
-        features = np.array(sampled_confs)
-        target = np.array(sample_res)
-        self.vnf_count = features.shape[1] // len(parameters)
+        features = np.array([feature])
+        target = np.array([target])
         self.p_stag = 0.3 if self.p.get("p_stag") is None else self.p.get("p_stag")
 
-        self.params = [dict(parameters)]
-        if self.vnf_count != len(self.params):
-            # if vnf_count is bigger than 1, append parameter dictionary for each vnf
-            for vnf in range(1, self.vnf_count):
-                self.params.append(dict(parameters))
-
-        index = 0
-        for vnf in range(len(self.params)):
-            for key in self.params[vnf].keys():
-                self.feature_idx_to_name[index] = (vnf, key)
-                index += 1
+        self._prepare_index_to_vnf_mapping(self.params_per_vnf)
 
         if self.p.get("config_space") is None:
             log_error("Configuration Space needs to be specified for oblique tree.")
+
         c_space = np.array(self.p.get("config_space"))
         err = self._calculate_prediction_error(target)
-        self._root = ONode(c_space, features, target, 1, 0, err)
+        self._root = ONode(c_space, features, target, 1, self.node_count, err)
+        self.node_count += 1
         self.leaf_nodes[self._root.idx] = self._root
-
-        LOG.info("Decision Tree Model initialized.")
 
     def _determine_best_split_of_node(self, node: ONode):
         """
@@ -683,7 +680,7 @@ class ObliqueDecisionTree(DecisionTree):
         c_flat = node.config_partition[idx]
 
         c, i = [], 0
-        for dic in self.params:
+        for dic in self.params_per_vnf:
             vnf = {}
             for param in dic:
                 vnf[param] = c_flat[i]
