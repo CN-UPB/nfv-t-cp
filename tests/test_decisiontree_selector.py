@@ -112,92 +112,61 @@ class TestDecisionTreeSelector(unittest.TestCase):
         s = self._new_DTS(regression="oblique")
         del s
 
-    def test_select_random_config(self):
-        s = self._new_DTS()
-        vnf_count = 4
-        c = s._select_random_config()
-        self.assertTrue(c is not None)
-        self.assertEqual(len(c), vnf_count)
-        del s
-
     def test_feedback(self):
         s = self._new_DTS()
-        c = s._select_random_config()
+        c = s._next()
         s.feedback(c, random.uniform(1, 10))
-        self.assertEqual(len(s._sampled_configs), 1)
-        self.assertEqual(len(s._sample_results), 1)
+        self.assertEqual(s.k_samples, 1)
         del s
 
     def test_initialize_tree(self):
         s = self._new_DTS()
-        for i in range(10):
-            c = s._select_random_config()
-            s.feedback(c, random.uniform(1, 10))
-
-        s._initialize_tree()
+        self.assertTrue(s._tree is None)
+        s._initialize_tree([1, 2, 64, 2], 0.75)
         self.assertTrue(s._tree is not None)
-        self.assertEqual(len(s._sampled_configs), 10)
-        self.assertEqual(len(s._sample_results), 10)
-
         del s
 
     def test_initialize_tree_oblique(self):
         # test with ExampleModel
         s = self._new_DTS(regression="oblique", min_samples_split=6, example=True)
-        for i in range(10):
-            c = s._select_random_config()
-            s.feedback(c, random.uniform(1, 10))
+        self.assertTrue(s._tree is None)
 
-        s._initialize_tree()
+        s._initialize_tree([1, 2, 64, 2], 0.75)
+
         self.assertTrue(s._tree is not None)
-        self.assertEqual(len(s._sampled_configs), 10)
-        self.assertEqual(len(s._sample_results), 10)
-
         del s
 
     def test_next(self):
         s = self._new_DTS()
-        c = s._next()
         self.assertTrue(s._tree is None)
-        self.assertEqual(len(s._sampled_configs), 0)
-        self.assertEqual(len(s._sample_results), 0)
-        self.assertEqual(s.k_samples, 1)
-        s.feedback(c, random.uniform(1, 10))
+        self.assertEqual(s.k_samples, 0)
         for i in range(10):
             c = s._next()
             print(c, type(c))
             s.feedback(c, random.uniform(1, 10))
 
         self.assertTrue(s._tree is not None)
-        self.assertEqual(len(s._sampled_configs), 10)
-        self.assertEqual(len(s._sample_results), 10)
-        self.assertEqual(s.k_samples, 11)
+        self.assertEqual(s.k_samples, 10)
 
         del s
 
     def test_next_oblique(self):
         s = self._new_DTS(regression="oblique", min_samples_split=6, example=True)
-        c = s._next()
         self.assertTrue(s._tree is None)
-        self.assertEqual(len(s._sampled_configs), 0)
-        self.assertEqual(len(s._sample_results), 0)
-        self.assertEqual(s.k_samples, 1)
-        s.feedback(c, random.uniform(1, 10))
+        self.assertEqual(s.k_samples, 0)
         for i in range(10):
             c = s._next()
-            #print("config {}: {}\n".format(i + 1, c))
+            print(c, type(c))
             s.feedback(c, random.uniform(1, 10))
 
         self.assertTrue(s._tree is not None)
-        self.assertEqual(len(s._sampled_configs), 10)
-        self.assertEqual(len(s._sample_results), 10)
-        self.assertEqual(s.k_samples, 11)
+        self.assertEqual(s.k_samples, 10)
 
         del s
 
     def test_print_tree_oblique(self):
         s = self._new_DTS(regression="oblique", example=True)
-        for i in range(11):
+        for i in range(10):
             c = s._next()
             s.feedback(c, random.uniform(1, 10))
 

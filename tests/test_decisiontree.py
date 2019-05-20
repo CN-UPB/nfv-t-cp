@@ -62,41 +62,60 @@ class TestNode(unittest.TestCase):
 
 
 class TestDecisionTree(unittest.TestCase):
-    # Todo
 
     def test_initialize(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
-        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
-        target = [0.61, 0.55, 0.32, 0.91]
+        features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
+        target = np.array([0.61, 0.55, 0.32, 0.91])
 
-        dtree = DecisionTree(params, features, target)
+        dtree = DecisionTree(params, [1, 32, 1, 16], 0.61)
         root = dtree.get_tree()
+        root.features = features
+        root.target = target
 
         self.assertEqual(root.parameters, [dict(params), dict(params)])
         self.assertTrue((root.features == features).all())
         self.assertTrue((root.target == target).all())
         self.assertEqual(dtree.vnf_count, 2)
         self.assertEqual(dtree._depth, 1)
+        del dtree
 
     def test_calc_new_params(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
         features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
         target = np.array([0.61, 0.55, 0.32, 0.91])
 
-        dtree = DecisionTree(params, features, target)
+        dtree = DecisionTree(params, [1, 32, 1, 16], 0.61)
         root = dtree.get_tree()
-        p_left, p_right = dtree._calculate_new_parameters(root.parameters, 1, 100)
+        root.features = features
+        root.target = target
+        p_left, p_right = dtree._calculate_new_parameters(root.parameters, 1, (32 + 64) / 2)
 
         self.assertEqual(len(dtree.feature_idx_to_name), 4)
-        # Todo: check new parameters
+        self.assertEqual(dtree.vnf_count, 2)
+        self.assertEqual(len(p_left), 2)
+        self.assertEqual(len(p_right), 2)
+
+        for i in range(len(dtree.params_per_vnf)):
+            if i != 0:
+                self.assertEqual(p_left[i], {"a": [1, 2, 3], "b": [32, 64, 256]})
+                self.assertEqual(p_right[i], {"a": [1, 2, 3], "b": [32, 64, 256]})
+            else:
+                self.assertEqual(p_left[i], {"a": [1, 2, 3], "b": [32]})
+                self.assertEqual(p_right[i], {"a": [1, 2, 3], "b": [64, 256]})
+
+        del dtree
 
     def test_split_node(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
-        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
-        target = [0.61, 0.55, 0.32, 0.91]
+        features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
+        target = np.array([0.61, 0.55, 0.32, 0.91])
 
-        dtree = DecisionTree(params, features, target)
+        dtree = DecisionTree(params, [1, 32, 1, 16], 0.61)
         root = dtree.get_tree()
+        root.features = features
+        root.target = target
+
         root.split_feature_index = 3
         root.split_feature_cut_val = 50
 
@@ -114,14 +133,15 @@ class TestDecisionTree(unittest.TestCase):
         del dtree
 
     def test_split_samples(self):
-        params = {"a": [1, 2, 3], "b": [8, 16, 32, 64, 256]}
-        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
-        target = [0.61, 0.55, 0.32, 0.91]
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        features = [1, 32, 1, 16]
+        target = 0.61
 
         dtree = DecisionTree(params, features, target)
-        root = dtree.get_tree()
 
-        left_f, left_t, right_f, right_t = dtree._split_samples(root.features, root.target, feature_idx=1, cut_val=48)
+        features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
+        target = np.array([0.61, 0.55, 0.32, 0.91])
+        left_f, left_t, right_f, right_t = dtree._split_samples(features, target, feature_idx=1, cut_val=48)
 
         left_features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [3, 32, 1, 8]])
         right_features = np.array([[2, 64, 2, 64]])
@@ -142,25 +162,69 @@ class TestDecisionTree(unittest.TestCase):
 
     def test_grow_tree_at_node(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
-        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
-        target = [0.61, 0.55, 0.32, 0.91]
-
+        features = [1, 32, 1, 16]
+        target = 0.61
         dtree = DecisionTree(params, features, target)
         root = dtree.get_tree()
+
+        root.features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
+        root.target = np.array([0.61, 0.55, 0.32, 0.91])
+        root.split_feature_index = 1
+        root.split_feature_cut_val = 48
+
         dtree._grow_tree_at_node(root)
         dtree.print_tree(root)
         del dtree
 
     def test_get_config_from_partition(self):
-        params = {"a": [1, 2, 3], "b": [8, 16, 32, 64, 256]}
-        features = [[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]]
-        target = [0.61, 0.55, 0.32, 0.91]
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        features = [1, 32, 1, 16]
+        target = 0.61
         dtree = DecisionTree(params, features, target)
         root = dtree.get_tree()
+
         c = dtree._get_config_from_partition(root)
         print(c)
         self.assertEqual(len(c), 2)
         self.assertEqual(len(c[0]), 2)
+
+        del dtree
+
+    def test_adapt_tree(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        features = [1, 32, 1, 16]
+        target = 0.61
+        dtree = DecisionTree(params, features, target)
+        root = dtree.get_tree()
+        dtree.last_sampled_node = root
+
+        self.assertEqual(len(root.features), 1)
+        self.assertEqual(len(root.target), 1)
+
+        dtree.adapt_tree(([1, 2, 3, 4], 0.54))
+        dtree.adapt_tree(([2, 2, 3, 1], 0.73))
+
+        self.assertEqual(len(root.features), 3)
+        self.assertEqual(len(root.target), 3)
+        del dtree
+
+    def test_get_possible_splits(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        features = [1, 32, 1, 16]
+        target = 0.61
+        dtree = DecisionTree(params, features, target)
+
+        f = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 3, 8]])
+
+        poss_splits = dtree._get_possible_splits(f, 1)
+        splits = np.array([(32 + 64) / 2])
+        self.assertTrue(len(poss_splits), 1)
+        self.assertTrue((poss_splits == splits).all())
+
+        poss_splits = dtree._get_possible_splits(f, 2)
+        splits = np.array([1.5, 2.5])
+        self.assertTrue(len(poss_splits), 2)
+        self.assertTrue((poss_splits == splits).all())
 
         del dtree
 
