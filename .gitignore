@@ -112,10 +112,12 @@ ENV/
 
 # IDE specific
 *.idea
-*.Rhistory
 
 # logs
 *.txt
 
 # MAC
 .DS_Store
+
+# folders
+runs/
