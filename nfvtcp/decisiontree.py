@@ -74,11 +74,10 @@ class Node:
         return upper / lower
 
     def _get_partition_size(self):
-        p = self.parameters
         res = 1
-        for dict in p:
-            for key in dict.keys():
-                res *= len(dict.get(key))
+        for vnf in self.parameters:
+            for key in vnf.keys():
+                res *= len(vnf.get(key))
 
         return res
 
@@ -146,6 +145,8 @@ class DecisionTree:
     Decision Tree Base Class.
     """
 
+    # Todo: asserts statt if then error?
+
     def __init__(self, parameters, feature, target, **kwargs):
         self.p = {"max_depth": ((2 ** 31) - 1),
                   "weight_size": 0.6,  # weight of the partition size
@@ -202,21 +203,21 @@ class DecisionTree:
         """
         Get the minimum/maximum parition size and error values.
         """
-        min_p = max_p = min_e = max_e = -1
-        for id in self.leaf_nodes:
-            curr_node = self.leaf_nodes[id]
-            if min_p == -1:
+        min_partition_size = max_partition_size = min_error = max_error = -1
+        for node_id in self.leaf_nodes:
+            curr_node = self.leaf_nodes[node_id]
+            if min_partition_size == -1:
                 # initialize boundaries
-                min_p = max_p = curr_node.partition_size
-                min_e = max_e = curr_node.error
+                min_partition_size = max_partition_size = curr_node.partition_size
+                min_error = max_error = curr_node.error
             else:
                 # update boundaries
-                min_p = min(min_p, curr_node.partition_size)
-                max_p = max(max_p, curr_node.partition_size)
-                min_e = min(min_e, curr_node.error)
-                max_e = max(max_e, curr_node.error)
+                min_partition_size = min(min_partition_size, curr_node.partition_size)
+                max_partition_size = max(max_partition_size, curr_node.partition_size)
+                min_error = min(min_error, curr_node.error)
+                max_error = max(max_error, curr_node.error)
 
-        return min_p, max_p, min_e, max_e
+        return min_partition_size, max_partition_size, min_error, max_error
 
     def _determine_node_to_sample(self):
         """
@@ -227,8 +228,8 @@ class DecisionTree:
         max_score = 0
         min_partition, max_partition, min_error, max_error = self._get_normalization_boundaries()
 
-        for id in self.leaf_nodes:
-            curr_node = self.leaf_nodes[id]
+        for node_id in self.leaf_nodes:
+            curr_node = self.leaf_nodes[node_id]
             curr_node.calculate_score(self.p.get("weight_size"), min_partition, max_partition, min_error, max_error)
             if curr_node.score > max_score or next_node is None:
                 next_node = curr_node
@@ -249,7 +250,8 @@ class DecisionTree:
         self._determine_best_split_of_node(node)
 
         if node.is_leaf_node() is True:
-            return  # node not splittable
+            LOG.info("It's not possible to split this node further.")
+            return
 
         self._split_node(node)
 
@@ -263,13 +265,14 @@ class DecisionTree:
         Error improvement, best feature and split value are set in the node object.
         """
         feature_count = node.features.shape[1]
-        feature_cols = list(range(feature_count))
+        included_features = list(range(feature_count))
 
         if self.p.get("max_features_split") < 1.0:
+            # only look at a percentage of the features
             reduced_count = int(feature_count * self.p.get("max_features_split"))
-            feature_cols = sample(range(0, feature_count - 1), reduced_count)
+            included_features = sample(range(0, feature_count - 1), reduced_count)
 
-        for col in feature_cols:
+        for col in included_features:
             cut, split_error = self._get_best_split_of_feature(node.features, node.target, col)
             if cut != -1 and split_error != -1:
                 error_improvement = node.error - split_error
@@ -305,6 +308,7 @@ class DecisionTree:
         """
         Returns a numpy array of the mean (midpoints) between values for a given array.
         """
+        # get unique feature value occurances
         feature_vals = np.unique(features[:, feature_idx])
         return (feature_vals[:-1] + feature_vals[1:]) / 2.0
 
@@ -408,13 +412,13 @@ class DecisionTree:
         """
         Randomly choose parameter values within the specified parameter thresholds.
         """
-        c = []
-        for dic in parameters:
-            vnf = {}
-            for param in dic.keys():
-                vnf[param] = choice(dic.get(param))
-            c.append(vnf)
-        return tuple(c)
+        sfc_config = []
+        for vnf in parameters:
+            vnf_config = {}
+            for param in vnf.keys():
+                vnf_config[param] = choice(vnf.get(param))
+            sfc_config.append(vnf_config)
+        return tuple(sfc_config)
 
     def select_next(self):
         """
@@ -434,22 +438,14 @@ class DecisionTree:
 
         :param sample: A tuple of a flat config and a target value.
         """
-        c, t = sample[0], sample[1]
+        config, performance = sample[0], sample[1]
 
         curr_node = self.last_sampled_node
-        curr_node.features = np.append(curr_node.features, [c], axis=0)
-        curr_node.target = np.append(curr_node.target, t)
+        curr_node.features = np.append(curr_node.features, [config], axis=0)
+        curr_node.target = np.append(curr_node.target, performance)
         curr_node.error = self._calculate_prediction_error(curr_node.target)
 
         self._grow_tree_at_node(curr_node)
-
-    def prune_tree(self):
-        """
-        Optional. Prune tree after selection process is complete to see if the Decision Tree model yields
-        better selections during tree construction compared to afterwards.
-        """
-        # Todo
-        pass
 
     def get_tree(self):
         """
@@ -478,7 +474,7 @@ class ObliqueDecisionTree(DecisionTree):
         """
         features = np.array([feature])
         target = np.array([target])
-        self.p_stag = 0.3 if self.p.get("p_stag") is None else self.p.get("p_stag")
+        self.stagnation_probability = 0.3 if self.p.get("p_stag") is None else self.p.get("p_stag")
 
         self._prepare_index_to_vnf_mapping(self.params_per_vnf)
 
@@ -502,9 +498,9 @@ class ObliqueDecisionTree(DecisionTree):
         sample_count, feature_count = node.features.shape
 
         # get feature index with lowest error and its corresponding tuple of cut value and its error
-        index, cut_val = self._get_feature_with_best_split(node.features, node.target)
+        feature_idx, cut_val = self._get_feature_with_best_split(node.features, node.target)
 
-        if index == -1 or cut_val == -1:
+        if feature_idx == -1 or cut_val == -1:
             node.split_improvement = 0
             node.split_vector = None
             LOG.info("It's not possible to split this node further.")
@@ -513,7 +509,7 @@ class ObliqueDecisionTree(DecisionTree):
         # initiate split_vector to enable the linear combination split, last elem is the cut value
         node.split_vector = np.zeros((feature_count + 1,))
         node.split_vector[-1] = cut_val
-        node.split_vector[index] = 1
+        node.split_vector[feature_idx] = 1
 
         # split partition by split vector
         left_f, right_f, left_t, right_t = self._split_samples(node.features, node.target,
@@ -526,7 +522,7 @@ class ObliqueDecisionTree(DecisionTree):
         node.split_improvement = max(node.split_improvement, (node.error - error_split))
 
         # perturb a random feature of the split vector 10 times
-        for c in range(10):
+        for i in range(10):
             feature_idx = randint(0, feature_count - 1)
             # updates node's split vector and error improvement to the vector with minimal error
             self._perturb_hyperplane_coefficients(node, feature_idx)
@@ -535,21 +531,21 @@ class ObliqueDecisionTree(DecisionTree):
         """
         Return the feature index with minimal error value and its split value.
         """
-        index = split = min_error = -1
+        feature_idx = split_val = min_error = -1
 
         feature_count = features.shape[1]
-        for col in range(feature_count):
-            cut, split_error = self._get_best_split_of_feature(features, target, col)
+        for index in range(feature_count):
+            cut, split_error = self._get_best_split_of_feature(features, target, index)
             # if there is a possible split and if it's the best split so far
             if split_error != -1 and (min_error == -1 or split_error < min_error):
                 min_error = split_error
-                index, split = col, cut
+                feature_idx, split_val = index, cut
 
-        return index, split
+        return feature_idx, split_val
 
     def _calculate_U_value(self, row, split_vector, feature_idx):
         """
-        Calculate U_j  values as in p.10 of Murthy.
+        Calculate U_j values of OC1 algorithm.
         """
         upper = split_vector[feature_idx] * row[feature_idx] - self._check_config_position(row, split_vector)
         if upper == 0:
@@ -585,7 +581,7 @@ class ObliqueDecisionTree(DecisionTree):
         if best_improvement > node.split_improvement:
             node.split_vector = best_split_vector
             node.split_improvement = node.error - min_error
-        elif best_improvement == node.split_improvement and random() < self.p_stag:
+        elif best_improvement == node.split_improvement and random() < self.stagnation_probability:
             # stagnation probability determines if hyperplane should still be perturbed
             node.split_vector = best_split_vector
 
@@ -675,16 +671,16 @@ class ObliqueDecisionTree(DecisionTree):
 
     def _get_config_from_partition(self, node):
         idx = np.random.randint(0, len(node.config_partition))
-        c_flat = node.config_partition[idx]
+        selected_config_flat = node.config_partition[idx]
 
-        c, i = [], 0
-        for dic in self.params_per_vnf:
-            vnf = {}
-            for param in dic:
-                vnf[param] = c_flat[i]
-                i += 1
-            c.append(vnf)
-        res = tuple(c)
+        sfc_config, feature_idx = [], 0
+        for vnf in self.params_per_vnf:
+            vnf_config = {}
+            for param in vnf:
+                vnf_config[param] = selected_config_flat[feature_idx]
+                feature_idx += 1
+            sfc_config.append(vnf_config)
+        res = tuple(sfc_config)
         LOG.debug("Selected config: ()".format(res))
         return res
 
