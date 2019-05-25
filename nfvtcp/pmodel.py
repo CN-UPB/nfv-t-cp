@@ -785,7 +785,8 @@ class NFVSDN17ExperimentMeasurements(SfcPerformanceModel):
 
 class RandomSyntheticModel3VNF3Params(SfcPerformanceModel):
     """
-    Randomized Performance Model with 4 VNFs
+    Randomized Performance Model with 3
+     VNFs
     - 3 parameters per VNF
     - f synthetic performance functions
     - topologies: d4 or l4
