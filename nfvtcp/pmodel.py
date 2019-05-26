@@ -789,7 +789,7 @@ class RandomSyntheticModel3VNF3Params(SfcPerformanceModel):
      VNFs
     - 3 parameters per VNF
     - f synthetic performance functions
-    - topologies: d4 or l4
+    - topologies: d3 or l3
     func. source: http://ieeexplore.ieee.org/document/8257924/
 
     Conf. Parameter:

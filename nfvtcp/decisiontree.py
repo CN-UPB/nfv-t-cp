@@ -250,7 +250,7 @@ class DecisionTree:
         self._determine_best_split_of_node(node)
 
         if node.is_leaf_node() is True:
-            LOG.info("It's not possible to split this node further.")
+            LOG.debug("It's not possible to split this node further.")
             return
 
         self._split_node(node)
@@ -319,11 +319,16 @@ class DecisionTree:
         error_left_partition = self._calculate_prediction_error(left_target)
         error_right_partition = self._calculate_prediction_error(right_target)
 
-        left_percentage = float(left_target.shape[0]) / sample_count
-        right_percentage = 1 - left_percentage
+        if left_target.shape[0] == 0:
+            return error_right_partition
+        elif right_target.shape[0] == 0:
+            return error_left_partition
+        else:
+            left_percentage = float(left_target.shape[0]) / sample_count
+            right_percentage = 1 - left_percentage
 
-        error_split = left_percentage * error_left_partition + right_percentage * error_right_partition
-        return error_split
+            error_split = left_percentage * error_left_partition + right_percentage * error_right_partition
+            return error_split
 
     def _split_node(self, node):
         """
@@ -390,6 +395,10 @@ class DecisionTree:
         """
         Calculate the error value of a given node according to homogeneity metric.
         """
+        if len(target) == 0:
+            LOG.debug("Calculating error for empty partition.")
+            return 0
+
         prediction = np.mean(target)
         if self.p.get("error_metric") == "mse":
             return np.mean((target - prediction) ** 2.0)
@@ -587,7 +596,7 @@ class ObliqueDecisionTree(DecisionTree):
 
     def _check_config_position(self, row, split_vector):
         """
-        Calculates V_j, the sign of the sample (Murthy et. al).
+        Calculates V_j of OC1 algorithm, the sign of the sample.
         Used to check if a configuration is above or below hyperplane.
         (split_vector[-1] is the cut value of the best feature split)
         """
