@@ -37,7 +37,7 @@ class TestNode(unittest.TestCase):
 
         del node
 
-    def test_calc_partition_size(self):
+    def test_calculate_partition_size(self):
         params = [{"a": [1, 2, 3], "b": [32]}, {"a": [1, 2], "b": [8]}]
 
         node = Node(params, None, None, 0, 0, 0)
@@ -48,7 +48,7 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node.partition_size, 4)
         del node
 
-    def test_calc_score(self):
+    def test_calculate_score(self):
         params = [{"a": [1, 2, 3], "b": [32]}, {"a": [1, 2], "b": [8]}]
 
         node = Node(params, None, None, 0, 0, 0)
@@ -58,6 +58,29 @@ class TestNode(unittest.TestCase):
         score = 0.5 * (0.25 - 0.1) / (0.8 - 0.1) + 0.5 * (6 - 4) / (1234 - 4)
 
         self.assertEqual(node.score, score)
+        del node
+
+    def test_normalize_val(self):
+        res = Node._normalize_val(1, 1, 3)
+        self.assertEqual(res, 0)
+
+        res = Node._normalize_val(2, 1, 3)
+        self.assertEqual(res, 0.5)
+
+        res = Node._normalize_val(3, 3, 3)
+        self.assertEqual(res, 0)
+
+    def test_is_leaf_node(self):
+        params = [{"a": [1, 2, 3], "b": [32, 64, 256]}, {"a": [1, 2], "b": [8, 16, 32, 64, 256]}]
+        features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
+        target = np.array([0.61, 0.55, 0.32, 0.91])
+        d = 4
+
+        node = Node(params, features, target, d, 0, 0)
+        self.assertEqual(node.is_leaf_node(), True)
+
+        node.split_feature_index = 3
+        self.assertEqual(node.is_leaf_node(), False)
         del node
 
 
@@ -80,7 +103,7 @@ class TestDecisionTree(unittest.TestCase):
         self.assertEqual(dtree._depth, 1)
         del dtree
 
-    def test_calc_new_params(self):
+    def test_calculate_new_params(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
         features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
         target = np.array([0.61, 0.55, 0.32, 0.91])

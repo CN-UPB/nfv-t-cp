@@ -182,6 +182,13 @@ class TestDecisionTreeSelector(unittest.TestCase):
         s._tree.print_tree(s._tree.get_tree())
         del s
 
+    def test_flatten_single_config(self):
+        s = self._new_DTS()
+        c = [{"p1": 1, "p2": 5}, {"p1": 2, "p2": 6}]
+        res = s._flatten_single_config(c)
+        self.assertListEqual(res, [1, 5, 2, 6])
+        del s
+
 
 if __name__ == '__main__':
     unittest.main()
