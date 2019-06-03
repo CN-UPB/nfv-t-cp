@@ -435,7 +435,7 @@ class DecisionTree:
         else:
             next_node = self._determine_node_to_sample()
             config = self._get_config_from_partition(next_node)
-        LOG.debug("Selected config: {}".format(config))
+        LOG.debug("Selected config: {} ({})".format(config, self.__class__.__name__))
         LOG.debug("Time for Selection: {}".format((time.time() - start)))
         return config
 
