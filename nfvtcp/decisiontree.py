@@ -22,12 +22,6 @@ from random import randint, random, choice, sample
 LOG = logging.getLogger(os.path.basename(__file__))
 
 
-def log_error(reason):
-    LOG.error(reason)
-    LOG.error("Exit programme!")
-    exit(1)
-
-
 class Node:
     """
     Base Class for Decision Tree Nodes.
@@ -61,11 +55,11 @@ class Node:
                                                                                                self.partition_size,
                                                                                                self.error, self.score)
 
-    def _normalize_val(self, val, min_val, max_val):
+    @staticmethod
+    def _normalize_val(val, min_val, max_val):
         """
         Used to normalize the partition size and error values of each node
         """
-        # TODO: case max_val == min_val? Nur ein leaf node, partition sizes are the same, error vals are the same
         upper, lower = (val - min_val), (max_val - min_val)
         if upper == 0:
             return 0
@@ -74,6 +68,7 @@ class Node:
         return upper / lower
 
     def _get_partition_size(self):
+        assert (self.parameters is not None)
         res = 1
         for vnf in self.parameters:
             for key in vnf.keys():
@@ -88,8 +83,8 @@ class Node:
         :param weight_size: determines the weight of the size of each partition compared to the error.
         """
         weight_error = 1 - weight_size
-        normalized_error = self._normalize_val(self.error, min_e, max_e)
-        normalized_size = self._normalize_val(self.partition_size, min_p, max_p)
+        normalized_error = Node._normalize_val(self.error, min_e, max_e)
+        normalized_size = Node._normalize_val(self.partition_size, min_p, max_p)
         self.score = weight_error * normalized_error + weight_size * normalized_size
 
     def is_leaf_node(self):
@@ -144,8 +139,6 @@ class DecisionTree:
     """
     Decision Tree Base Class.
     """
-
-    # Todo: asserts statt if then error?
 
     def __init__(self, parameters, feature, target, **kwargs):
         self.p = {"max_depth": ((2 ** 31) - 1),
@@ -368,7 +361,9 @@ class DecisionTree:
         Split Features and Targets according to Feature and its Cut Value.
         """
         if "feature_idx" not in kwargs or "cut_val" not in kwargs:
-            log_error("Can't split samples without feature and cut value.")
+            LOG.error("Can't split samples without feature and cut value.")
+            LOG.error("Exit programme!")
+            exit(1)
 
         feature_idx, cut_val = kwargs["feature_idx"], kwargs["cut_val"]
         left_f = features[features[:, feature_idx] <= cut_val]
@@ -405,7 +400,9 @@ class DecisionTree:
         elif self.p.get("error_metric") == "mae":
             return np.mean(np.absolute(target - prediction))
         else:
-            log_error("Error metric {} not supported for DecisionTree".format(self.p.get("error_metric")))
+            LOG.error("Error metric {} not supported for DecisionTree".format(self.p.get("error_metric")))
+            LOG.error("Exit programme!")
+            exit(1)
 
     def _get_config_from_partition(self, node):
         """
@@ -414,7 +411,7 @@ class DecisionTree:
         Config format should be: ({'c1': 1, 'c2': 1, 'c3': 1}, {'c1': 1, 'c2': 1, 'c3': 1})
         """
         res = self._reconstruct_random_config(node.parameters)
-        LOG.debug("Selected config: ()".format(res))
+        LOG.debug("Selected config: {}".format(res))
         return res
 
     def _reconstruct_random_config(self, parameters):
@@ -488,7 +485,9 @@ class ObliqueDecisionTree(DecisionTree):
         self._prepare_index_to_vnf_mapping(self.params_per_vnf)
 
         if self.p.get("config_space") is None:
-            log_error("Configuration Space needs to be specified for oblique tree.")
+            LOG.error("Configuration Space needs to be specified for oblique tree.")
+            LOG.error("Exit programme!")
+            exit(1)
 
         c_space = np.array(self.p.get("config_space"))
         err = self._calculate_prediction_error(target)
@@ -607,8 +606,7 @@ class ObliqueDecisionTree(DecisionTree):
         """
         Split Features and Targets according to split vector.
         """
-        if "split_vector" not in kwargs:
-            log_error("Can't split samples without split vector.")
+        assert ("split_vector" in kwargs)
 
         split_vector = kwargs["split_vector"]
         sample_count, feature_count = features.shape
@@ -690,7 +688,7 @@ class ObliqueDecisionTree(DecisionTree):
                 feature_idx += 1
             sfc_config.append(vnf_config)
         res = tuple(sfc_config)
-        LOG.debug("Selected config: ()".format(res))
+        LOG.debug("Selected config: {}".format(res))
         return res
 
     def print_tree(self, node: ONode, condition=""):

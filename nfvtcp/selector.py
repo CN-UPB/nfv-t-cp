@@ -999,13 +999,13 @@ class DecisionTreeSelector(Selector):
         idx = np.random.randint(0, len(self.pm_inputs))
         return self.pm_inputs[idx]
 
-    def _flatten_single_config(self, c):
+    def _flatten_single_config(self, config):
         """
         Flatten single configuration for DT.
         """
         res = []
-        for d in c:
-            res += d.values()
+        for vnf in config:
+            res += vnf.values()
         return res
 
     def feedback(self, c, r):
