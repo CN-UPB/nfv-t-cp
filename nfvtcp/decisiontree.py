@@ -17,6 +17,7 @@ limitations under the License.
 import logging
 import os
 import numpy as np
+import time
 from random import randint, random, choice, sample
 
 LOG = logging.getLogger(os.path.basename(__file__))
@@ -410,9 +411,7 @@ class DecisionTree:
 
         Config format should be: ({'c1': 1, 'c2': 1, 'c3': 1}, {'c1': 1, 'c2': 1, 'c3': 1})
         """
-        res = self._reconstruct_random_config(node.parameters)
-        LOG.debug("Selected config: {}".format(res))
-        return res
+        return self._reconstruct_random_config(node.parameters)
 
     def _reconstruct_random_config(self, parameters):
         """
@@ -430,11 +429,14 @@ class DecisionTree:
         """
         Return next configuration to be profiled.
         """
+        start = time.time()
         if self._root is None:
             config = self._reconstruct_random_config(self.params_per_vnf)
         else:
             next_node = self._determine_node_to_sample()
             config = self._get_config_from_partition(next_node)
+        LOG.debug("Selected config: {}".format(config))
+        LOG.debug("Time for Selection: {}".format((time.time() - start)))
         return config
 
     def adapt_tree(self, sample):
@@ -687,9 +689,7 @@ class ObliqueDecisionTree(DecisionTree):
                 vnf_config[param] = selected_config_flat[feature_idx]
                 feature_idx += 1
             sfc_config.append(vnf_config)
-        res = tuple(sfc_config)
-        LOG.debug("Selected config: {}".format(res))
-        return res
+        return tuple(sfc_config)
 
     def print_tree(self, node: ONode, condition=""):
         """
