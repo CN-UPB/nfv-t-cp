@@ -429,14 +429,14 @@ class DecisionTree:
         """
         Return next configuration to be profiled.
         """
-        start = time.time()
+        start_time = time.time()
         if self._root is None:
             config = self._reconstruct_random_config(self.params_per_vnf)
         else:
             next_node = self._determine_node_to_sample()
             config = self._get_config_from_partition(next_node)
-        LOG.debug("Selected config: {} ({})".format(config, self.__class__.__name__))
-        LOG.debug("Time for Selection: {}".format((time.time() - start)))
+        LOG.debug("Selected config: {}".format(config))
+        LOG.debug("Time for Selection: {} ({})".format((time.time() - start_time), self.__class__.__name__))
         return config
 
     def adapt_tree(self, sample):
@@ -453,7 +453,10 @@ class DecisionTree:
         curr_node.target = np.append(curr_node.target, performance)
         curr_node.error = self._calculate_prediction_error(curr_node.target)
 
+        start_time = time.time()
         self._grow_tree_at_node(curr_node)
+        LOG.debug("Time for Tree Adaption: {} ({})".format((time.time() - start_time), self.__class__.__name__))
+
 
     def get_tree(self):
         """
