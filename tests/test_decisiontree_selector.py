@@ -23,8 +23,6 @@ from nfvtcp.selector import DecisionTreeSelector
 from nfvtcp.pmodel import SfcPerformanceModel, VnfPerformanceModel, ExampleModel
 
 
-# Test Oblique Tree
-
 class PerformanceModel_4VNF(SfcPerformanceModel):
     """
     (s) - (v0) - (v1) - (v2) - (v3) - (t)
@@ -88,7 +86,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
     def _new_DTS(self, max_samples=60,
                  initial_samples=10,
                  max_depth=100,
-                 regression="default",
+                 split="default",
                  min_samples_split=4,
                  example=False):
 
@@ -96,7 +94,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
             max_samples=max_samples,
             initial_samples=initial_samples,
             max_depth=max_depth,
-            regression=regression,
+            split=split,
             min_samples_split=min_samples_split)
 
         if not example:
@@ -109,7 +107,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
         s = self._new_DTS()
         del s
 
-        s = self._new_DTS(regression="oblique")
+        s = self._new_DTS(split="oblique")
         del s
 
     def test_feedback(self):
@@ -128,7 +126,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
 
     def test_initialize_tree_oblique(self):
         # test with ExampleModel
-        s = self._new_DTS(regression="oblique", min_samples_split=6, example=True)
+        s = self._new_DTS(split="oblique", min_samples_split=6, example=True)
         self.assertTrue(s._tree is None)
 
         s._initialize_tree([1, 2, 64, 2], 0.75)
@@ -151,7 +149,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
         del s
 
     def test_next_oblique(self):
-        s = self._new_DTS(regression="oblique", min_samples_split=6, example=True)
+        s = self._new_DTS(split="oblique", min_samples_split=6, example=True)
         self.assertTrue(s._tree is None)
         self.assertEqual(s.k_samples, 0)
         for i in range(10):
@@ -165,7 +163,7 @@ class TestDecisionTreeSelector(unittest.TestCase):
         del s
 
     def test_print_tree_oblique(self):
-        s = self._new_DTS(regression="oblique", example=True)
+        s = self._new_DTS(split="oblique", example=True)
         for i in range(10):
             c = s._next()
             s.feedback(c, random.uniform(1, 10))

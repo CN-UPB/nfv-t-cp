@@ -17,7 +17,6 @@ limitations under the License.
 import unittest
 import numpy as np
 from nfvtcp.decisiontree import *
-from nfvtcp.helper import *
 
 
 class TestNode(unittest.TestCase):
@@ -88,17 +87,12 @@ class TestDecisionTree(unittest.TestCase):
 
     def test_initialize(self):
         params = {"a": [1, 2, 3], "b": [32, 64, 256]}
-        features = np.array([[1, 32, 1, 16], [1, 32, 1, 64], [2, 64, 2, 64], [3, 32, 1, 8]])
-        target = np.array([0.61, 0.55, 0.32, 0.91])
-
         dtree = DecisionTree(params, [1, 32, 1, 16], 0.61)
         root = dtree.get_tree()
-        root.features = features
-        root.target = target
 
         self.assertEqual(root.parameters, [dict(params), dict(params)])
-        self.assertTrue((root.features == features).all())
-        self.assertTrue((root.target == target).all())
+        self.assertTrue((root.features ==  np.array([[1, 32, 1, 16]])).all())
+        self.assertTrue((root.target == np.array([0.61])).all())
         self.assertEqual(dtree.vnf_count, 2)
         self.assertEqual(dtree._depth, 1)
         del dtree
@@ -251,10 +245,134 @@ class TestDecisionTree(unittest.TestCase):
 
         del dtree
 
+    def test_duplicate_parameters_for_vnfs(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        dtree = DecisionTree(params, [1, 32, 1, 16], 0.61)
+
+        duplicate_params = dtree._duplicate_parameters_for_vnfs()
+        self.assertListEqual(duplicate_params, [{"a": [1, 2, 3], "b": [32, 64, 256]}, {"a": [1, 2, 3], "b": [32, 64, 256]}])
+        del dtree
+
+    def test_prepare_index_to_vnf_mapping(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        dtree = DecisionTree(params, [1, 32, 1, 16], 0.61)
+        mapping = dtree.feature_idx_to_name
+        self.assertDictEqual(mapping, {0: (0, "a"), 1: (0, "b"), 2: (1, "a"), 3: (1, "b")})
+        del dtree
+
+    def test_reconstruct_random_config(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        dtree = DecisionTree(params, [1, 32, 1, 16], 0.61)
+        root = dtree.get_tree()
+        config = dtree._reconstruct_random_config(root.parameters)
+
+        self.assertEqual(len(config), 2)
+        self.assertTrue("a" in config[0] and "b" in config[0])
+        self.assertTrue(config[0]["a"] in [1, 2, 3] and config[0]["b"] in [32, 64, 256])
+        self.assertTrue("a" in config[1] and "b" in config[1])
+        self.assertTrue(config[1]["a"] in [1, 2, 3] and config[1]["b"] in [32, 64, 256])
+        del dtree
+
 
 class TestObliqueDecisionTree(unittest.TestCase):
-    # Todo
-    pass
+
+    def test_initialize(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        feature = [1, 64, 3, 256]
+        target = 0.61
+        c_space = [({"a": 1, "b": 64}, {"a": 3, "b": 256}),
+                   ({"a": 1, "b": 32}, {"a": 2, "b": 256}),
+                   ({"a": 1, "b": 64}, {"a": 3, "b": 32})]
+
+        dtree = ObliqueDecisionTree(params, feature, target, config_space=c_space)
+        root = dtree.get_tree()
+        f = np.array([feature])
+        t = np.array([target])
+
+        self.assertTrue((root.config_partition == c_space).all())
+        self.assertTrue((root.features == f).all())
+        self.assertTrue((root.target == t).all())
+        self.assertEqual(dtree.vnf_count, 2)
+        self.assertEqual(dtree._depth, 1)
+        del dtree
+
+    def test_check_config_position(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        feature = [1, 64, 3, 256]
+        target = 0.61
+        c_space = [({"a": 1, "b": 64}, {"a": 3, "b": 256}),
+                   ({"a": 1, "b": 32}, {"a": 2, "b": 256}),
+                   ({"a": 1, "b": 64}, {"a": 3, "b": 32})]
+
+        dtree = ObliqueDecisionTree(params, feature, target, config_space=c_space)
+        s_vector = np.array([1.5, 0, 0.5, 0, 2.5])
+        row_below = np.array([1, 64, 1, 256])
+        row_above = np.array([2, 64, 1, 256])
+
+        val = dtree._check_config_position(row_below, s_vector)
+        self.assertTrue(val < 0)
+
+        val = dtree._check_config_position(row_above, s_vector)
+        self.assertTrue(val > 0)
+
+        del dtree
+
+    def test_calculate_coefficient_constraint(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        feature = [1, 64, 3, 256]
+        target = 0.61
+        c_space = [({"a": 1, "b": 64}, {"a": 3, "b": 256}),
+                   ({"a": 1, "b": 32}, {"a": 2, "b": 256}),
+                   ({"a": 1, "b": 64}, {"a": 3, "b": 32})]
+
+        dtree = ObliqueDecisionTree(params, feature, target, config_space=c_space)
+        s_vector = np.array([1.5, 0, 0.5, 0, 2.5])
+        row_below = np.array([1, 64, 1, 256])
+        row_above = np.array([2, 64, 1, 256])
+
+        val = dtree._calculate_coefficient_constraint(row_below, s_vector, 0)
+        res = (1.5 + 0.5) / 1
+        self.assertEqual(val, res)
+
+        val = dtree._calculate_coefficient_constraint(row_above, s_vector, 0)
+        res = (1.5 * 2 - 1) / 2
+        self.assertEqual(val, res)
+
+        del dtree
+
+    def test_reconstruct_config(self):
+        params = {"a": [1, 2, 3], "b": [32, 64, 256]}
+        feature = [1, 64, 3, 256]
+        target = 0.61
+        c_space = [({"a": 1, "b": 64}, {"a": 3, "b": 256}),
+                   ({"a": 1, "b": 32}, {"a": 2, "b": 256})]
+
+        dtree = ObliqueDecisionTree(params, feature, target, config_space=c_space)
+        c = np.array([1, 256, 1, 64])
+        config = dtree._reconstruct_config(c)
+
+        self.assertEqual(len(config), 2)
+        self.assertDictEqual(config[0], {"a": 1, "b": 256})
+        self.assertDictEqual(config[1], {"a": 1, "b": 64})
+
+        del dtree
+
+    def test_split_config_space(self):
+        params = {"a": [1, 2, 3], "b": [1, 2, 3]}
+        feature = [1, 64, 3, 256]
+        target = 0.61
+        c_space = np.array([[1, 2, 3, 4], [1, 1, 2, 4], [1, 2, 3, 1], [2, 1, 1, 3]])
+        dtree = ObliqueDecisionTree(params, feature, target, config_space=c_space)
+
+        s_vector = np.array([1.5, 0, 0.5, 0, 2.5])
+        left_partition = np.array([[1, 1, 2, 4]])
+        right_partition = np.array([[1, 2, 3, 4],[1, 2, 3, 1],[2, 1, 1, 3]])
+
+        partition_below, partition_above = dtree._split_config_space(c_space, s_vector)
+        self.assertTrue((partition_below == left_partition).all())
+        self.assertTrue((partition_above == right_partition).all())
+
+        del dtree
 
 
 if __name__ == '__main__':

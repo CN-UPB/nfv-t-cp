@@ -934,19 +934,17 @@ class DecisionTreeSelector(Selector):
 
     def __init__(self, **kwargs):
         # apply default params
-        # should contain number of initial samples for DT construction
         p = {"max_samples": -1,
              "max_depth": ((2 ** 31) - 1),
-             "regression": 'default',
+             "split": 'default',
              "error_metric": 'mse',
-             "weight_size": 0.4,
-             "min_samples_split": 4,
+             "weight_size": 0.6,
+             "min_samples_split": 6,
              "max_features_split": 1.0}
 
         p.update(kwargs)
 
         # members
-        # parameter anc config set through Selector set_inputs, e.g. {'c1': [1,2,4,...], 'c2': ...}
         self.pm_inputs = list()  # = config space
         self.pm_parameter = dict()
         self.params = p
@@ -960,30 +958,29 @@ class DecisionTreeSelector(Selector):
         """
         Initialize Decision Tree model.
         """
-        regr = self.params.get("regression")
-        if regr == 'default':
+        splitter = self.params.get("split")
+        if splitter == 'default':
             self._tree = DecisionTree(self.pm_parameter, feature, target,
                                       max_depth=self.params.get("max_depth"),
                                       min_samples_split=self.params.get("min_samples_split"),
                                       max_features_split=self.params.get("max_features_split"),
                                       weight_size=self.params.get("weight_size"))
-        elif regr == 'oblique':
+        elif splitter == 'oblique':
             self._tree = ObliqueDecisionTree(self.pm_parameter, feature, target,
                                              config_space=flatten_conf(self.pm_inputs),
                                              max_depth=self.params.get("max_depth"),
                                              min_samples_split=self.params.get("min_samples_split"),
                                              weight_size=self.params.get("weight_size"))
         else:
-            LOG.error("DT Regression technique '{}‘ not supported.".format(regr))
+            LOG.error("DT splitting technique '{}‘ not supported.".format(splitter))
             LOG.error("Exit!")
             exit(1)
 
     def _next(self):
         """
-        Called in sim.py to simulate measurement.
-        Base class 'has_next' checks if max_samples were reached.
+        Called by Profiler until max_samples is reached.
 
-        :return: selected configuration
+        :return: Selected configuration.
         """
         if not self._tree:
             result = self._select_random_config()
@@ -994,7 +991,7 @@ class DecisionTreeSelector(Selector):
 
     def _select_random_config(self):
         """
-        Select initial config uniformly at random.
+        Select initial configuration uniformly at random.
         """
         idx = np.random.randint(0, len(self.pm_inputs))
         return self.pm_inputs[idx]
@@ -1011,7 +1008,7 @@ class DecisionTreeSelector(Selector):
     def feedback(self, c, r):
         """
         Inform selector about result for single configuration.
-        Flatten config and adapt tree to newest profiling result.
+        Flatten the configuration and adapt tree to newest profiling result.
         """
         f = self._flatten_single_config(c)
         if not self._tree:

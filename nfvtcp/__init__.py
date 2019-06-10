@@ -1,4 +1,5 @@
 """
+Copyright (c) 2019 Heidi Neuhäuser (Modifications)
 Copyright (c) 2017 Manuel Peuster
 ALL RIGHTS RESERVED.
 
