@@ -232,6 +232,9 @@ class DecisionTree:
         Determine which leaf node (and thus config partition) needs to be explored further.
         Done by returning leaf node with the highest score value.
         """
+        if self.node_count == 1:
+            return self._root
+
         next_node = None
         max_score = 0
         min_partition, max_partition, min_error, max_error = self._get_normalization_boundaries()
@@ -443,11 +446,10 @@ class DecisionTree:
         Return next configuration to be profiled.
         """
         start_time = time.time()
-        if self._root is None:
-            config = self._reconstruct_random_config(self.params_per_vnf)
-        else:
-            next_node = self._determine_node_to_sample()
-            config = self._get_config_from_partition(next_node)
+
+        next_node = self._determine_node_to_sample()
+        config = self._get_config_from_partition(next_node)
+
         LOG.debug("Selected config: {}".format(config))
         LOG.debug("Time for Selection: {} ({})".format((time.time() - start_time), self.__class__.__name__))
         return config
