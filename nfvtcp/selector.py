@@ -1,4 +1,5 @@
 """
+Copyright (c) 2019 Heidi Neuhäuser (Modifications)
 Copyright (c) 2017 Manuel Peuster
 ALL RIGHTS RESERVED.
 
@@ -25,7 +26,8 @@ import statistics
 import time
 import collections
 from nfvtcp.config import expand_parameters
-from nfvtcp.helper import dict_to_short_str, compress_keys
+from nfvtcp.helper import dict_to_short_str, compress_keys, flatten_conf
+from nfvtcp.decisiontree import DecisionTree, ObliqueDecisionTree
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
@@ -49,6 +51,8 @@ def get_by_name(name):
         return WeightedVnfSelector
     if name == "WeightedRandomizedVnfSelector":
         return WeightedRandomizedVnfSelector
+    if name == "DecisionTreeSelector":
+        return DecisionTreeSelector
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -87,7 +91,7 @@ class Selector(object):
         r = self._reinitialize(repetition_id)
         self.selector_time_reinit_sum += (time.time() - t_start)
         return r
-        
+
     def _reinitialize(self, repetition_id):
         """
         Called once for each experiment repetition.
@@ -244,6 +248,7 @@ class UniformGridSelectorRandomOffset(UniformGridSelector):
     """
     Same as UniformGridSelector but with random grid offset enabled.
     """
+
     def __init__(self, **kwargs):
         # change config of base selector
         kwargs["random_offset"] = True
@@ -255,6 +260,7 @@ class UniformGridSelectorRandomStepBias(UniformGridSelector):
     Same as UniformGridSelector but with random bias that
     influences step size.
     """
+
     def __init__(self, **kwargs):
         # change config of base selector
         kwargs["step_bias"] = True
@@ -274,6 +280,7 @@ class UniformGridSelectorIncrementalOffset(UniformGridSelector):
     """
     Same as UniformGridSelector but with incremental grid offset enabled.
     """
+
     def __init__(self, **kwargs):
         # change config of base selector
         kwargs["incremental_offset"] = True
@@ -303,16 +310,16 @@ class HyperGridSelector(Selector):
         if n > len(lst):
             n = len(lst)
         if n == 1:
-            return [lst[int(len(lst)/2)]]
+            return [lst[int(len(lst) / 2)]]
         elif n > 1:  # first last and mid elements
-            return [lst[int(idx)] for idx in np.linspace(0, len(lst)-1, n)]
+            return [lst[int(idx)] for idx in np.linspace(0, len(lst) - 1, n)]
         return []  # n==0
 
     def _calculate_grid(self):
         m_parameters = len(self.pm_parameter)
         n_vnfs = len(self.pm_inputs[0])
         # samples per feature
-        spf = self.params.get("max_samples")**(1/float(n_vnfs * m_parameters))
+        spf = self.params.get("max_samples") ** (1 / float(n_vnfs * m_parameters))
         # compute reduced parameter set
         reduced_parameters = dict()
         for pk, pv in self.pm_parameter.items():
@@ -323,13 +330,13 @@ class HyperGridSelector(Selector):
             modified_parameter=reduced_parameters, no_cache=True)
         # adapt grid to max_samples
         self.csr = [cs[int(idx)]
-                    for idx in np.linspace(0, len(cs)-1,
+                    for idx in np.linspace(0, len(cs) - 1,
                                            self.params.get("max_samples"))]
         return self.csr
 
     def set_inputs(self, pm_inputs, pm_parameter):
         super().set_inputs(pm_inputs, pm_parameter)
-        assert(len(self.pm_inputs) > 0)
+        assert (len(self.pm_inputs) > 0)
         self._calculate_grid()
 
     def _next(self):
@@ -435,11 +442,11 @@ class PanicGreedyAdaptiveSelector(Selector):
             for vnf_c in c:
                 # add point if at least one component is min/max
                 if (PanicGreedyAdaptiveSelector.
-                    _conf_one_or_more_components_equal(
-                        vnf_c, min_parameter)
+                        _conf_one_or_more_components_equal(
+                    vnf_c, min_parameter)
                         or PanicGreedyAdaptiveSelector.
-                    _conf_one_or_more_components_equal(
-                        vnf_c, min_parameter)):
+                                _conf_one_or_more_components_equal(
+                            vnf_c, min_parameter)):
                     # always add complete configuration to result
                     # if it has at least one border point
                     border_points.append(c)
@@ -515,8 +522,8 @@ class PanicGreedyAdaptiveSelector(Selector):
         # initially select border points if not yet done
         if self._border_points is None:
             self._border_points = PanicGreedyAdaptiveSelector. \
-                                  _calc_border_points(self.pm_parameter,
-                                                      self.pm_inputs)
+                _calc_border_points(self.pm_parameter,
+                                    self.pm_inputs)
         # PANIC algorithm (see paper)
         if self.k_samples < self.params.get("max_border_points"):
             # select (randomly) border points until "max_border_points"
@@ -526,8 +533,8 @@ class PanicGreedyAdaptiveSelector(Selector):
                       .format(result))
         else:
             # adaptively select next point based on previous measurements
-            assert(len(self._previous_samples)
-                   >= self.params.get("max_border_points"))
+            assert (len(self._previous_samples)
+                    >= self.params.get("max_border_points"))
             max_distance = -1
             for t1 in self._previous_samples:
                 for t2 in self._previous_samples:
@@ -560,11 +567,11 @@ class PanicGreedyAdaptiveSelector(Selector):
                         result = a
             LOG.warning("PANIC selector got stuck."
                         + " Re-using configurations after {} samples.".format(
-                            len(self._previous_samples)
-                        ))
+                len(self._previous_samples)
+            ))
             LOG.debug("Return mid point: {}"
                       .format(result))
-            
+
         self.k_samples += 1
         return result
 
@@ -690,9 +697,9 @@ class WeightedVnfSelector(Selector):
                 LOG.warning("Expanding PANIC's border point list from {} to {}"
                             .format(len(panic_bp_lst), n_points[mode]))
                 panic_bp_lst = panic_bp_lst * (
-                    1 + int(n_points[mode] / len(panic_bp_lst)))
+                        1 + int(n_points[mode] / len(panic_bp_lst)))
             # LOG.warning(panic_bp_lst)
-            assert(len(panic_bp_lst) >= n_points[mode])
+            assert (len(panic_bp_lst) >= n_points[mode])
             return random.sample(panic_bp_lst, n_points[mode])
         return list()
 
@@ -721,9 +728,9 @@ class WeightedVnfSelector(Selector):
         samples = self._previous_samples
         # input validation
         if mode == 0 or mode == 1:
-            assert(len(samples) == n_vnfs + 1)
+            assert (len(samples) == n_vnfs + 1)
         elif mode == 2:
-            assert(len(samples) == 2 * n_vnfs + 2)
+            assert (len(samples) == 2 * n_vnfs + 2)
         else:  # TODO implement mode 3
             return []
         # calculate distances
@@ -744,7 +751,7 @@ class WeightedVnfSelector(Selector):
         if sum(dists) == 0:  # should not happen
             LOG.debug("WVS: All distances have been 0!")
             return dists
-        norm = [d/sum(dists) for d in dists]
+        norm = [d / sum(dists) for d in dists]
         LOG.debug("WVS: Calculated weights: {}".format(norm))
         return norm
 
@@ -865,7 +872,7 @@ class WeightedRandomizedVnfSelector(WeightedVnfSelector):
         Return VNF index randomly considering the weights of the VNF.
         Needs to know mode to return right idxs if len(weights) is
         bigger than len(vnf) e.g. in mode == 2.
-        """            
+        """
         # compute CDF
         weight_cdf = self._compute_cdf(weights)
         # randomly pick [0, sum(weights)]
@@ -883,7 +890,7 @@ class WeightedRandomizedVnfSelector(WeightedVnfSelector):
             LOG.warning(
                 "WRVS: Weights are 0.0. Picking VNF uniformly at random.")
             idx = random.randint(0, len(weights) - 1)
-        assert(idx >= 0)
+        assert (idx >= 0)
         # fit index for special case (mode 2)
         if mode == 2:
             idx = idx % int(len(weights) / 2)
@@ -918,3 +925,93 @@ class WeightedRandomizedVnfSelector(WeightedVnfSelector):
         # return and increase sample count
         self.k_samples += 1
         return result
+
+
+class DecisionTreeSelector(Selector):
+    """
+    Adaptive DT-based Selector.
+    """
+
+    def __init__(self, **kwargs):
+        # apply default params
+        p = {"max_samples": -1,
+             "max_depth": ((2 ** 31) - 1),
+             "split": 'default',
+             "error_metric": 'mse',
+             "weight_size": 0.6,
+             "min_samples_split": 6,
+             "max_features_split": 1.0}
+
+        p.update(kwargs)
+
+        # members
+        self.pm_inputs = list()  # = config space
+        self.pm_parameter = dict()
+        self.params = p
+        self.k_samples = 0
+        self.selector_time_next_sum = 0
+        self.selector_time_reinit_sum = 0
+        self._tree = None
+        LOG.debug("Initialized selector: {}".format(self))
+
+    def _initialize_tree(self, feature, target):
+        """
+        Initialize Decision Tree model.
+        """
+        splitter = self.params.get("split")
+        if splitter == 'default':
+            self._tree = DecisionTree(self.pm_parameter, feature, target,
+                                      max_depth=self.params.get("max_depth"),
+                                      min_samples_split=self.params.get("min_samples_split"),
+                                      max_features_split=self.params.get("max_features_split"),
+                                      weight_size=self.params.get("weight_size"))
+        elif splitter == 'oblique':
+            self._tree = ObliqueDecisionTree(self.pm_parameter, feature, target,
+                                             config_space=flatten_conf(self.pm_inputs),
+                                             max_depth=self.params.get("max_depth"),
+                                             min_samples_split=self.params.get("min_samples_split"),
+                                             weight_size=self.params.get("weight_size"))
+        else:
+            LOG.error("DT splitting technique '{}‘ not supported.".format(splitter))
+            LOG.error("Exit!")
+            exit(1)
+
+    def _next(self):
+        """
+        Called by Profiler until max_samples is reached.
+
+        :return: Selected configuration.
+        """
+        if not self._tree:
+            result = self._select_random_config()
+        else:
+            result = self._tree.select_next()
+        self.k_samples += 1
+        return result
+
+    def _select_random_config(self):
+        """
+        Select initial configuration uniformly at random.
+        """
+        idx = np.random.randint(0, len(self.pm_inputs))
+        return self.pm_inputs[idx]
+
+    def _flatten_single_config(self, config):
+        """
+        Flatten single configuration for DT.
+        """
+        res = []
+        for vnf in config:
+            res += vnf.values()
+        return res
+
+    def feedback(self, c, r):
+        """
+        Inform selector about result for single configuration.
+        Flatten the configuration and adapt tree to newest profiling result.
+        """
+        f = self._flatten_single_config(c)
+        if not self._tree:
+            self._initialize_tree(f, r)
+        else:
+            self._tree.adapt_tree((f, r))

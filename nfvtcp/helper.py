@@ -1,4 +1,5 @@
 """
+Copyright (c) 2019 Heidi Neuhäuser (Modifications)
 Copyright (c) 2017 Manuel Peuster
 ALL RIGHTS RESERVED.
 
@@ -44,6 +45,13 @@ def cartesian_product(p_dict):
 
 
 def flatten_conf(cl):
+    """
+    Takes configuration space and returns list of dictionary values for each config.
+    In:
+        [({"a": 1, "b": 1}, {"a": 2, "b": 1}), ({"a": 2, "b": 2}, {"a": 3, "b": 1})]
+    Out:
+        [[1, 1, 2, 1], [2, 2, 3, 1]]
+    """
     r = list()
     for ct in cl:
         tmp = list()

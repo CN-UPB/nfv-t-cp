@@ -1,4 +1,5 @@
 """
+Copyright (c) 2019 Heidi Neuhäuser (Modifications)
 Copyright (c) 2017 Manuel Peuster
 ALL RIGHTS RESERVED.
 
@@ -28,7 +29,6 @@ from nfvtcp.helper import cartesian_product
 
 LOG = logging.getLogger(os.path.basename(__file__))
 
-
 # global cache vars
 CACHE_C_SPACE = dict()  # model -> cache
 
@@ -50,6 +50,8 @@ def get_by_name(name):
         return RandomSyntheticModel
     if name == "NFVSDN17ExperimentMeasurements":
         return NFVSDN17ExperimentMeasurements
+    if name == "RandomSyntheticModel3VNF3Params":
+        return RandomSyntheticModel3VNF3Params
     raise NotImplementedError("'{}' not implemented".format(name))
 
 
@@ -134,7 +136,7 @@ class SfcPerformanceModel(object):
         LOG.info("Initialized performance model: '{}' with {} VNFs ...".format(
             self, len(self.vnfs)))
         LOG.info("\t ... the SFC graph has {} nodes and {} edges ...".format(
-            len(self.sfc_graph.nodes()),  len(self.sfc_graph.edges())))
+            len(self.sfc_graph.nodes()), len(self.sfc_graph.edges())))
         LOG.info("\t ... each VNF has {} possible configurations ...".format(
             len(self.get_conf_space_vnf())))
         LOG.info("\t ... the SFC has {} possible configurations.".format(
@@ -209,7 +211,8 @@ class SfcPerformanceModel(object):
         # config space for one VNF
         cf = self.get_conf_space_vnf(modified_parameter)
         # config space for n VNFs in the SFC
-        cs = list(it.product(cf, repeat=len(self._get_vnfs_from_sg())))
+        nvf_obj = self._get_vnfs_from_sg()
+        cs = list(it.product(cf, repeat=len(nvf_obj)))
         if no_cache is False:
             CACHE_C_SPACE[self.name] = cs
         return cs
@@ -540,29 +543,30 @@ class RandomSyntheticModel(SfcPerformanceModel):
     - a1_range = [0.1, 2.0]
     - func_set = [1, 2, 3, 4, 5, 6, 7, 8]  (or a subset of these)
     """
+
     @classmethod
     def grf(cls, conf):
         """
         Get Random Function
         """
         # prepare synthetic func. generation
-        assert(conf is not None)
-        assert("a1_range" in conf)
-        assert("func_set" in conf)
+        assert (conf is not None)
+        assert ("a1_range" in conf)
+        assert ("func_set" in conf)
         # randomly set global coefficient(s)
         a1 = random.uniform(
             conf.get("a1_range")[0],
             conf.get("a1_range")[1])
         fnum = random.choice(conf.get("func_set"))
-        assert(fnum >= 1 and fnum <= 8)
+        assert (fnum >= 1 and fnum <= 8)
         LOG.debug("Selected synthetic function no. {}".format(fnum))
 
         # synthetic functions
         def f1(x):
-            return a1*x
+            return a1 * x
 
         def f2(x):
-            return a1*x**2
+            return a1 * x ** 2
 
         def f3(x):
             return math.exp(f1(x))
@@ -571,7 +575,7 @@ class RandomSyntheticModel(SfcPerformanceModel):
             return math.exp(abs(f1(x)))
 
         def f5(x):
-            return math.exp(-(f1(x)**2))
+            return math.exp(-(f1(x) ** 2))
 
         def f6(x):
             return math.exp(-(f2(x)))
@@ -610,12 +614,12 @@ class RandomSyntheticModel(SfcPerformanceModel):
         """
         return topology_layout (l/d), no.VNFs
         """
-        assert(len(tn) > 1)
+        assert (len(tn) > 1)
         return str(tn[0]), int(tn[1])
 
     @classmethod
     def generate_vnfs(cls, conf, **kwargs):
-        assert(conf.get("topology") is not None)
+        assert (conf.get("topology") is not None)
         # define parameters
         # dict of lists defining possible configuration parameters
         # use normalized inputs for now
@@ -636,7 +640,7 @@ class RandomSyntheticModel(SfcPerformanceModel):
 
     @classmethod
     def generate_sfc_graph(cls, conf, vnfs, **kwargs):
-        assert(conf.get("topology") is not None)
+        assert (conf.get("topology") is not None)
         topology, n_vnfs = cls.parse_topology_name(conf.get("topology"))
         # create a directed graph
         G = nx.DiGraph()
@@ -702,7 +706,7 @@ class NFVSDN17ExperimentMeasurements(SfcPerformanceModel):
 
     @classmethod
     def generate_vnfs(cls, conf, **kwargs):
-        assert(conf.get("topology") is not None)
+        assert (conf.get("topology") is not None)
         # define parameters
         # dict of lists defining possible configuration parameters
         p = {"p1": [0.16, 0.32, 0.64]}
@@ -764,7 +768,7 @@ class NFVSDN17ExperimentMeasurements(SfcPerformanceModel):
                       & (df["vnf2cpu"] == config[1]["p1"])
                       & (df["vnf3cpu"] == config[2]["p1"])]
         candidate_results = list(selected["throughput_kbyte_per_second"])
-        assert(len(candidate_results) > 0)
+        assert (len(candidate_results) > 0)
         # randomly return one of the candidate results
         return random.choice(candidate_results)
 
@@ -777,3 +781,125 @@ class NFVSDN17ExperimentMeasurements(SfcPerformanceModel):
         r = self._lookup(self.conf.get("topology"), c)
         LOG.debug("\t... result: {} kbyte/s".format(r))
         return r
+
+
+class RandomSyntheticModel3VNF3Params(SfcPerformanceModel):
+    """
+    Randomized Performance Model with 3
+     VNFs
+    - 3 parameters per VNF
+    - f synthetic performance functions
+    - topologies: d3 or l3
+    func. source: http://ieeexplore.ieee.org/document/8257924/
+
+    Conf. Parameter:
+    - a1_range = [0.1, 2.0]
+    - func_set = [1, 2, 3, 4, 5, 6, 7, 8]  (or a subset of these)
+    """
+
+    @classmethod
+    def grf(cls, conf):
+        """
+        Get Random Function
+        """
+        # prepare synthetic func. generation
+        assert (conf is not None)
+        assert ("a1_range" in conf)
+        assert ("func_set" in conf)
+        # randomly set global coefficient(s)
+        a1 = random.uniform(
+            conf.get("a1_range")[0],
+            conf.get("a1_range")[1])
+        fnum = random.choice(conf.get("func_set"))
+        assert (1 <= fnum <= 8)
+        LOG.debug("Selected synthetic function no. {}".format(fnum))
+
+        # synthetic functions
+        def f1(x):
+            return a1 * x
+
+        def f2(x):
+            return a1 * x ** 2
+
+        def f3(x):
+            return math.exp(f1(x))
+
+        def f4(x):
+            return math.exp(abs(f1(x)))
+
+        def f5(x):
+            return math.exp(-(f1(x) ** 2))
+
+        def f6(x):
+            return math.exp(-(f2(x)))
+
+        def f7(x):
+            return math.cos(f1(x)) * f3(x)
+
+        def f8(x):
+            return f2(x) * f6(x)
+
+        functions = [f1, f2, f3, f4, f5, f6, f7, f8]
+        if fnum not in set(range(1, 9)):
+            raise BaseException("Function not found!")
+        return functions[fnum - 1]
+
+    @classmethod
+    def parse_topology_name(cls, tn):
+        """
+        return topology_layout (l/d), no.VNFs
+        """
+        assert (len(tn) > 1)
+        return str(tn[0]), int(tn[1])
+
+    @classmethod
+    def generate_vnfs(cls, conf, **kwargs):
+        assert (conf.get("topology") is not None)
+        # define parameters
+        # dict of lists defining possible configuration parameters
+        p = {"p1": list(np.linspace(0.0, 1.0, num=5)),
+             "p2": list(np.linspace(0.0, 1.0, num=5)),
+             "p3": list(np.linspace(0.0, 1.0, num=5))}
+
+        _, n_vnfs = cls.parse_topology_name(conf.get("topology"))
+        assert (n_vnfs == 3)
+        LOG.debug("Generating PModel({}) with {} VNFs".format(
+            conf.get("topology"), n_vnfs))
+
+        # REQUIREMENT: vnf_ids of objects == idx in list
+        fn = cls.grf(conf)
+        vnf0 = VnfPerformanceModel(0, "vnf_0", p,
+                                   lambda c: fn(c["p1"] * 8.0 + c["p2"] * 1.5 + c["p3"] * 0.5))
+        fn = cls.grf(conf)
+        vnf1 = VnfPerformanceModel(1, "vnf_1", p,
+                                   lambda c: fn(c["p1"] ** 2 + c["p2"]))
+        fn = cls.grf(conf)
+        vnf2 = VnfPerformanceModel(2, "vnf_2", p,
+                                   lambda c: fn(c["p1"] + c["p2"] + c["p3"]))
+
+        vnf_lst = [vnf0, vnf1, vnf2]
+        # return parameters, list of vnfs
+        return p, vnf_lst
+
+    @classmethod
+    def generate_sfc_graph(cls, conf, vnfs, **kwargs):
+        assert (conf.get("topology") is not None)
+        topology, n_vnfs = cls.parse_topology_name(conf.get("topology"))
+        assert (n_vnfs == 3)
+        # create a directed graph
+        G = nx.DiGraph()
+        # add nodes and assign VNF objects
+        for i in range(0, n_vnfs):
+            G.add_node(i, vnf=vnfs[i])
+        G.add_node("s", vnf=None)
+        G.add_node("t", vnf=None)
+
+        if topology == "l":
+            # linear topology
+            G.add_edges_from([("s", 0), (0, 1), (1, 2), (2, 3), (3, "t")])
+        elif topology == "d":
+            # diamond topology
+            G.add_edges_from([("s", 0), (0, 1), (0, 2), (1, 3), (2, 3), (3, "t")])
+        else:
+            raise BaseException("Topology unknown!")
+        return G

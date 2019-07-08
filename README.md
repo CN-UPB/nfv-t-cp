@@ -4,7 +4,7 @@
 
 NFV time-constrained performance profiling (T-CP) framework.
 
-This framework can be used to build NFV profiling systems that profile single VNFs or complex SFC under a given time constrained. The framework can be either connected to a real-world profiling platform or it can be fed with existing profiling results to perform trace-based T-CP runs independently of a connected profiling platform.
+This framework can be used to build NFV profiling systems that profile single VNFs or complex SFC under a given time constraint. The framework can be either connected to a real-world profiling platform or it can be fed with existing profiling results to perform trace-based T-CP runs independently of a connected profiling platform.
 
 ## Contact
 

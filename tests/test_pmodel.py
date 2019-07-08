@@ -1,4 +1,5 @@
 """
+Copyright (c) 2019 Heidi Neuhäuser (Modifications)
 Copyright (c) 2018 Manuel Peuster
 ALL RIGHTS RESERVED.
 
@@ -18,7 +19,7 @@ Manuel Peuster, Paderborn University, manuel@peuster.de
 """
 import unittest
 import random
-from nfvtcp.pmodel import RandomSyntheticModel
+from nfvtcp.pmodel import RandomSyntheticModel, RandomSyntheticModel3VNF3Params
 
 
 class TestRandomSyntheticModel(unittest.TestCase):
@@ -98,3 +99,39 @@ class TestRandomSyntheticModel(unittest.TestCase):
         self.assertEqual(m_lst[0].parse_topology_name("l7"), ("l", 7))
         self.assertEqual(m_lst[0].parse_topology_name("d1a"), ("d", 1))
         self.assertEqual(m_lst[0].parse_topology_name("d1b"), ("d", 1))
+
+
+class TestRandomSyntheticModel3VNF3Params(unittest.TestCase):
+
+    def test_initialize(self):
+        conf = {
+            "a1_range": [0.1, 2.0],
+            "func_set": [1, 2, 3, 4, 5, 6, 7, 8],
+            "topologies": ["d3"]
+        }
+        m_lst = RandomSyntheticModel3VNF3Params.generate(conf)
+        self.assertEqual(len(m_lst), 1)
+
+    def test_vnf_eval(self):
+        conf = {
+            "a1_range": [0.1, 2.0],
+            "func_set": [1, 2, 3, 4, 5, 6, 7, 8],
+            "topologies": ["d3"]
+        }
+        m_lst = RandomSyntheticModel3VNF3Params.generate(conf)
+        for m in m_lst:
+            for v in m.vnfs:
+                v.evaluate({"p1": random.random(), "p2": random.random(), "p3": random.random()})
+
+    def test_vnf_func_set(self):
+        conf = {
+            "a1_range": [1.0, 1.0],
+            "func_set": [2],
+            "topologies": ["d3"]
+        }
+        m_lst = RandomSyntheticModel3VNF3Params.generate(conf)
+        for m in m_lst:
+            r = m.vnfs[0].evaluate({"p1": 0.5, "p2": 0.5, "p3": 0.5})
+            self.assertEqual(r, 25.0)
+
+
