@@ -21,13 +21,13 @@ The datasets used by and generated with this tool are publicly available. If you
 
 * [Peuster2017] M. Peuster and H. Karl: [**Profile Your Chains, Not Functions: Automated Network Service Profiling in DevOps Environments**](https://ieeexplore.ieee.org/document/8169826/). IEEE Conference on Network Function Virtualization and Software Defined Networks (NFV-SDN), Berlin, Germany. (2017)
 
-* TODO add reference to T-CP paper
+* [Peuster2018] M. Peuster, H. Karl: [**Understand your chains and keep your deadlines: Introducing time-constrained profiling for NFV**](https://ris.uni-paderborn.de/record/6016). In IEEE/IFIP 14th International Conference on Network and Service Management (CNSM), Rome, Italy. (2018)
 
 The results are Pandas data frames exported as CSV files and are available in [this Amazon Cloud folder](https://amzn.to/2rI6GXB).
 
-* [peuster_karl_ieeenfvsdn17_3vnf_sfc_profiling_measurements_clean.csv](https://amzn.to/2rI6GXB) (100.2 KB): Cleaned up RAW measurements of a SFC with three layer 4 forwarding VNFs as presented in [Peuster2017].
-* [2018-04-26-experiment_tc_paper_synthetic_all.combined.csv](https://amzn.to/2rI6GXB) (5.81 GB!): T-CP system  evaluation (e.g. different selector and predictor algorithms) using our randomized synthetic SFC-UT performance model.
-* [2018-04-26-experiment_tc_paper_nfvsdn17_measurements.combined.csv](https://amzn.to/2rI6GXB) (6.00 GB!): T-CP system  evaluation (e.g. different selector and predictor algorithms) using real-world SFC performance measurements.
+* [peuster_karl_ieeenfvsdn17_3vnf_sfc_profiling_measurements_clean.csv](https://1drv.ms/u/s!AnmoFTwaiiHYhHPTBUcjpK6DsBY8?e=Dwc1aj) (100.2 KB): Cleaned up RAW measurements of a SFC with three layer 4 forwarding VNFs as presented in [Peuster2017].
+* [2018-04-26-experiment_tc_paper_synthetic_all.combined.csv](https://1drv.ms/u/s!AnmoFTwaiiHYhH9yuDR17h3_pgLa?e=hOgboe) (5.81 GB!): T-CP system  evaluation (e.g. different selector and predictor algorithms) using our randomized synthetic SFC-UT performance model.
+* [2018-04-26-experiment_tc_paper_nfvsdn17_measurements.combined.csv](https://1drv.ms/u/s!AnmoFTwaiiHYhQUka5Mp_fht_UYH?e=rhiguA) (6.00 GB!): T-CP system  evaluation (e.g. different selector and predictor algorithms) using real-world SFC performance measurements.
 
 
 ## Installation
